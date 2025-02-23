@@ -41,6 +41,10 @@ func NotesRootDir() (string, error) {
 	appName, _ := ModuleName()
 	notesDir := Home + "/." + appName
 
+	if _, err := os.Stat(notesDir); err != nil {
+		os.Mkdir(notesDir, 0755)
+	}
+
 	return notesDir, nil
 }
 
@@ -64,7 +68,13 @@ func ConfigDir() (string, error) {
 		return "", err
 	}
 
-	return ConfigDir + "/" + appName, nil
+	confDir := ConfigDir + "/" + appName
+
+	if _, err := os.Stat(confDir); err != nil {
+		os.Mkdir(confDir, 0755)
+	}
+
+	return confDir, nil
 }
 
 func ConfigFile() (string, error) {
