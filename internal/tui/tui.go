@@ -9,6 +9,16 @@ import (
 	bl "github.com/winder/bubblelayout"
 )
 
+type directoryTree struct {
+	focused bool
+	content *tree.Tree
+}
+
+type notesList struct {
+	focused bool
+	content string
+}
+
 type model struct {
 	layout bl.BubbleLayout
 
@@ -20,14 +30,22 @@ type model struct {
 	notesListSize bl.Size
 	editorSize    bl.Size
 
-	dirTree *tree.Tree
 	textarea textarea.Model
+	directoryTree
+	notesList
 }
 
 func InitialModel() model {
 	m := model{
 		layout: bl.New(),
-		dirTree: directoryTree(),
+		directoryTree: directoryTree{
+			focused: true,
+			content: getDirectoryTree(),
+		},
+		notesList: notesList{
+			focused: false,
+			content: "",
+		},
 	}
 
 	m.dirTreeID = m.layout.Add("width 30")
@@ -44,7 +62,6 @@ func (m model) Init() tea.Cmd {
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	tea.EnterAltScreen()
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
@@ -68,9 +85,15 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
-func baseColumnLayout(size bl.Size) lipgloss.Style {
+func baseColumnLayout(size bl.Size, focused bool) lipgloss.Style {
+	borderColour := "#eee"
+	if focused {
+		borderColour = "#69c8dc"
+	}
+
 	return lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color(borderColour)).
 		Foreground(lipgloss.Color("#eee")).
 		Width(size.Width).
 		Height(size.Height-2)
@@ -81,8 +104,13 @@ func (m model) View() string {
 	t.Placeholder = "asdasd"
 	t.Focus()
 	return lipgloss.JoinHorizontal(0,
-		baseColumnLayout(m.dirTreeSize).Align(lipgloss.Left).Render(m.dirTree.String()),
-		baseColumnLayout(m.notesListSize).Align(lipgloss.Center).Render("Notes"),
-		baseColumnLayout(m.editorSize).Render(t.View()),
+		baseColumnLayout(m.dirTreeSize, m.directoryTree.focused).
+			Align(lipgloss.Left).
+			Render(m.directoryTree.content.String()),
+		baseColumnLayout(m.notesListSize, m.notesList.focused).
+			Align(lipgloss.Center).
+			Render(m.notesList.content),
+		baseColumnLayout(m.editorSize, false).
+			Render(t.View()),
 	)
 }

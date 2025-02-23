@@ -63,9 +63,8 @@ func (s file) String() string {
 	return s.styles.file.Render(s.name)
 }
 
-func directoryTree() *tree.Tree {
+func getDirectoryTree() *tree.Tree {
 	s := defaultStyles()
-
 	conf := config.New()
 
 	tree := tree.Root(dir{"Folders", true, s}).
