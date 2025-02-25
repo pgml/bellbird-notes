@@ -2,6 +2,7 @@ package app
 
 import (
 	"os"
+	"path/filepath"
 
 	"golang.org/x/mod/modfile"
 )
@@ -39,7 +40,7 @@ func NotesRootDir() (string, error) {
 	}
 
 	appName, _ := ModuleName()
-	notesDir := Home + "/." + appName
+	notesDir := filepath.Join(Home, "." + appName)
 
 	if _, err := os.Stat(notesDir); err != nil {
 		os.Mkdir(notesDir, 0755)
@@ -68,7 +69,7 @@ func ConfigDir() (string, error) {
 		return "", err
 	}
 
-	confDir := ConfigDir + "/" + appName
+	confDir := filepath.Join(ConfigDir, appName)
 
 	if _, err := os.Stat(confDir); err != nil {
 		os.Mkdir(confDir, 0755)
@@ -92,7 +93,7 @@ func ConfigFile() (string, error) {
 		return "", err
 	}
 
-	configFile := configDir + "/" + appName + ".conf"
+	configFile := filepath.Join(configDir, appName + ".conf")
 
 	return configFile, nil
 }

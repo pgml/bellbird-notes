@@ -29,7 +29,7 @@ type tuiModel struct {
 	currentColumnFocus int
 	// @todo this whole columns stuff seems strange
 	// try to make it not strange or try to make it work without it
-	columns            []interface{}
+	columns            []any
 	directoryTree      *directoryTree
 }
 
@@ -54,7 +54,7 @@ func InitialModel() tuiModel {
 		content: "",
 	}
 
-	m.columns = []interface{}{directoryTree, notesList}
+	m.columns = []any{directoryTree, notesList}
 	m.directoryTree = &directoryTree
 	m.editorID = m.layout.Add("grow")
 	m.keyInput = NewKeyInput()
@@ -93,7 +93,7 @@ func (m tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		nList.size, _ = msg.Size(nList.id)
 
 		m.editorSize, _ = msg.Size(m.editorID)
-		m.columns = []interface{}{dTree, nList}
+		m.columns = []any{dTree, nList}
 	}
 
 	var cmd tea.Cmd

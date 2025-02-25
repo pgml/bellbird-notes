@@ -3,12 +3,12 @@ package directories
 import (
 	"bellbird-notes/internal/app"
 	"os"
+	"path/filepath"
 )
 
 type Directory struct {
 	Name        string
 	Path        string
-	Children    []Directory
 	NbrNotes    int
 	NbrFolders  int
 	IsExpanded   bool
@@ -23,7 +23,8 @@ func List(dirPath string) []Directory {
 	}
 
 	for _, child := range dirs {
-		filePath := dirPath + "/" + child.Name()
+		filePath := filepath.Join(dirPath, child.Name())
+		app.LogErr(filePath)
 		if !child.IsDir() || isHidden(filePath) {
 			continue
 		}
@@ -31,8 +32,6 @@ func List(dirPath string) []Directory {
 		Directories = append(Directories, Directory{
 			Name: child.Name(),
 			Path: filePath,
-			//Children: List(filePath),
-			Children: []Directory{},
 			NbrNotes: 0,
 			NbrFolders: len(List(filePath)),
 			IsExpanded: true,

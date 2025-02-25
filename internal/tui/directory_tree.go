@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"bellbird-notes/internal/app"
 	"bellbird-notes/internal/config"
 	"bellbird-notes/internal/directories"
 
@@ -52,11 +53,7 @@ type dir struct {
 	path     string
 	open     bool
 	styles   styles
-	children []tree.Node
-}
-
-func (d dir) Children() []tree.Node {
-	return d.children
+	tree.Node
 }
 
 func (d dir) String() string {
@@ -75,6 +72,7 @@ type file struct {
 	name   string
 	styles styles
 }
+
 func (s file) String() string {
 	return s.styles.file.Render(s.name)
 }
@@ -95,6 +93,8 @@ func (t *directoryTree) buildDirectoryTree() {
 		Enumerator(tree.RoundedEnumerator).
 		EnumeratorStyle(style.enumerator)
 
+	app.LogDebug(notesDir)
+
 	for _, child := range directories.List(notesDir) {
 		tree.Child(dir{child.Name, child.Path, child.IsExpanded, style, nil})
 	}
@@ -109,14 +109,9 @@ func (t *directoryTree) collapseChild(childIndex int) {
 }
 
 func (t *directoryTree) expandChild(childIndex int) {
-	//child := t.content.Children().At(childIndex)
+	child := t.content.Children().At(childIndex).(dir)
 
-	//if d, ok := child.(dir); ok { // Type assertion to dir
-	//	fmt.Println("Child path:", d.path)
-	//} else {
-	//	fmt.Println("Child is not a dir")
-	//}
-	//app.LogDebug(directories.List(child.path))
+	app.LogDebug(directories.List(child.path))
 }
 
 func (t *directoryTree) refreshTreeStyle() {
