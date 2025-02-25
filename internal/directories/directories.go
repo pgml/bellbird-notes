@@ -7,11 +7,11 @@ import (
 )
 
 type Directory struct {
-	Name        string
-	Path        string
-	NbrNotes    int
-	NbrFolders  int
-	IsExpanded   bool
+	Name       string
+	Path       string
+	NbrNotes   int
+	NbrFolders int
+	IsExpanded bool
 }
 
 func List(dirPath string) []Directory {
@@ -24,17 +24,16 @@ func List(dirPath string) []Directory {
 
 	for _, child := range dirs {
 		filePath := filepath.Join(dirPath, child.Name())
-		app.LogErr(filePath)
 		if !child.IsDir() || isHidden(filePath) {
 			continue
 		}
 
 		Directories = append(Directories, Directory{
-			Name: child.Name(),
-			Path: filePath,
-			NbrNotes: 0,
+			Name:       child.Name(),
+			Path:       filePath,
+			NbrNotes:   0,
 			NbrFolders: len(List(filePath)),
-			IsExpanded: true,
+			IsExpanded: false,
 		})
 	}
 

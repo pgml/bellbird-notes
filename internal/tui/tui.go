@@ -29,29 +29,30 @@ type tuiModel struct {
 	currentColumnFocus int
 	// @todo this whole columns stuff seems strange
 	// try to make it not strange or try to make it work without it
-	columns            []any
-	directoryTree      *directoryTree
+	columns       []any
+	directoryTree *directoryTree
 }
 
 func InitialModel() tuiModel {
 	m := tuiModel{
-		layout: bl.New(),
+		layout:             bl.New(),
 		currentColumnFocus: 1,
 	}
 
 	// this is weird try to make it not weird
 	newTree := newDirectoryTree()
 	directoryTree := directoryTree{
-		id: m.layout.Add("width 30"),
-		isFocused: true,
+		id:            m.layout.Add("width 30"),
+		isFocused:     true,
 		selectedIndex: newTree.selectedIndex,
-		content: newTree.content,
+		rowsInfo:      newTree.rowsInfo,
+		content:       newTree.content,
 	}
 
 	notesList := notesList{
-		id: m.layout.Add("width 30"),
+		id:        m.layout.Add("width 30"),
 		isFocused: false,
-		content: "",
+		content:   "",
 	}
 
 	m.columns = []any{directoryTree, notesList}
@@ -117,7 +118,7 @@ func baseColumnLayout(size bl.Size, focused bool) lipgloss.Style {
 		BorderForeground(borderColour).
 		Foreground(lipgloss.NoColor{}).
 		Width(size.Width).
-		Height(size.Height-2)
+		Height(size.Height - 2)
 }
 
 func (m tuiModel) View() string {
@@ -157,13 +158,22 @@ func (m *tuiModel) handleKeyCombos(key string) {
 
 	// special key actions for cmd mode
 	switch key {
-	case ":": m.enterCmdMode()
-	case "esc": m.exitCmdMode()
-	case "enter": m.executeCmdModeCommand()
+	case ":":
+		m.enterCmdMode()
+	case "esc":
+		m.exitCmdMode()
+	case "enter":
+		m.executeCmdModeCommand()
 	}
-	if key == ":"     { m.enterCmdMode() }
-	if key == "esc"   { m.exitCmdMode() }
-	if key == "enter" { m.executeCmdModeCommand() }
+	if key == ":" {
+		m.enterCmdMode()
+	}
+	if key == "esc" {
+		m.exitCmdMode()
+	}
+	if key == "enter" {
+		m.executeCmdModeCommand()
+	}
 
 	if !m.keyInput.isCmdMode {
 		m.keyInput.releaseKey(key)
@@ -174,10 +184,10 @@ func (m *tuiModel) executeAction(keys string) {
 	functions := map[string]func(){
 		"focusNextColumn": m.focusNextColumn,
 		"focusPrevColumn": m.focusPrevColumn,
-		"moveUp": m.moveUp,
-		"moveDown": m.moveDown,
-		"collapse": m.collapse,
-		"expand": m.expand,
+		"moveUp":          m.moveUp,
+		"moveDown":        m.moveDown,
+		"collapse":        m.collapse,
+		"expand":          m.expand,
 	}
 
 	for _, km := range m.keyInput.keyMaps {
@@ -194,15 +204,12 @@ func (m *tuiModel) executeAction(keys string) {
 }
 
 func (m *tuiModel) resetKeysDown() {
+	m.keyInput.isCtrlWDown = false
 	m.keyInput.keysDown = make(map[string]bool)
 }
 
 func (m *tuiModel) focusNextColumn() {
-	colIndex := m.currentColumnFocus + 1
-	if colIndex > len(m.columns) {
-		colIndex = len(m.columns)
-	}
-
+	colIndex := min(m.currentColumnFocus+1, len(m.columns))
 	dirTree := m.directoryTree
 	notesList := m.columns[1].(notesList)
 

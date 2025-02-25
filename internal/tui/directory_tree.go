@@ -1,12 +1,12 @@
 package tui
 
 import (
-	"bellbird-notes/internal/app"
 	"bellbird-notes/internal/config"
 	"bellbird-notes/internal/directories"
+	"sort"
 
 	"github.com/charmbracelet/lipgloss"
-	"github.com/charmbracelet/lipgloss/tree"
+	lgtree "github.com/charmbracelet/lipgloss/tree"
 	bl "github.com/winder/bubblelayout"
 )
 
@@ -15,7 +15,8 @@ type directoryTree struct {
 	size          bl.Size
 	isFocused     bool
 	selectedIndex int
-	content       *tree.Tree
+	rowsInfo      map[int]*dir
+	content       *lgtree.Tree
 }
 
 type styles struct {
@@ -49,23 +50,23 @@ func defaultStyles() styles {
 }
 
 type dir struct {
-	name     string
-	path     string
-	open     bool
-	styles   styles
-	tree.Node
+	name       string
+	path       string
+	open       bool
+	nbrNotes   int
+	nbrFolders int
+	children   []dir
+	styles     styles
 }
 
 func (d dir) String() string {
-	//t := d.styles.toggle.Render
+	t := d.styles.toggle.Render
 	n := d.styles.dir.Render
 	name := truncateText(d.name, 22)
 	if d.open {
-		//return t(" ") + n(name)
-		return n(name)
+		return t(" ") + n(name)
 	}
-	//return t("󰉋 ") + n(name)
-	return n(name)
+	return t("󰉋 ") + n(name)
 }
 
 type file struct {
@@ -79,8 +80,9 @@ func (s file) String() string {
 
 func newDirectoryTree() *directoryTree {
 	tree := &directoryTree{}
-
+	tree.rowsInfo = make(map[int]*dir)
 	tree.buildDirectoryTree()
+
 	return tree
 }
 
@@ -89,36 +91,87 @@ func (t *directoryTree) buildDirectoryTree() {
 	conf := config.New()
 	notesDir := conf.Value(config.General, config.DefaultNotesDirectory)
 
-	tree := tree.Root(dir{"Folders", notesDir, true, style, nil}).
-		Enumerator(tree.RoundedEnumerator).
-		EnumeratorStyle(style.enumerator)
-
-	app.LogDebug(notesDir)
-
-	for _, child := range directories.List(notesDir) {
-		tree.Child(dir{child.Name, child.Path, child.IsExpanded, style, nil})
+	// add root directory
+	t.rowsInfo[-1] = &dir{"Folders", notesDir, true, 0, 0, nil, style}
+	// append all directory children
+	for index, child := range directories.List(notesDir) {
+		childItem := t.makeChild(child)
+		t.rowsInfo[index] = &childItem
 	}
 
 	t.selectedIndex = 2
-	t.content = tree
+	t.renderTree()
 	t.refreshTreeStyle()
 }
 
-func (t *directoryTree) collapseChild(childIndex int) {
+func (t *directoryTree) renderTree() {
+	style := defaultStyles()
+	rootDir := t.rowsInfo[-1]
+	dirTree := lgtree.Root(rootDir).
+		Enumerator(lgtree.RoundedEnumerator).
+		EnumeratorStyle(style.enumerator)
 
+	for _, key := range getSortedKeys(t.rowsInfo) {
+		child := t.rowsInfo[key]
+
+		if len(child.children) > 0 && child.open {
+			ch := lgtree.Root(child)
+			for _, c := range child.children {
+				ch.Child(c)
+			}
+			dirTree.Child(ch)
+		} else {
+			dirTree.Child(child)
+		}
+	}
+
+	t.content = dirTree
+}
+
+func (t *directoryTree) collapseChild(childIndex int) {
+	t.rowsInfo[childIndex].open = false
+	t.renderTree()
+	t.refreshTreeStyle()
 }
 
 func (t *directoryTree) expandChild(childIndex int) {
-	child := t.content.Children().At(childIndex).(dir)
+	t.getChildren(childIndex)
+	t.rowsInfo[childIndex].open = true
+	t.renderTree()
+	t.refreshTreeStyle()
+}
 
-	app.LogDebug(directories.List(child.path))
+func (t *directoryTree) getChildren(childIndex int) {
+	child := t.rowsInfo[childIndex]
+	childDir := directories.List(child.path)
+	// only get child directories if not present already
+	if len(childDir) > 0 && len(child.children) <= 0 {
+		for _, item := range childDir {
+			//app.LogDebug(i)
+			child.children = append(child.children, t.makeChild(item))
+		}
+	}
+}
+
+func (t *directoryTree) makeChild(child directories.Directory) dir {
+	style := defaultStyles()
+	childItem := dir{
+		child.Name,
+		child.Path,
+		child.IsExpanded,
+		child.NbrNotes,
+		child.NbrFolders,
+		nil,
+		style,
+	}
+	return childItem
 }
 
 func (t *directoryTree) refreshTreeStyle() {
 	style := defaultStyles()
 
 	t.content = t.content.EnumeratorStyle(style.enumerator).
-		ItemStyleFunc(func(c tree.Children, i int) lipgloss.Style {
+		ItemStyleFunc(func(c lgtree.Children, i int) lipgloss.Style {
 			style := style.base.Width(25).MaxWidth(t.size.Width)
 			if t.selectedIndex == i {
 				return style.Background(lipgloss.Color("#424B5D")).Bold(true)
@@ -135,7 +188,7 @@ func (t *directoryTree) moveUp() {
 }
 
 func (t *directoryTree) moveDown() {
-	if t.selectedIndex < t.content.Children().Length() - 1 {
+	if t.selectedIndex < t.content.Children().Length()-1 {
 		t.selectedIndex++
 		t.refreshTreeStyle()
 	}
@@ -149,4 +202,14 @@ func truncateText(text string, maxWidth int) string {
 		return text[:maxWidth] // No space for "..."
 	}
 	return text
+}
+
+func getSortedKeys[T any](mapToSort map[int]T) []int {
+	var keys []int
+	for key := range mapToSort {
+		keys = append(keys, key)
+	}
+	sort.Ints(keys)
+
+	return keys
 }
