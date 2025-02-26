@@ -30,7 +30,7 @@ type tuiModel struct {
 	// @todo this whole columns stuff seems strange
 	// try to make it not strange or try to make it work without it
 	columns       []any
-	directoryTree *directoryTree
+	directoryTree *treeModel
 }
 
 func InitialModel() tuiModel {
@@ -41,11 +41,12 @@ func InitialModel() tuiModel {
 
 	// this is weird try to make it not weird
 	newTree := newDirectoryTree()
-	directoryTree := directoryTree{
+	directoryTree := treeModel{
 		id:            m.layout.Add("width 30"),
 		isFocused:     true,
 		selectedIndex: newTree.selectedIndex,
-		rowsInfo:      newTree.rowsInfo,
+		dirsList:      newTree.dirsList,
+		dirsListFlat:  newTree.dirsListFlat,
 		content:       newTree.content,
 	}
 
@@ -86,7 +87,7 @@ func (m tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case bl.BubbleLayoutMsg:
-		dTree := m.columns[0].(directoryTree)
+		dTree := m.columns[0].(treeModel)
 		dTree.size, _ = msg.Size(dTree.id)
 		m.directoryTree = &dTree
 
@@ -255,7 +256,8 @@ func (m *tuiModel) collapse() {
 	//notesList := m.columns[1].(notesList)
 
 	if dirTree.isFocused {
-		dirTree.collapseChild(dirTree.selectedIndex)
+		//dirTree.collapseChild(dirTree.selectedIndex)
+		dirTree.collapse()
 	}
 }
 
@@ -264,7 +266,8 @@ func (m *tuiModel) expand() {
 	//notesList := m.columns[1].(notesList)
 
 	if dirTree.isFocused {
-		dirTree.expandChild(dirTree.selectedIndex)
+		//dirTree.expandChild(dirTree.selectedIndex)
+		dirTree.expand()
 	}
 }
 
@@ -288,7 +291,7 @@ func (m *tuiModel) moveDown() {
 
 // Toggle expand/collapse directory
 func (m *tuiModel) toggleSelected() {
-	dirTree := m.columns[0].(directoryTree)
+	dirTree := m.columns[0].(treeModel)
 	if dirTree.isFocused {
 		//index := dirTree.selectedIndex
 		//node := dirTree.content.Children().At(index)

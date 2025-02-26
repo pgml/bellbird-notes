@@ -3,213 +3,200 @@ package tui
 import (
 	"bellbird-notes/internal/config"
 	"bellbird-notes/internal/directories"
-	"sort"
+	"strings"
 
 	"github.com/charmbracelet/lipgloss"
-	lgtree "github.com/charmbracelet/lipgloss/tree"
+	"github.com/charmbracelet/lipgloss/list"
 	bl "github.com/winder/bubblelayout"
 )
 
-type directoryTree struct {
+type treeModel struct {
 	id            bl.ID
 	size          bl.Size
 	isFocused     bool
 	selectedIndex int
-	rowsInfo      map[int]*dir
-	content       *lgtree.Tree
+	// the original directory hierarchy
+	dirsList []dir
+	// a flattened representation to make vertical navigation easier
+	dirsListFlat []dir
+	content      *list.List
 }
 
 type styles struct {
 	base,
-	block,
 	enumerator,
 	dir,
-	toggle,
-	file lipgloss.Style
+	toggle lipgloss.Style
 }
 
 func defaultStyles() styles {
 	var s styles
 	s.base = lipgloss.NewStyle().
 		Foreground(lipgloss.NoColor{}).
+		MarginLeft(0).
 		PaddingLeft(1)
-	s.block = s.base.
-		Padding(1, 3).
-		Margin(1, 3).
-		Width(20)
-	s.enumerator = s.base.
-		Foreground(lipgloss.NoColor{})
-		//PaddingRight(1)
-	//s.dir = s.base.
-	//	Inline(true)
-	//s.toggle = s.base.
-	//	Foreground(lipgloss.Color("207")).
-	//	PaddingRight(1)
-	s.file = s.base
+	s.dir = s.base.
+		MarginRight(0).
+		PaddingRight(0).
+		Foreground(lipgloss.AdaptiveColor{Light: "#333", Dark: "#eee"})
 	return s
 }
 
 type dir struct {
-	name       string
-	path       string
-	open       bool
-	nbrNotes   int
-	nbrFolders int
-	children   []dir
-	styles     styles
+	name     string
+	path     string
+	expanded bool
+	level    int
+	children []dir
+	styles   styles
 }
 
 func (d dir) String() string {
 	t := d.styles.toggle.Render
 	n := d.styles.dir.Render
+	e := d.styles.enumerator.Render
+	//indent := strings.Repeat(" │", d.level)
+	indent := strings.Repeat("  ", d.level)
 	name := truncateText(d.name, 22)
-	if d.open {
-		return t(" ") + n(name)
+	if d.expanded {
+		return e(indent) + t("") + n(name)
 	}
-	return t("󰉋 ") + n(name)
+	return e(indent) + t("󰉋") + n(name)
 }
 
-type file struct {
-	name   string
-	styles styles
-}
-
-func (s file) String() string {
-	return s.styles.file.Render(s.name)
-}
-
-func newDirectoryTree() *directoryTree {
-	tree := &directoryTree{}
-	tree.rowsInfo = make(map[int]*dir)
-	tree.buildDirectoryTree()
-
-	return tree
-}
-
-func (t *directoryTree) buildDirectoryTree() {
-	style := defaultStyles()
+func newDirectoryTree() *treeModel {
+	tree := &treeModel{}
 	conf := config.New()
 	notesDir := conf.Value(config.General, config.DefaultNotesDirectory)
 
-	// add root directory
-	t.rowsInfo[-1] = &dir{"Folders", notesDir, true, 0, 0, nil, style}
-	// append all directory children
-	for index, child := range directories.List(notesDir) {
-		childItem := t.makeChild(child)
-		t.rowsInfo[index] = &childItem
+	for _, child := range directories.List(notesDir) {
+		childItem := tree.makeChild(child, 0)
+		tree.dirsList = append(tree.dirsList, childItem)
 	}
 
-	t.selectedIndex = 2
-	t.renderTree()
-	t.refreshTreeStyle()
+	tree.selectedIndex = 0
+	tree.renderTree()
+	return tree
 }
 
-func (t *directoryTree) renderTree() {
-	style := defaultStyles()
-	rootDir := t.rowsInfo[-1]
-	dirTree := lgtree.Root(rootDir).
-		Enumerator(lgtree.RoundedEnumerator).
-		EnumeratorStyle(style.enumerator)
+func (m *treeModel) renderTree() {
+	m.refreshFlatList()
 
-	for _, key := range getSortedKeys(t.rowsInfo) {
-		child := t.rowsInfo[key]
+	dirTree := list.New().
+		Enumerator(func(items list.Items, index int) string { return "" })
 
-		if len(child.children) > 0 && child.open {
-			ch := lgtree.Root(child)
-			for _, c := range child.children {
-				ch.Child(c)
-			}
-			dirTree.Child(ch)
-		} else {
-			dirTree.Child(child)
-		}
+	for _, dir := range m.dirsListFlat {
+		dirTree.Item(dir)
 	}
 
-	t.content = dirTree
+	m.content = dirTree
+	m.refreshTreeStyle()
 }
 
-func (t *directoryTree) collapseChild(childIndex int) {
-	t.rowsInfo[childIndex].open = false
-	t.renderTree()
-	t.refreshTreeStyle()
-}
-
-func (t *directoryTree) expandChild(childIndex int) {
-	t.getChildren(childIndex)
-	t.rowsInfo[childIndex].open = true
-	t.renderTree()
-	t.refreshTreeStyle()
-}
-
-func (t *directoryTree) getChildren(childIndex int) {
-	child := t.rowsInfo[childIndex]
-	childDir := directories.List(child.path)
-	// only get child directories if not present already
-	if len(childDir) > 0 && len(child.children) <= 0 {
-		for _, item := range childDir {
-			//app.LogDebug(i)
-			child.children = append(child.children, t.makeChild(item))
-		}
+// Reads a directory of `path` and return dir slice
+func (m *treeModel) getChildren(path string, level int) []dir {
+	var dirs []dir
+	childDir := directories.List(path)
+	for _, item := range childDir {
+		dirs = append(dirs, m.makeChild(item, level))
 	}
+	return dirs
 }
 
-func (t *directoryTree) makeChild(child directories.Directory) dir {
+// Creates a dir
+func (m *treeModel) makeChild(child directories.Directory, level int) dir {
 	style := defaultStyles()
 	childItem := dir{
-		child.Name,
-		child.Path,
-		child.IsExpanded,
-		child.NbrNotes,
-		child.NbrFolders,
-		nil,
-		style,
+		name:     child.Name,
+		path:     child.Path,
+		expanded: child.IsExpanded,
+		children: nil,
+		level:    level,
+		styles:   style,
 	}
 	return childItem
 }
 
-func (t *directoryTree) refreshTreeStyle() {
-	style := defaultStyles()
+func (m *treeModel) refreshFlatList() {
+	m.dirsListFlat = m.flatten(m.dirsList, 0)
+}
 
-	t.content = t.content.EnumeratorStyle(style.enumerator).
-		ItemStyleFunc(func(c lgtree.Children, i int) lipgloss.Style {
-			style := style.base.Width(25).MaxWidth(t.size.Width)
-			if t.selectedIndex == i {
+func (m *treeModel) refreshTreeStyle() {
+	style := defaultStyles()
+	m.content = m.content.EnumeratorStyle(style.enumerator).
+		ItemStyleFunc(func(c list.Items, i int) lipgloss.Style {
+			style := style.base.Width(30).MaxWidth(m.size.Width)
+			if m.selectedIndex == i {
 				return style.Background(lipgloss.Color("#424B5D")).Bold(true)
 			}
 			return style
 		})
 }
 
-func (t *directoryTree) moveUp() {
-	if t.selectedIndex > 0 {
-		t.selectedIndex--
-		t.refreshTreeStyle()
-	}
-}
-
-func (t *directoryTree) moveDown() {
-	if t.selectedIndex < t.content.Children().Length()-1 {
-		t.selectedIndex++
-		t.refreshTreeStyle()
-	}
-}
-
-func truncateText(text string, maxWidth int) string {
-	if lipgloss.Width(text) > maxWidth {
-		if maxWidth > 3 {
-			return text[:maxWidth-3] + "..."
+func (m *treeModel) flatten(items []dir, level int) []dir {
+	var result []dir
+	for i := range items {
+		items[i].level = level
+		result = append(result, items[i])
+		if items[i].expanded {
+			result = append(result, m.flatten(items[i].children, level+1)...)
 		}
-		return text[:maxWidth] // No space for "..."
 	}
-	return text
+	return result
 }
 
-func getSortedKeys[T any](mapToSort map[int]T) []int {
-	var keys []int
-	for key := range mapToSort {
-		keys = append(keys, key)
+func (m *treeModel) expand() {
+	if m.selectedIndex >= len(m.dirsListFlat) {
+		return
 	}
-	sort.Ints(keys)
 
-	return keys
+	dir := findDirectoryInTree(&m.dirsList, m.dirsListFlat[m.selectedIndex].path)
+	if dir != nil {
+		if !dir.expanded {
+			dir.children = m.getChildren(dir.path, dir.level+1)
+		}
+		dir.expanded = true
+	}
+	m.renderTree()
+}
+
+func (m *treeModel) collapse() {
+	if m.selectedIndex >= len(m.dirsListFlat) {
+		return
+	}
+
+	dir := findDirectoryInTree(&m.dirsList, m.dirsListFlat[m.selectedIndex].path)
+	if dir != nil {
+		dir.expanded = false
+	}
+	m.renderTree()
+}
+
+func (m *treeModel) moveUp() {
+	if m.selectedIndex > 0 {
+		m.selectedIndex--
+		m.refreshTreeStyle()
+	}
+}
+
+func (m *treeModel) moveDown() {
+	if m.selectedIndex < len(m.dirsListFlat)-1 {
+		m.selectedIndex++
+		m.refreshTreeStyle()
+	}
+}
+
+// Recursively search for an item by path
+func findDirectoryInTree(directories *[]dir, path string) *dir {
+	for i := range *directories {
+		if (*directories)[i].path == path {
+			return &(*directories)[i]
+		}
+		if (*directories)[i].expanded {
+			if ok := findDirectoryInTree(&(*directories)[i].children, path); ok != nil {
+				return ok
+			}
+		}
+	}
+	return nil
 }
