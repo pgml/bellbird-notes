@@ -58,10 +58,14 @@ func (d dir) String() string {
 	//indent := strings.Repeat(" │", d.level)
 	indent := strings.Repeat("  ", d.level)
 	name := truncateText(d.name, 22)
-	if d.expanded {
-		return e(indent) + t("") + n(name)
+	toggle := map[string]string{"open": "", "close": "󰉋"}
+	if noNerdFonts {
+		toggle = map[string]string{"open": "▼", "close": "▶"}
 	}
-	return e(indent) + t("󰉋") + n(name)
+	if d.expanded {
+		return e(indent) + t(toggle["open"]) + n(name)
+	}
+	return e(indent) + t(toggle["close"]) + n(name)
 }
 
 func newDirectoryTree() *treeModel {

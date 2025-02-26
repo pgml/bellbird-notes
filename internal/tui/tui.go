@@ -10,6 +10,8 @@ import (
 	bl "github.com/winder/bubblelayout"
 )
 
+const noNerdFonts = true
+
 type notesList struct {
 	id            bl.ID
 	size          bl.Size
