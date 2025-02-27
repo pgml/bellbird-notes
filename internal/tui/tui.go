@@ -189,8 +189,8 @@ func (m *tuiModel) executeAction(keys string) {
 		"focusPrevColumn": m.focusPrevColumn,
 		"moveUp":          m.moveUp,
 		"moveDown":        m.moveDown,
-		"collapse":        m.collapse,
-		"expand":          m.expand,
+		"collapse":        m.directoryTree.collapse,
+		"expand":          m.directoryTree.expand,
 	}
 
 	for _, km := range m.keyInput.keyMaps {
@@ -251,26 +251,6 @@ func (m *tuiModel) focusPrevColumn() {
 	m.columns[0] = dirTree
 	m.columns[1] = notesList
 	m.currentColumnFocus = colIndex
-}
-
-func (m *tuiModel) collapse() {
-	dirTree := m.directoryTree
-	//notesList := m.columns[1].(notesList)
-
-	if dirTree.isFocused {
-		//dirTree.collapseChild(dirTree.selectedIndex)
-		dirTree.collapse()
-	}
-}
-
-func (m *tuiModel) expand() {
-	dirTree := m.directoryTree
-	//notesList := m.columns[1].(notesList)
-
-	if dirTree.isFocused {
-		//dirTree.expandChild(dirTree.selectedIndex)
-		dirTree.expand()
-	}
 }
 
 func (m *tuiModel) moveUp() {

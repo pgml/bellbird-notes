@@ -6,12 +6,11 @@ import (
 )
 
 type keyAction struct {
-
 }
 
 type keyMap struct {
-	action    map[string]string
-	keys      []string
+	action map[string]string
+	keys   []string
 	//triggered bool
 }
 
@@ -19,22 +18,23 @@ type keyInput struct {
 	keysDown map[string]bool
 	keyMaps  []keyMap
 
-	isCtrlWDown  bool
-	isCmdMode bool
+	isCtrlWDown bool
+	isCmdMode   bool
 }
 
 func NewKeyInput() keyInput {
 	return keyInput{
 		isCtrlWDown: false,
-		isCmdMode: false,
-		keysDown: make(map[string]bool),
+		isCmdMode:   false,
+		keysDown:    make(map[string]bool),
 		keyMaps: []keyMap{
-			{action: map[string]string{"ctrl+w l": "focusNextColumn"}},
-			{action: map[string]string{"ctrl+w h": "focusPrevColumn"}},
-			{action: map[string]string{"j": "moveDown"}},
-			{action: map[string]string{"k": "moveUp"}},
-			{action: map[string]string{"h": "collapse"}},
-			{action: map[string]string{"l": "expand"}},
+			{action: map[string]string{"ctrl+w l": "focusNextColumn", "mode": "normal"}},
+			{action: map[string]string{"ctrl+w h": "focusPrevColumn", "mode": "normal"}},
+			{action: map[string]string{"j": "moveDown", "mode": "normal"}},
+			{action: map[string]string{"k": "moveUp", "mode": "normal"}},
+			{action: map[string]string{"h": "collapse", "mode": "normal"}},
+			{action: map[string]string{"l": "expand", "mode": "normal"}},
+			{action: map[string]string{"d": "createFolder", "mode": "normal"}},
 		},
 	}
 }
