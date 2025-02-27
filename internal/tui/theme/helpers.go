@@ -1,4 +1,4 @@
-package tui
+package theme
 
 import (
 	"sort"
@@ -6,7 +6,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-func truncateText(text string, maxWidth int) string {
+func TruncateText(text string, maxWidth int) string {
 	if lipgloss.Width(text) > maxWidth {
 		if maxWidth > 3 {
 			return text[:maxWidth-3] + "..."
@@ -16,7 +16,7 @@ func truncateText(text string, maxWidth int) string {
 	return text
 }
 
-func getSortedKeys[T any](mapToSort map[int]T) []int {
+func GetSortedKeys[T any](mapToSort map[int]T) []int {
 	var keys []int
 	for key := range mapToSort {
 		keys = append(keys, key)

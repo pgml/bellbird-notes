@@ -40,6 +40,14 @@ func List(dirPath string) []Directory {
 	return Directories
 }
 
+func Rename(oldPath string, newPath string) error {
+	if err := os.Rename(oldPath, newPath); err != nil {
+		app.LogErr(err)
+		return err
+	}
+	return nil
+}
+
 func isHidden(path string) bool {
 	return path[0] == 46
 }

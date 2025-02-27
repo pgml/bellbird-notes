@@ -1,7 +1,9 @@
 package tui
 
 import (
-	"strings"
+	"bellbird-notes/internal/tui/directorytree"
+	"bellbird-notes/internal/tui/mode"
+	"bellbird-notes/internal/tui/theme"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -10,7 +12,7 @@ import (
 	bl "github.com/winder/bubblelayout"
 )
 
-const noNerdFonts = true
+const noNerdFonts = false
 
 type notesList struct {
 	id            bl.ID
@@ -20,59 +22,58 @@ type notesList struct {
 	content       string
 }
 
-type tuiModel struct {
+type TuiModel struct {
 	layout     bl.BubbleLayout
 	editorID   bl.ID
 	editorSize bl.Size
+	mode       *mode.ModeInstance
 
-	keyInput keyInput
+	keyInput *KeyInput
 	textarea textarea.Model
 
 	currentColumnFocus int
-	// @todo this whole columns stuff seems strange
-	// try to make it not strange or try to make it work without it
-	columns       []any
-	directoryTree *treeModel
+	directoryTree      *directorytree.DirectoryTree
+	notesList          *notesList
 }
 
-func InitialModel() tuiModel {
-	m := tuiModel{
+func InitialModel() TuiModel {
+	m := TuiModel{
 		layout:             bl.New(),
 		currentColumnFocus: 1,
+		mode:               mode.New(),
+		directoryTree:      directorytree.New(),
+		notesList:          &notesList{},
 	}
 
-	// this is weird try to make it not weird
-	newTree := newDirectoryTree()
-	directoryTree := treeModel{
-		id:            m.layout.Add("width 30"),
-		isFocused:     true,
-		selectedIndex: newTree.selectedIndex,
-		dirsList:      newTree.dirsList,
-		dirsListFlat:  newTree.dirsListFlat,
-		content:       newTree.content,
-	}
-
-	notesList := notesList{
-		id:        m.layout.Add("width 30"),
-		isFocused: false,
-		content:   "",
-	}
-
-	m.columns = []any{directoryTree, notesList}
-	m.directoryTree = &directoryTree
+	m.layout = bl.New()
 	m.editorID = m.layout.Add("grow")
+
+	m.directoryTree.Id = m.layout.Add("width 30")
+	m.directoryTree.IsFocused = true
+
+	m.notesList = &notesList{}
+	m.notesList.id = m.layout.Add("width 30")
+	m.notesList.isFocused = false
+	m.notesList.content = ""
+
+	m.currentColumnFocus = 1
+
 	m.keyInput = NewKeyInput()
+	m.keyInput.functions = m.KeyInputFn()
 
 	return m
 }
 
-func (m tuiModel) Init() tea.Cmd {
+func (m TuiModel) Init() tea.Cmd {
 	return func() tea.Msg {
 		return m.layout.Resize(80, 40)
 	}
 }
 
-func (m tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m TuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var cmd tea.Cmd
+	m.textarea, cmd = m.textarea.Update(msg)
+
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
@@ -80,7 +81,7 @@ func (m tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		}
 
-		m.handleKeyCombos(msg.String())
+		m.keyInput.handleKeyCombos(msg.String())
 
 	case tea.WindowSizeMsg:
 		// Convert WindowSizeMsg to BubbleLayoutMsg.
@@ -89,209 +90,156 @@ func (m tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case bl.BubbleLayoutMsg:
-		dTree := m.columns[0].(treeModel)
-		dTree.size, _ = msg.Size(dTree.id)
-		m.directoryTree = &dTree
-
-		nList := m.columns[1].(notesList)
-		nList.size, _ = msg.Size(nList.id)
-
+		m.directoryTree.Size, _ = msg.Size(m.directoryTree.Id)
+		m.notesList.size, _ = msg.Size(m.notesList.id)
 		m.editorSize, _ = msg.Size(m.editorID)
-		m.columns = []any{dTree, nList}
 	}
 
-	var cmd tea.Cmd
-	m.textarea, cmd = m.textarea.Update(msg)
+	m.keyInput.mode = m.mode.Current
+	m.directoryTree.Mode = m.mode.Current
+
+	m.directoryTree.Update(msg)
 
 	return m, cmd
 }
 
-func (m tuiModel) GetTuiModel() tuiModel {
+func (m TuiModel) GetTuiModel() TuiModel {
 	return m
 }
 
-func baseColumnLayout(size bl.Size, focused bool) lipgloss.Style {
-	var borderColour lipgloss.TerminalColor = lipgloss.NoColor{}
-	if focused {
-		borderColour = lipgloss.Color("#69c8dc")
-	}
-
-	return lipgloss.NewStyle().
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(borderColour).
-		Foreground(lipgloss.NoColor{}).
-		Width(size.Width).
-		Height(size.Height - 2)
-}
-
-func (m tuiModel) View() string {
+func (m TuiModel) View() string {
 	t := textarea.New()
 	t.Placeholder = "asdasd"
 	t.Focus()
 
-	dirTree := m.directoryTree
-	notesList := m.columns[1].(notesList)
+	notesList := m.notesList
 
-	return lipgloss.JoinHorizontal(0,
-		baseColumnLayout(dirTree.size, dirTree.isFocused).
-			Align(lipgloss.Left).
-			Render(dirTree.content.String()),
-		baseColumnLayout(notesList.size, notesList.isFocused).
-			Align(lipgloss.Center).
-			Render(notesList.content),
-		baseColumnLayout(m.editorSize, false).
-			Render(t.View()),
+	termWidth, _ := theme.GetTerminalSize()
+	footerStyle := lipgloss.NewStyle().
+		//Border(lipgloss.RoundedBorder(), true).
+		//Background(lipgloss.Color("#424B5D")).
+		Align(lipgloss.Center).
+		Height(1).
+		Width(termWidth)
+	footerContent := "Press <space> to toggle the modal window. Press q or <esc> to quit."
+	footer := footerStyle.Render(footerContent)
+
+	return lipgloss.JoinVertical(lipgloss.Left,
+		lipgloss.JoinHorizontal(lipgloss.Bottom,
+			m.directoryTree.View(),
+			theme.BaseColumnLayout(notesList.size, notesList.isFocused).Align(lipgloss.Center).Render(notesList.content),
+			theme.BaseColumnLayout(m.editorSize, false).Render(t.View()),
+		),
+		footer,
 	)
 }
 
-func (m *tuiModel) handleKeyCombos(key string) {
-	if key == "ctrl+w" {
-		m.keyInput.isCtrlWDown = true
-	}
-
-	if m.keyInput.isCtrlWDown && strings.Contains(key, "ctrl+") {
-		m.keyInput.keysDown["ctrl+w"] = true
-		key = strings.Split(key, "+")[1]
-	}
-
-	m.keyInput.keysDown[key] = true
-
-	actionString := mapToActionString(m.keyInput.keysDown)
-	m.executeAction(actionString)
-
-	// special key actions for cmd mode
-	switch key {
-	case ":":
-		m.enterCmdMode()
-	case "esc":
-		m.exitCmdMode()
-	case "enter":
-		m.executeCmdModeCommand()
-	}
-	if key == ":" {
-		m.enterCmdMode()
-	}
-	if key == "esc" {
-		m.exitCmdMode()
-	}
-	if key == "enter" {
-		m.executeCmdModeCommand()
-	}
-
-	if !m.keyInput.isCmdMode {
-		m.keyInput.releaseKey(key)
-	}
-}
-
-func (m *tuiModel) executeAction(keys string) {
-	functions := map[string]func(){
-		"focusNextColumn": m.focusNextColumn,
-		"focusPrevColumn": m.focusPrevColumn,
-		"moveUp":          m.moveUp,
-		"moveDown":        m.moveDown,
-		"collapse":        m.directoryTree.collapse,
-		"expand":          m.directoryTree.expand,
-	}
-
-	for _, km := range m.keyInput.keyMaps {
-		for combo, fnName := range km.action {
-			if combo == keys {
-				if fn, exists := functions[fnName]; exists {
-					fn()
-					m.resetKeysDown()
-				}
-				return
-			}
-		}
-	}
-}
-
-func (m *tuiModel) resetKeysDown() {
-	m.keyInput.isCtrlWDown = false
-	m.keyInput.keysDown = make(map[string]bool)
-}
-
-func (m *tuiModel) focusNextColumn() {
-	colIndex := min(m.currentColumnFocus+1, len(m.columns))
+func (m *TuiModel) focusNextColumn() {
+	colIndex := min(m.currentColumnFocus+1, 3)
 	dirTree := m.directoryTree
-	notesList := m.columns[1].(notesList)
+	notesList := m.notesList
 
 	switch colIndex {
 	case 1:
-		dirTree.isFocused = true
+		dirTree.IsFocused = true
 		notesList.isFocused = false
 	case 2:
-		dirTree.isFocused = false
+		dirTree.IsFocused = false
 		notesList.isFocused = true
 	}
 
-	m.columns[0] = dirTree
-	m.columns[1] = notesList
 	m.currentColumnFocus = colIndex
 }
 
-func (m *tuiModel) focusPrevColumn() {
+func (m *TuiModel) focusPrevColumn() {
 	colIndex := m.currentColumnFocus - 1
-	if colIndex < len(m.columns) {
+	if colIndex < 3 {
 		colIndex = 1
 	}
 
 	dirTree := m.directoryTree
-	notesList := m.columns[1].(notesList)
+	notesList := m.notesList
 
 	switch colIndex {
 	case 1:
-		dirTree.isFocused = true
+		dirTree.IsFocused = true
 		notesList.isFocused = false
 	case 2:
-		dirTree.isFocused = false
+		dirTree.IsFocused = false
 		notesList.isFocused = true
 	}
 
-	m.columns[0] = dirTree
-	m.columns[1] = notesList
 	m.currentColumnFocus = colIndex
 }
 
-func (m *tuiModel) moveUp() {
+func (m *TuiModel) moveUp() {
 	dirTree := m.directoryTree
-	//notesList := m.columns[1].(notesList)
 
-	if dirTree.isFocused {
-		dirTree.moveUp()
+	if dirTree.IsFocused {
+		dirTree.MoveUp()
 	}
 }
 
-func (m *tuiModel) moveDown() {
+func (m *TuiModel) moveDown() {
 	dirTree := m.directoryTree
-	//notesList := m.columns[1].(notesList)
 
-	if dirTree.isFocused {
-		dirTree.moveDown()
+	if dirTree.IsFocused {
+		dirTree.MoveDown()
 	}
 }
 
-// Toggle expand/collapse directory
-func (m *tuiModel) toggleSelected() {
-	dirTree := m.columns[0].(treeModel)
-	if dirTree.isFocused {
-		//index := dirTree.selectedIndex
-		//node := dirTree.content.Children().At(index)
-		//dirTree.content.Children = dir{name: node.name, open: !node.open, styles: node.styles}
+func (m *TuiModel) rename() {
+	dirTree := m.directoryTree
+	m.mode.Current = mode.Insert
+
+	if dirTree.IsFocused {
+		dirTree.Rename()
 	}
 }
 
-func (m *tuiModel) enterCmdMode() {
-	m.keyInput.isCmdMode = true
+func (m *TuiModel) confirmAction() {
+	dirTree := m.directoryTree
+	m.mode.Current = mode.Normal
+
+	if dirTree.IsFocused {
+		dirTree.ConfirmAction()
+	}
 }
 
-func (m *tuiModel) exitCmdMode() {
-	m.keyInput.isCmdMode = false
-	m.resetKeysDown()
+func (m *TuiModel) cancelAction() {
+	dirTree := m.directoryTree
+	m.mode.Current = mode.Normal
+
+	if dirTree.IsFocused {
+		dirTree.CancelAction()
+	}
 }
 
-func (m *tuiModel) executeCmdModeCommand() {}
+func (m *TuiModel) enterCmdMode() {
+	m.mode.Current = mode.Command
+}
 
-func (m *tuiModel) quit() {
+func (m *TuiModel) exitCmdMode() {
+	m.mode.Current = mode.Normal
+	m.keyInput.resetKeysDown()
+}
+
+func (m *TuiModel) executeCmdModeCommand() {}
+
+func (m *TuiModel) quit() {
 	tea.Quit()
+}
+
+func (m *TuiModel) KeyInputFn() map[string]func() {
+	return map[string]func(){
+		"focusNextColumn": m.focusNextColumn,
+		"focusPrevColumn": m.focusPrevColumn,
+		"moveUp":          m.moveUp,
+		"moveDown":        m.moveDown,
+		"collapse":        m.directoryTree.Collapse,
+		"expand":          m.directoryTree.Expand,
+		"rename":          m.rename,
+		"cancelAction":    m.cancelAction,
+		"confirmAction":   m.confirmAction,
+	}
 }
