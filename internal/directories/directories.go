@@ -40,6 +40,14 @@ func List(dirPath string) []Directory {
 	return Directories
 }
 
+func Create(path string) error {
+	if err := os.Mkdir(path, 0755); err != nil {
+		app.LogErr(err)
+		return err
+	}
+	return nil
+}
+
 func Rename(oldPath string, newPath string) error {
 	if err := os.Rename(oldPath, newPath); err != nil {
 		app.LogErr(err)

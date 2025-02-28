@@ -239,6 +239,7 @@ func (m *TuiModel) KeyInputFn() map[string]func() {
 		"collapse":        m.directoryTree.Collapse,
 		"expand":          m.directoryTree.Expand,
 		"rename":          m.rename,
+		"createDir":       m.directoryTree.Create,
 		"cancelAction":    m.cancelAction,
 		"confirmAction":   m.confirmAction,
 	}

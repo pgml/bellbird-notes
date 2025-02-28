@@ -6,6 +6,7 @@ import (
 	"bellbird-notes/internal/tui/mode"
 	"bellbird-notes/internal/tui/theme"
 	"path"
+	"path/filepath"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/textinput"
@@ -69,7 +70,7 @@ func (d dir) String() string {
 	name := theme.TruncateText(d.name, 22)
 
 	toggle := map[string]string{"open": "", "close": "󰉋"}
-	noNerdFonts := false
+	noNerdFonts := true
 	if noNerdFonts {
 		toggle = map[string]string{"open": "▼", "close": "▶"}
 	}
@@ -162,7 +163,6 @@ func New() *DirectoryTree {
 }
 
 func (m *DirectoryTree) renderTree() {
-
 	dirTree := list.New().
 		Enumerator(func(items list.Items, index int) string { return "" })
 
@@ -257,6 +257,27 @@ func (m *DirectoryTree) MoveDown() {
 	}
 }
 
+func (m *DirectoryTree) Create() {
+	selectedDir := m.selectedDir()
+	selectedDir.expanded = true
+	tempFolderName := "New Folder"
+	tempFolderPath := filepath.Join(selectedDir.path)
+	selectedDir.children = append(selectedDir.children, dir{
+		name:     tempFolderName,
+		path:     tempFolderPath,
+		expanded: false,
+		children: nil,
+		level:    selectedDir.level + 1,
+	})
+	m.dirsList[m.selectedIndex] = *selectedDir
+
+	m.refreshFlatList()
+	tempDir := findDirectoryInTree(&m.dirsList, tempFolderPath)
+	tempDir.selected = true
+	//m.editingIndex =
+	//app.LogDebug(m.dirsListFlat)
+}
+
 func (m *DirectoryTree) Rename() {
 	if m.editingIndex == nil {
 		m.editingIndex = &m.selectedIndex
@@ -265,9 +286,11 @@ func (m *DirectoryTree) Rename() {
 }
 
 func (m *DirectoryTree) ConfirmAction() {
+	// if editingindex is set it most likely means that we are
+	// renaming or creating a directory
 	if m.editingIndex != nil {
 		oldPath := m.selectedDir().path
-		newPath := path.Join(path.Dir(oldPath), m.editor.Value())
+		newPath := path.Join(filepath.Dir(oldPath), m.editor.Value())
 		directories.Rename(oldPath, newPath)
 
 		dir := findDirectoryInTree(&m.dirsList, oldPath)
