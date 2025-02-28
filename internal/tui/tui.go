@@ -2,7 +2,9 @@ package tui
 
 import (
 	"bellbird-notes/internal/tui/directorytree"
+	"bellbird-notes/internal/tui/messages"
 	"bellbird-notes/internal/tui/mode"
+	"bellbird-notes/internal/tui/statusbar"
 	"bellbird-notes/internal/tui/theme"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -34,6 +36,7 @@ type TuiModel struct {
 	currentColumnFocus int
 	directoryTree      *directorytree.DirectoryTree
 	notesList          *notesList
+	statusBar          *statusbar.StatusBar
 }
 
 func InitialModel() TuiModel {
@@ -43,6 +46,7 @@ func InitialModel() TuiModel {
 		mode:               mode.New(),
 		directoryTree:      directorytree.New(),
 		notesList:          &notesList{},
+		statusBar:          statusbar.New(),
 	}
 
 	m.layout = bl.New()
@@ -51,7 +55,6 @@ func InitialModel() TuiModel {
 	m.directoryTree.Id = m.layout.Add("width 30")
 	m.directoryTree.IsFocused = true
 
-	m.notesList = &notesList{}
 	m.notesList.id = m.layout.Add("width 30")
 	m.notesList.isFocused = false
 	m.notesList.content = ""
@@ -65,9 +68,11 @@ func InitialModel() TuiModel {
 }
 
 func (m TuiModel) Init() tea.Cmd {
-	return func() tea.Msg {
+	resizeCmd := func() tea.Msg {
 		return m.layout.Resize(80, 40)
 	}
+
+	return tea.Batch(resizeCmd)
 }
 
 func (m TuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -81,7 +86,8 @@ func (m TuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		}
 
-		m.keyInput.handleKeyCombos(msg.String())
+		statusMsg := m.keyInput.handleKeyCombos(msg.String())
+		m.statusBar = m.statusBar.Update(statusMsg)
 
 	case tea.WindowSizeMsg:
 		// Convert WindowSizeMsg to BubbleLayoutMsg.
@@ -93,6 +99,8 @@ func (m TuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.directoryTree.Size, _ = msg.Size(m.directoryTree.Id)
 		m.notesList.size, _ = msg.Size(m.notesList.id)
 		m.editorSize, _ = msg.Size(m.editorID)
+	case messages.StatusBarMsg:
+		m.statusBar = m.statusBar.Update(msg)
 	}
 
 	m.keyInput.mode = m.mode.Current
@@ -114,27 +122,17 @@ func (m TuiModel) View() string {
 
 	notesList := m.notesList
 
-	termWidth, _ := theme.GetTerminalSize()
-	footerStyle := lipgloss.NewStyle().
-		//Border(lipgloss.RoundedBorder(), true).
-		//Background(lipgloss.Color("#424B5D")).
-		Align(lipgloss.Center).
-		Height(1).
-		Width(termWidth)
-	footerContent := "Press <space> to toggle the modal window. Press q or <esc> to quit."
-	footer := footerStyle.Render(footerContent)
-
 	return lipgloss.JoinVertical(lipgloss.Left,
 		lipgloss.JoinHorizontal(lipgloss.Bottom,
 			m.directoryTree.View(),
 			theme.BaseColumnLayout(notesList.size, notesList.isFocused).Align(lipgloss.Center).Render(notesList.content),
 			theme.BaseColumnLayout(m.editorSize, false).Render(t.View()),
 		),
-		footer,
+		m.statusBar.View(),
 	)
 }
 
-func (m *TuiModel) focusNextColumn() {
+func (m *TuiModel) focusNextColumn() messages.StatusBarMsg {
 	colIndex := min(m.currentColumnFocus+1, 3)
 	dirTree := m.directoryTree
 	notesList := m.notesList
@@ -149,9 +147,10 @@ func (m *TuiModel) focusNextColumn() {
 	}
 
 	m.currentColumnFocus = colIndex
+	return messages.StatusBarMsg{}
 }
 
-func (m *TuiModel) focusPrevColumn() {
+func (m *TuiModel) focusPrevColumn() messages.StatusBarMsg {
 	colIndex := m.currentColumnFocus - 1
 	if colIndex < 3 {
 		colIndex = 1
@@ -170,49 +169,75 @@ func (m *TuiModel) focusPrevColumn() {
 	}
 
 	m.currentColumnFocus = colIndex
+	return messages.StatusBarMsg{}
 }
 
-func (m *TuiModel) moveUp() {
+func (m *TuiModel) moveUp() messages.StatusBarMsg {
 	dirTree := m.directoryTree
 
 	if dirTree.IsFocused {
-		dirTree.MoveUp()
+		return dirTree.MoveUp()
 	}
+	return messages.StatusBarMsg{}
 }
 
-func (m *TuiModel) moveDown() {
+func (m *TuiModel) moveDown() messages.StatusBarMsg {
 	dirTree := m.directoryTree
 
 	if dirTree.IsFocused {
-		dirTree.MoveDown()
+		return dirTree.MoveDown()
 	}
+	return messages.StatusBarMsg{}
 }
 
-func (m *TuiModel) rename() {
+func (m *TuiModel) createDir() messages.StatusBarMsg {
 	dirTree := m.directoryTree
 	m.mode.Current = mode.Insert
 
 	if dirTree.IsFocused {
-		dirTree.Rename()
+		return dirTree.Create()
 	}
+	return messages.StatusBarMsg{}
 }
 
-func (m *TuiModel) confirmAction() {
+func (m *TuiModel) rename() messages.StatusBarMsg {
+	dirTree := m.directoryTree
+	m.mode.Current = mode.Insert
+
+	if dirTree.IsFocused {
+		return dirTree.Rename()
+	}
+	return messages.StatusBarMsg{}
+}
+
+func (m *TuiModel) delete() messages.StatusBarMsg {
 	dirTree := m.directoryTree
 	m.mode.Current = mode.Normal
 
 	if dirTree.IsFocused {
-		dirTree.ConfirmAction()
+		return dirTree.Remove()
 	}
+	return messages.StatusBarMsg{}
 }
 
-func (m *TuiModel) cancelAction() {
+func (m *TuiModel) confirmAction() messages.StatusBarMsg {
 	dirTree := m.directoryTree
 	m.mode.Current = mode.Normal
 
 	if dirTree.IsFocused {
-		dirTree.CancelAction()
+		return dirTree.ConfirmAction()
 	}
+	return messages.StatusBarMsg{}
+}
+
+func (m *TuiModel) cancelAction() messages.StatusBarMsg {
+	dirTree := m.directoryTree
+	m.mode.Current = mode.Normal
+
+	if dirTree.IsFocused {
+		return dirTree.CancelAction()
+	}
+	return messages.StatusBarMsg{}
 }
 
 func (m *TuiModel) enterCmdMode() {
@@ -230,16 +255,17 @@ func (m *TuiModel) quit() {
 	tea.Quit()
 }
 
-func (m *TuiModel) KeyInputFn() map[string]func() {
-	return map[string]func(){
+func (m *TuiModel) KeyInputFn() map[string]func() messages.StatusBarMsg {
+	return map[string]func() messages.StatusBarMsg{
 		"focusNextColumn": m.focusNextColumn,
 		"focusPrevColumn": m.focusPrevColumn,
 		"moveUp":          m.moveUp,
 		"moveDown":        m.moveDown,
 		"collapse":        m.directoryTree.Collapse,
 		"expand":          m.directoryTree.Expand,
+		"createDir":       m.createDir,
 		"rename":          m.rename,
-		"createDir":       m.directoryTree.Create,
+		"delete":          m.delete,
 		"cancelAction":    m.cancelAction,
 		"confirmAction":   m.confirmAction,
 	}

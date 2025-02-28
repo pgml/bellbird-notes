@@ -17,11 +17,11 @@ const (
 	Error
 )
 
-var errLvl = map[ErrorLvl]string {
-	Info:   "INFO",
-	Debug:  "DEBUG",
-	Warn:   "WARN",
-	Error:  "ERROR",
+var errLvl = map[ErrorLvl]string{
+	Info:  "INFO",
+	Debug: "DEBUG",
+	Warn:  "WARN",
+	Error: "ERROR",
 }
 
 func (e ErrorLvl) String() string {

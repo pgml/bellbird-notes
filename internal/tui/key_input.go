@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"bellbird-notes/internal/tui/messages"
 	"bellbird-notes/internal/tui/mode"
 	"strings"
 	"time"
@@ -25,7 +26,7 @@ type KeyInput struct {
 	isCtrlWDown bool
 	mode        mode.Mode
 
-	functions map[string]func()
+	functions map[string]func() messages.StatusBarMsg
 }
 
 func NewKeyInput() *KeyInput {
@@ -53,7 +54,7 @@ func NewKeyInput() *KeyInput {
 	}
 }
 
-func (m *KeyInput) handleKeyCombos(key string) {
+func (m *KeyInput) handleKeyCombos(key string) messages.StatusBarMsg {
 	if key == "ctrl+w" {
 		m.isCtrlWDown = true
 	}
@@ -66,7 +67,7 @@ func (m *KeyInput) handleKeyCombos(key string) {
 	m.keysDown[key] = true
 
 	actionString := mapToActionString(m.keysDown)
-	m.executeAction(actionString)
+	statusMsg := m.executeAction(actionString)
 
 	// special key actions for cmd mode
 	switch key {
@@ -91,18 +92,20 @@ func (m *KeyInput) handleKeyCombos(key string) {
 	if m.mode != mode.Command {
 		m.releaseKey(key)
 	}
+
+	return statusMsg
 }
 
-func (m *KeyInput) executeAction(keys string) {
+func (m *KeyInput) executeAction(keys string) messages.StatusBarMsg {
 	for _, keyMap := range m.keyMaps {
 		if keyMap.keys == keys && m.mode == keyMap.mode {
 			if fn, exists := m.functions[keyMap.action]; exists {
-				fn()
 				m.resetKeysDown()
+				return fn()
 			}
-			return
 		}
 	}
+	return messages.StatusBarMsg{}
 }
 
 func (m *KeyInput) resetKeysDown() {
