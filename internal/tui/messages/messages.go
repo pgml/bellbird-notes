@@ -22,7 +22,16 @@ func (m MsgType) Colour() lipgloss.TerminalColor {
 	return msgColours[m]
 }
 
+type Sender int
+
+const (
+	SenderDirTree Sender = iota
+	SenderNotesList
+)
+
 type StatusBarMsg struct {
 	Content string
 	Type    MsgType
+	Sender  Sender
+	Arg     any
 }

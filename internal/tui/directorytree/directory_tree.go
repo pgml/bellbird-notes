@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -81,7 +82,7 @@ func (d Dir) String() string {
 	name := theme.TruncateText(d.name, 22)
 
 	toggle := map[string]string{"open": "", "close": "󰉋"}
-	noNerdFonts := false
+	noNerdFonts := true
 	if noNerdFonts {
 		toggle = map[string]string{"open": "▼", "close": "▶"}
 	}
@@ -364,30 +365,39 @@ func (m *DirectoryTree) Rename() messages.StatusBarMsg {
 	return messages.StatusBarMsg{}
 }
 
+func (t *DirectoryTree) ConfirmRemove() messages.StatusBarMsg {
+	selectedDir := t.selectedDir()
+	msgType := messages.PromptError
+	resultMsg := fmt.Sprintf(messages.RemovePromptContent, selectedDir.path)
+
+	return messages.StatusBarMsg{
+		Content: resultMsg,
+		Type:    msgType,
+		Sender:  messages.SenderDirTree,
+	}
+}
+
 // Renames the currently selected directory
 // Returns a message to be displayed in the status bar
 func (t *DirectoryTree) Remove() messages.StatusBarMsg {
-	selectedDir := t.selectedDir()
+	dir := t.selectedDir()
 	index := t.selectedIndex
-	resultMsg := fmt.Sprintf(RemovePromptContent, selectedDir.path)
+	resultMsg := fmt.Sprintf(messages.SuccessRemove, dir.path)
 	msgType := messages.Success
 
-	if err := directories.Delete(selectedDir.path, false); err == nil {
+	if err := directories.Delete(dir.path, false); err == nil {
 		dirs := t.dirsListFlat
-		t.dirsListFlat = append(dirs[:index], dirs[index+1:]...)
+		t.dirsListFlat = slices.Delete(dirs, index, index+1)
 		t.rebuildDirsList()
-		// the next four lines are a very, very dirty hack
+		// the next four lines are a very, very dirty hack to update the tree
 		// but I don't know any better right now...so deal with it
-		t.selectedIndex = selectedDir.parent
+		t.selectedIndex = dir.parent
 		t.Collapse()
 		t.Expand()
 		t.selectedIndex = index
 	} else {
-		//msgType = messages.Error
-		//if _, isPrompt := err.(*errors.PromptError); isPrompt {
-		//	msgType = messages.PromptError
-		//}
-		//resultMsg = fmt.Sprintf(RemovePromptContent, selectedDir.path)
+		msgType = messages.Error
+		resultMsg = err.Error()
 	}
 
 	return messages.StatusBarMsg{Content: resultMsg, Type: msgType}

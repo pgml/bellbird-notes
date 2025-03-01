@@ -87,7 +87,8 @@ func (m TuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		statusMsg := m.keyInput.handleKeyCombos(msg.String())
-		m.statusBar = m.statusBar.Update(statusMsg)
+		m.statusBar = m.statusBar.Update(statusMsg, msg)
+		m.statusBar.Mode = m.mode.Current
 
 	case tea.WindowSizeMsg:
 		// Convert WindowSizeMsg to BubbleLayoutMsg.
@@ -100,13 +101,13 @@ func (m TuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.notesList.size, _ = msg.Size(m.notesList.id)
 		m.editorSize, _ = msg.Size(m.editorID)
 	case messages.StatusBarMsg:
-		m.statusBar = m.statusBar.Update(msg)
+		m.statusBar = m.statusBar.Update(msg, msg)
 	}
 
 	m.keyInput.mode = m.mode.Current
 	m.directoryTree.Mode = m.mode.Current
-
 	m.directoryTree.Update(msg)
+	m.statusBar.DirTree = *m.directoryTree
 
 	return m, cmd
 }
@@ -212,10 +213,12 @@ func (m *TuiModel) rename() messages.StatusBarMsg {
 
 func (m *TuiModel) delete() messages.StatusBarMsg {
 	dirTree := m.directoryTree
-	m.mode.Current = mode.Normal
+	// go into insert mode because we always ask for
+	// confirmation before deleting anything
+	m.mode.Current = mode.Insert
 
 	if dirTree.IsFocused {
-		return dirTree.Remove()
+		return dirTree.ConfirmRemove()
 	}
 	return messages.StatusBarMsg{}
 }
@@ -223,6 +226,10 @@ func (m *TuiModel) delete() messages.StatusBarMsg {
 func (m *TuiModel) confirmAction() messages.StatusBarMsg {
 	dirTree := m.directoryTree
 	m.mode.Current = mode.Normal
+
+	if m.statusBar.Mode == mode.Insert {
+		return m.statusBar.ConfirmAction()
+	}
 
 	if dirTree.IsFocused {
 		return dirTree.ConfirmAction()

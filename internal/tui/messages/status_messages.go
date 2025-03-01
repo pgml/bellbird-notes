@@ -1,4 +1,4 @@
-package directorytree
+package messages
 
 const (
 	SuccessRemove       string = "Directory successfully removed"
