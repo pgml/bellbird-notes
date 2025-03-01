@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"bellbird-notes/internal/app"
 	"bellbird-notes/internal/tui/directorytree"
 	"bellbird-notes/internal/tui/messages"
 	"bellbird-notes/internal/tui/mode"
@@ -196,6 +197,7 @@ func (m *TuiModel) createDir() messages.StatusBarMsg {
 	m.mode.Current = mode.Insert
 
 	if dirTree.IsFocused {
+		m.statusBar.IsFocused = false
 		return dirTree.Create()
 	}
 	return messages.StatusBarMsg{}
@@ -206,18 +208,20 @@ func (m *TuiModel) rename() messages.StatusBarMsg {
 	m.mode.Current = mode.Insert
 
 	if dirTree.IsFocused {
+		m.statusBar.IsFocused = false
 		return dirTree.Rename()
 	}
 	return messages.StatusBarMsg{}
 }
 
-func (m *TuiModel) delete() messages.StatusBarMsg {
+func (m *TuiModel) remove() messages.StatusBarMsg {
 	dirTree := m.directoryTree
 	// go into insert mode because we always ask for
 	// confirmation before deleting anything
 	m.mode.Current = mode.Insert
 
 	if dirTree.IsFocused {
+		m.statusBar.IsFocused = true
 		return dirTree.ConfirmRemove()
 	}
 	return messages.StatusBarMsg{}
@@ -227,7 +231,8 @@ func (m *TuiModel) confirmAction() messages.StatusBarMsg {
 	dirTree := m.directoryTree
 	m.mode.Current = mode.Normal
 
-	if m.statusBar.Mode == mode.Insert {
+	if m.statusBar.IsFocused {
+		app.LogDebug("asd")
 		return m.statusBar.ConfirmAction()
 	}
 
@@ -242,6 +247,7 @@ func (m *TuiModel) cancelAction() messages.StatusBarMsg {
 	m.mode.Current = mode.Normal
 
 	if dirTree.IsFocused {
+		m.statusBar.IsFocused = false
 		return dirTree.CancelAction()
 	}
 	return messages.StatusBarMsg{}
@@ -272,7 +278,7 @@ func (m *TuiModel) KeyInputFn() map[string]func() messages.StatusBarMsg {
 		"expand":          m.directoryTree.Expand,
 		"createDir":       m.createDir,
 		"rename":          m.rename,
-		"delete":          m.delete,
+		"delete":          m.remove,
 		"cancelAction":    m.cancelAction,
 		"confirmAction":   m.confirmAction,
 	}

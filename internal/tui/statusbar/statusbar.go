@@ -11,10 +11,19 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+type StatusBarMode int
+
+const (
+	Normal StatusBarMode = iota
+	Insert
+	Command
+)
+
 type StatusBar struct {
 	Content   string
 	Type      messages.MsgType
 	Prompt    textinput.Model
+	IsFocused bool
 	Mode      mode.Mode
 	Sender    messages.Sender
 	SenderMsg messages.StatusBarMsg

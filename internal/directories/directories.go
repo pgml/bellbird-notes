@@ -15,12 +15,13 @@ type Directory struct {
 	IsExpanded bool
 }
 
-func List(dirPath string) []Directory {
+func List(dirPath string) ([]Directory, error) {
 	var Directories []Directory
 
 	dirs, err := os.ReadDir(dirPath)
 	if err != nil {
 		app.LogErr(err)
+		return nil, err
 	}
 
 	for _, child := range dirs {
@@ -29,16 +30,31 @@ func List(dirPath string) []Directory {
 			continue
 		}
 
+		nbrDirs, _ := List(file_path)
 		Directories = append(Directories, Directory{
 			Name:       child.Name(),
 			Path:       file_path,
 			NbrNotes:   0,
-			NbrFolders: len(List(file_path)),
+			NbrFolders: len(nbrDirs),
 			IsExpanded: false,
 		})
 	}
 
-	return Directories
+	return Directories, nil
+}
+
+func ContainsDir(path string, dirName string) (error, bool) {
+	dirs, err := List(path)
+	if err != nil {
+		return err, false
+	}
+
+	for _, dir := range dirs {
+		if dir.Name == dirName {
+			return nil, true
+		}
+	}
+	return nil, false
 }
 
 func Create(path string) error {

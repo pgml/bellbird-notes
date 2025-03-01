@@ -2,7 +2,7 @@ package messages
 
 const (
 	SuccessRemove       string = "Directory successfully removed"
-	RemovePromptContent        = "Delete `%s` and all of its content? (Y)es, (N)o:"
+	RemovePromptContent        = "Delete `%s` and all of its content? [y(es),n(o)]:"
 )
 
 //var msgColours = map[MsgType]lipgloss.TerminalColor{
