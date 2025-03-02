@@ -39,6 +39,8 @@ func NewKeyInput() *KeyInput {
 		keyMaps: []keyAction{
 			keyAction{"ctrl+w l", "focusNextColumn", mode.Normal},
 			keyAction{"ctrl+w h", "focusPrevColumn", mode.Normal},
+			keyAction{"e", "focusNextColumn", mode.Normal},
+			keyAction{"q", "focusPrevColumn", mode.Normal},
 			keyAction{"j", "moveDown", mode.Normal},
 			keyAction{"k", "moveUp", mode.Normal},
 			keyAction{"l", "expand", mode.Normal},
@@ -52,6 +54,7 @@ func NewKeyInput() *KeyInput {
 			keyAction{"esc", "cancelAction", mode.Normal},
 			keyAction{"esc", "cancelAction", mode.Insert},
 			keyAction{"esc", "cancelAction", mode.Command},
+			keyAction{"enter", "confirmAction", mode.Normal},
 			keyAction{"enter", "confirmAction", mode.Insert},
 			keyAction{"enter", "confirmAction", mode.Command},
 		},
@@ -69,12 +72,12 @@ func (ki *KeyInput) handleKeyCombos(key string) messages.StatusBarMsg {
 	}
 
 	ki.keysDown[key] = true
-	ki.keyComboCache[key] = true
+	//ki.keyComboCache[key] = true
 
 	actionString := mapToActionString(ki.keysDown)
-	if len(ki.keyComboCache) > 0 {
-		actionString = mapToActionString(ki.keyComboCache)
-	}
+	//if len(ki.keyComboCache) > 0 {
+	//	actionString = mapToActionString(ki.keyComboCache)
+	//}
 	statusMsg := ki.executeAction(actionString)
 
 	// special key actions for cmd mode

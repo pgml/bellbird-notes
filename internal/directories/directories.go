@@ -25,15 +25,15 @@ func List(dirPath string) ([]Directory, error) {
 	}
 
 	for _, child := range dirs {
-		file_path := filepath.Join(dirPath, child.Name())
-		if !child.IsDir() || isHidden(file_path) {
+		filePath := filepath.Join(dirPath, child.Name())
+		if !child.IsDir() || isHidden(filePath) {
 			continue
 		}
 
-		nbrDirs, _ := List(file_path)
+		nbrDirs, _ := List(filePath)
 		Directories = append(Directories, Directory{
 			Name:       child.Name(),
-			Path:       file_path,
+			Path:       filePath,
 			NbrNotes:   0,
 			NbrFolders: len(nbrDirs),
 			IsExpanded: false,
