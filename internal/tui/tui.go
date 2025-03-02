@@ -276,21 +276,24 @@ func (m *TuiModel) goToBottom() messages.StatusBarMsg {
 func (m *TuiModel) confirmAction() messages.StatusBarMsg {
 	dirTree := m.directoryTree
 	notesList := m.notesList
-	m.mode.Current = mode.Normal
+
+	statusMsg := messages.StatusBarMsg{}
 
 	if m.statusBar.IsFocused {
-		return m.statusBar.ConfirmAction()
+		statusMsg = m.statusBar.ConfirmAction()
 	}
 
 	if dirTree.IsFocused {
 		if m.mode.Current != mode.Normal {
-			return dirTree.ConfirmAction()
+			statusMsg = dirTree.ConfirmAction()
 		} else {
 			notesList.CurrentPath = dirTree.SelectedDir().Path
-			return notesList.Refresh()
+			statusMsg = notesList.Refresh()
 		}
 	}
-	return messages.StatusBarMsg{}
+
+	m.mode.Current = mode.Normal
+	return statusMsg
 }
 
 func (m *TuiModel) cancelAction() messages.StatusBarMsg {
