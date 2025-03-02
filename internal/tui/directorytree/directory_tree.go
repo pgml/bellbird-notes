@@ -160,6 +160,7 @@ func (t *DirectoryTree) View() string {
 
 	for i, dir := range t.dirsListFlat {
 		if dir == nil {
+			slices.Delete(t.dirsListFlat, i, i+1)
 			continue
 		}
 		indent := strings.Repeat("  ", dir.level)
@@ -289,8 +290,11 @@ func (t *DirectoryTree) rebuildDirsList() {
 	var dirsList []*Dir
 
 	for i := range t.dirsListFlat {
+		//dir := app.LogDebug(t.dirsListFlat[i])
 		if dir := t.dirsListFlat[i]; dir != nil {
 			dirMap[dir.index] = dir
+		} else {
+			t.dirsListFlat = slices.Delete(t.dirsListFlat, i, i+1)
 		}
 	}
 
@@ -305,8 +309,6 @@ func (t *DirectoryTree) rebuildDirsList() {
 			}
 		}
 	}
-
-	//app.LogDebug(m.dirsListFlat, dirsList[0].children)
 
 	t.dirsList = dirsList
 	//t.refreshFlatList()
@@ -383,18 +385,19 @@ func (t *DirectoryTree) RefreshTreeBranch(index int, selectAfter int) {
 }
 
 // Decrements `m.selectedIndex`
-func (m *DirectoryTree) MoveUp() messages.StatusBarMsg {
-	if m.selectedIndex > 0 {
-		m.selectedIndex--
+func (t *DirectoryTree) MoveUp() messages.StatusBarMsg {
+	//t.rebuildDirsList()
+	if t.selectedIndex > 0 {
+		t.selectedIndex--
 	}
 	return messages.StatusBarMsg{
-		Content: strconv.Itoa(m.selectedDir().nbrFolders) + " folders",
+		Content: strconv.Itoa(t.selectedDir().nbrFolders) + " folders",
 	}
 }
 
 // Increments `m.selectedIndex`
 func (t *DirectoryTree) MoveDown() messages.StatusBarMsg {
-	app.LogDebug(len(t.dirsListFlat))
+	//t.rebuildDirsList()
 	if t.selectedIndex < len(t.dirsListFlat)-1 {
 		t.selectedIndex++
 	}
@@ -458,13 +461,15 @@ func (t *DirectoryTree) Remove() messages.StatusBarMsg {
 	msgType := messages.Success
 
 	if err := directories.Delete(dir.path, false); err == nil {
-		slices.Delete(t.dirsListFlat, index, index+1)
+		t.dirsListFlat = slices.Delete(t.dirsListFlat, index, index+1)
 	} else {
 		msgType = messages.Error
 		resultMsg = err.Error()
 	}
-	t.rebuildDirsList()
-	app.LogDebug("remove", t.dirsListFlat, len(t.dirsListFlat))
+
+	t.RefreshTreeBranch(dir.parent, index)
+	t.Expand()
+	//app.LogDebug("remove", t.dirsListFlat, len(t.dirsListFlat))
 
 	return messages.StatusBarMsg{Content: resultMsg, Type: msgType}
 }
