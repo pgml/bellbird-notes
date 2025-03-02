@@ -1,7 +1,6 @@
 package directorytree
 
 import (
-	"bellbird-notes/internal/app"
 	"bellbird-notes/internal/config"
 	"bellbird-notes/internal/directories"
 	"bellbird-notes/internal/tui/messages"
@@ -32,8 +31,8 @@ type DirectoryTree struct {
 	editingState  EditState
 	selectedIndex int
 
-	dirsList     []*Dir // the original directory hierarchy
-	dirsListFlat []*Dir // a flattened representation to make vertical navigation easier
+	dirsList     []Dir // the original directory hierarchy
+	dirsListFlat []Dir // a flattened representation to make vertical navigation easier
 	content      *list.List
 
 	statusMessage string
@@ -79,15 +78,16 @@ type Dir struct {
 	parent     int
 	nbrNotes   int
 	nbrFolders int
-	children   []*Dir
+	children   []Dir
 	styles     styles
 }
+type comparable interface{ Dir }
 
 func (d Dir) String() string {
 	t := d.styles.toggle.Render
 	n := d.styles.dir.Render
 	e := d.styles.enumerator.Render
-	//indent := strings.Repeat(" │", d.level)
+	//indent := strings.Repeat("│ ", d.level)
 	indent := strings.Repeat("  ", d.level)
 	name := theme.TruncateText(d.name, 22)
 
@@ -131,6 +131,7 @@ func (t *DirectoryTree) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if t.editor.Focused() {
 			t.editor.Focus()
 			t.editor, cmd = t.editor.Update(msg)
+			//t.dirsListFlat[len(t.dirsListFlat)-1].name = t.editor.Value()
 			return t, cmd
 		}
 	}
@@ -159,10 +160,11 @@ func (t *DirectoryTree) View() string {
 	var tree string
 
 	for i, dir := range t.dirsListFlat {
-		if dir == nil {
-			slices.Delete(t.dirsListFlat, i, i+1)
+		if dir.index == 0 && dir.parent == 0 {
+			t.dirsListFlat = slices.Delete(t.dirsListFlat, i, i+1)
 			continue
 		}
+
 		indent := strings.Repeat("  ", dir.level)
 		dir.selected = (t.selectedIndex == i)
 
@@ -195,7 +197,7 @@ func New() *DirectoryTree {
 	notesDir := conf.Value(config.General, config.DefaultNotesDirectory)
 
 	// append root directory
-	tree.dirsList = append(tree.dirsList, &Dir{
+	tree.dirsList = append(tree.dirsList, Dir{
 		index:    0,
 		name:     "Bellbird Notes",
 		expanded: true,
@@ -223,8 +225,8 @@ func (m *DirectoryTree) renderTree() {
 }
 
 // Reads a directory of `path` and return dir slice
-func (m *DirectoryTree) getChildren(path string, level int) []*Dir {
-	var dirs []*Dir
+func (m *DirectoryTree) getChildren(path string, level int) []Dir {
+	var dirs []Dir
 	childDir, _ := directories.List(path)
 	for _, item := range childDir {
 		dirs = append(dirs, m.createDir(item, level))
@@ -233,7 +235,7 @@ func (m *DirectoryTree) getChildren(path string, level int) []*Dir {
 }
 
 // Creates a dir
-func (m *DirectoryTree) createDir(dir directories.Directory, level int) *Dir {
+func (m *DirectoryTree) createDir(dir directories.Directory, level int) Dir {
 	style := defaultStyles()
 	childItem := Dir{
 		index:      0,
@@ -246,11 +248,11 @@ func (m *DirectoryTree) createDir(dir directories.Directory, level int) *Dir {
 		level:      level,
 		styles:     style,
 	}
-	return &childItem
+	return childItem
 }
 
-// Creates a temporary, virtual dir
-func (m *DirectoryTree) createTempDir() Dir {
+// Creates a temporary, virtual directory `Dir`
+func (m *DirectoryTree) createVirtualDir() Dir {
 	selectedDir := m.selectedDir()
 	tempFolderName := "New Folder"
 	tempFolderPath := filepath.Join(selectedDir.path, tempFolderName)
@@ -268,11 +270,10 @@ func (m *DirectoryTree) createTempDir() Dir {
 
 // Returns the currently selected directory in the directory tree
 // or the first if there's no selected for some reaon
-func (t *DirectoryTree) selectedDir() *Dir {
+func (t *DirectoryTree) selectedDir() Dir {
 	for i := range t.dirsListFlat {
-		if dir := t.dirsListFlat[i]; dir == nil {
-			continue
-		} else if i == t.selectedIndex {
+		dir := t.dirsListFlat[i]
+		if i == t.selectedIndex {
 			return dir
 		}
 	}
@@ -284,39 +285,9 @@ func (t *DirectoryTree) refreshFlatList() {
 	t.dirsListFlat = t.flatten(t.dirsList, 0, -1, &nextIndex)
 }
 
-// Rebuilds `m.dirsList` from `m.dirsListFlat`
-func (t *DirectoryTree) rebuildDirsList() {
-	dirMap := make(map[int]*Dir)
-	var dirsList []*Dir
-
-	for i := range t.dirsListFlat {
-		//dir := app.LogDebug(t.dirsListFlat[i])
-		if dir := t.dirsListFlat[i]; dir != nil {
-			dirMap[dir.index] = dir
-		} else {
-			t.dirsListFlat = slices.Delete(t.dirsListFlat, i, i+1)
-		}
-	}
-
-	for i := range t.dirsListFlat {
-		if dir := t.dirsListFlat[i]; dir != nil {
-			if dir.parent == -1 {
-				dirsList = append(dirsList, dir)
-			} else {
-				if parent, exists := dirMap[dir.parent]; exists {
-					parent.children = append(parent.children, dir)
-				}
-			}
-		}
-	}
-
-	t.dirsList = dirsList
-	//t.refreshFlatList()
-}
-
 // Converts a slice of Dir and its sub slices into a one dimensional slice
-func (t *DirectoryTree) flatten(dirs []*Dir, level int, parent int, nextIndex *int) []*Dir {
-	var result []*Dir
+func (t *DirectoryTree) flatten(dirs []Dir, level int, parent int, nextIndex *int) []Dir {
+	var result []Dir
 	for i, dir := range dirs {
 		dir.index = *nextIndex
 		dir.parent = parent
@@ -386,7 +357,6 @@ func (t *DirectoryTree) RefreshTreeBranch(index int, selectAfter int) {
 
 // Decrements `m.selectedIndex`
 func (t *DirectoryTree) MoveUp() messages.StatusBarMsg {
-	//t.rebuildDirsList()
 	if t.selectedIndex > 0 {
 		t.selectedIndex--
 	}
@@ -397,7 +367,6 @@ func (t *DirectoryTree) MoveUp() messages.StatusBarMsg {
 
 // Increments `m.selectedIndex`
 func (t *DirectoryTree) MoveDown() messages.StatusBarMsg {
-	//t.rebuildDirsList()
 	if t.selectedIndex < len(t.dirsListFlat)-1 {
 		t.selectedIndex++
 	}
@@ -414,8 +383,10 @@ func (t *DirectoryTree) Create() messages.StatusBarMsg {
 	t.Collapse()
 	t.Expand()
 	t.editingState = EditCreate
+	t.refreshFlatList()
 	lastChild := t.lastChildOfSelection()
-	tmpdir := t.createTempDir()
+	//app.LogDebug(lastChild)
+	tmpdir := t.createVirtualDir()
 	t.insertDirAfter(lastChild.index, tmpdir)
 	t.selectedIndex = lastChild.index + 1
 
@@ -432,11 +403,20 @@ func (t *DirectoryTree) Rename() messages.StatusBarMsg {
 	if t.editingIndex == nil {
 		t.editingState = EditRename
 		t.editingIndex = &t.selectedIndex
-		app.LogDebug(t.dirsListFlat[t.selectedIndex])
 		t.editor.SetValue(t.selectedDir().name)
 		// set cursor to last position
 		t.editor.SetCursor(100)
 	}
+	return messages.StatusBarMsg{}
+}
+
+func (t *DirectoryTree) GoToTop() messages.StatusBarMsg {
+	t.selectedIndex = 0
+	return messages.StatusBarMsg{}
+}
+
+func (t *DirectoryTree) GoToBottom() messages.StatusBarMsg {
+	t.selectedIndex = t.dirsListFlat[len(t.dirsListFlat)-1].index
 	return messages.StatusBarMsg{}
 }
 
@@ -468,9 +448,6 @@ func (t *DirectoryTree) Remove() messages.StatusBarMsg {
 	}
 
 	t.RefreshTreeBranch(dir.parent, index)
-	t.Expand()
-	//app.LogDebug("remove", t.dirsListFlat, len(t.dirsListFlat))
-
 	return messages.StatusBarMsg{Content: resultMsg, Type: msgType}
 }
 
@@ -497,16 +474,9 @@ func (t *DirectoryTree) ConfirmAction() messages.StatusBarMsg {
 		case EditCreate:
 			if !t.dirExists(newPath) {
 				directories.Create(newPath)
-				t.RefreshTreeBranch(t.selectedDir().parent, t.selectedDir().index)
-				// since the new directory was only created in the flat copy of the
-				// directories we need to update the original list to make the creation
-				// visually persistent for this session
-				//t.rebuildDirsList()
 			}
 		}
 
-		t.refreshFlatList()
-		app.LogDebug("confirm", len(t.dirsListFlat))
 		t.CancelAction()
 		return messages.StatusBarMsg{Content: "yep"}
 	}
@@ -519,8 +489,6 @@ func (t *DirectoryTree) CancelAction() messages.StatusBarMsg {
 	t.editingIndex = nil
 	t.editingState = EditNone
 	t.editor.Blur()
-	//t.renderTree()
-	//t.rebuildDirsList()
 	t.RefreshTreeBranch(t.selectedDir().parent, t.selectedIndex)
 	return messages.StatusBarMsg{}
 }
@@ -531,26 +499,35 @@ func (m *DirectoryTree) lastChildOfSelection() Dir {
 	lastChild := m.dirsListFlat[len(m.dirsListFlat)-1]
 
 	if selectedDir.index > 0 {
-		for _, item := range m.dirsListFlat {
-			if item.parent == selectedDir.index {
-				lastChild = item
+		if len(selectedDir.children) == 0 {
+			selectedDir.children = append(selectedDir.children, Dir{})
+		}
+		if len(selectedDir.children) > 0 {
+			lastChild = selectedDir.children[len(selectedDir.children)-1]
+			if lastChild.name == "" {
+				lastChild = selectedDir
+			}
+			for _, dir := range m.dirsListFlat {
+				if lastChild.name == dir.name {
+					lastChild = dir
+				}
 			}
 		}
 	}
-	return *lastChild
+	return lastChild
 }
 
 // Inserts an item after `afterIndex`
 //
-// Note: this is only a temporary insertion into to the flat copy
+// Note: this is only a virtual insertion into to the flat copy
 // of the directories.
-// To make it persistent use `m.rebuildDirsList` afterwards
+// To make it persistent write it to the file system
 func (m *DirectoryTree) insertDirAfter(afterIndex int, directory Dir) {
 	for i, dir := range m.dirsListFlat {
 		if dir.index == afterIndex {
 			m.dirsListFlat = append(
 				m.dirsListFlat[:i+1],
-				append([]*Dir{&directory}, m.dirsListFlat[i+1:]...)...,
+				append([]Dir{directory}, m.dirsListFlat[i+1:]...)...,
 			)
 			break
 		}
@@ -558,10 +535,10 @@ func (m *DirectoryTree) insertDirAfter(afterIndex int, directory Dir) {
 }
 
 // Recursively search for a directory by path
-func findDirInTree(directories []*Dir, path string) *Dir {
+func findDirInTree(directories []Dir, path string) *Dir {
 	for i := range directories {
 		if directories[i].path == path {
-			return directories[i]
+			return &directories[i]
 		}
 		if directories[i].expanded {
 			if ok := findDirInTree(directories[i].children, path); ok != nil {

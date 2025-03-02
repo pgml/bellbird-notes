@@ -1,7 +1,6 @@
 package tui
 
 import (
-	"bellbird-notes/internal/app"
 	"bellbird-notes/internal/tui/directorytree"
 	"bellbird-notes/internal/tui/messages"
 	"bellbird-notes/internal/tui/mode"
@@ -227,12 +226,29 @@ func (m *TuiModel) remove() messages.StatusBarMsg {
 	return messages.StatusBarMsg{}
 }
 
+func (m *TuiModel) goToTop() messages.StatusBarMsg {
+	dirTree := m.directoryTree
+
+	if dirTree.IsFocused && m.mode.Current == mode.Normal {
+		return dirTree.GoToTop()
+	}
+	return messages.StatusBarMsg{}
+}
+
+func (m *TuiModel) goToBottom() messages.StatusBarMsg {
+	dirTree := m.directoryTree
+
+	if dirTree.IsFocused && m.mode.Current == mode.Normal {
+		return dirTree.GoToBottom()
+	}
+	return messages.StatusBarMsg{}
+}
+
 func (m *TuiModel) confirmAction() messages.StatusBarMsg {
 	dirTree := m.directoryTree
 	m.mode.Current = mode.Normal
 
 	if m.statusBar.IsFocused {
-		app.LogDebug("asd")
 		return m.statusBar.ConfirmAction()
 	}
 
@@ -279,6 +295,8 @@ func (m *TuiModel) KeyInputFn() map[string]func() messages.StatusBarMsg {
 		"createDir":       m.createDir,
 		"rename":          m.rename,
 		"delete":          m.remove,
+		"goToTop":         m.goToTop,
+		"goToBottom":      m.goToBottom,
 		"cancelAction":    m.cancelAction,
 		"confirmAction":   m.confirmAction,
 	}

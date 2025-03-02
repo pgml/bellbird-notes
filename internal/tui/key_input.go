@@ -20,8 +20,9 @@ type keyMap struct {
 }
 
 type KeyInput struct {
-	keysDown map[string]bool
-	keyMaps  []keyAction
+	keyComboCache map[string]bool
+	keysDown      map[string]bool
+	keyMaps       []keyAction
 
 	isCtrlWDown bool
 	mode        mode.Mode
@@ -31,9 +32,10 @@ type KeyInput struct {
 
 func NewKeyInput() *KeyInput {
 	return &KeyInput{
-		isCtrlWDown: false,
-		mode:        mode.Normal,
-		keysDown:    make(map[string]bool),
+		isCtrlWDown:   false,
+		mode:          mode.Normal,
+		keyComboCache: make(map[string]bool),
+		keysDown:      make(map[string]bool),
 		keyMaps: []keyAction{
 			keyAction{"ctrl+w l", "focusNextColumn", mode.Normal},
 			keyAction{"ctrl+w h", "focusPrevColumn", mode.Normal},
@@ -45,6 +47,8 @@ func NewKeyInput() *KeyInput {
 			keyAction{"d", "createDir", mode.Normal},
 			keyAction{"%", "createNote", mode.Normal},
 			keyAction{"D", "delete", mode.Normal},
+			keyAction{"g", "goToTop", mode.Normal},
+			keyAction{"G", "goToBottom", mode.Normal},
 			keyAction{"esc", "cancelAction", mode.Normal},
 			keyAction{"esc", "cancelAction", mode.Insert},
 			keyAction{"esc", "cancelAction", mode.Command},
@@ -54,20 +58,24 @@ func NewKeyInput() *KeyInput {
 	}
 }
 
-func (m *KeyInput) handleKeyCombos(key string) messages.StatusBarMsg {
+func (ki *KeyInput) handleKeyCombos(key string) messages.StatusBarMsg {
 	if key == "ctrl+w" {
-		m.isCtrlWDown = true
+		ki.isCtrlWDown = true
 	}
 
-	if m.isCtrlWDown && strings.Contains(key, "ctrl+") {
-		m.keysDown["ctrl+w"] = true
+	if ki.isCtrlWDown && strings.Contains(key, "ctrl+") {
+		ki.keysDown["ctrl+w"] = true
 		key = strings.Split(key, "+")[1]
 	}
 
-	m.keysDown[key] = true
+	ki.keysDown[key] = true
+	ki.keyComboCache[key] = true
 
-	actionString := mapToActionString(m.keysDown)
-	statusMsg := m.executeAction(actionString)
+	actionString := mapToActionString(ki.keysDown)
+	if len(ki.keyComboCache) > 0 {
+		actionString = mapToActionString(ki.keyComboCache)
+	}
+	statusMsg := ki.executeAction(actionString)
 
 	// special key actions for cmd mode
 	switch key {
@@ -89,18 +97,19 @@ func (m *KeyInput) handleKeyCombos(key string) messages.StatusBarMsg {
 	//	m.executeCmdModeCommand()
 	//}
 
-	if m.mode != mode.Command {
-		m.releaseKey(key)
+	if ki.mode != mode.Command {
+		ki.releaseKey(key)
 	}
 
 	return statusMsg
 }
 
-func (m *KeyInput) executeAction(keys string) messages.StatusBarMsg {
-	for _, keyMap := range m.keyMaps {
-		if keyMap.keys == keys && m.mode == keyMap.mode {
-			if fn, exists := m.functions[keyMap.action]; exists {
-				m.resetKeysDown()
+func (ki *KeyInput) executeAction(keys string) messages.StatusBarMsg {
+	for _, keyMap := range ki.keyMaps {
+		if keyMap.keys == keys && ki.mode == keyMap.mode {
+			if fn, exists := ki.functions[keyMap.action]; exists {
+				ki.resetKeysDown()
+				ki.resetKeysComboCache()
 				return fn()
 			}
 		}
@@ -108,23 +117,28 @@ func (m *KeyInput) executeAction(keys string) messages.StatusBarMsg {
 	return messages.StatusBarMsg{}
 }
 
-func (m *KeyInput) resetKeysDown() {
-	m.isCtrlWDown = false
-	m.keysDown = make(map[string]bool)
+func (ki *KeyInput) resetKeysDown() {
+	ki.isCtrlWDown = false
+	ki.keysDown = make(map[string]bool)
+}
+
+func (ki *KeyInput) resetKeysComboCache() {
+	ki.isCtrlWDown = false
+	ki.keyComboCache = make(map[string]bool)
 }
 
 // simulate keyUp event
-func (m *KeyInput) releaseKey(key string) {
+func (ki *KeyInput) releaseKey(key string) {
 	var timeout time.Duration = 50
 	go func() {
 		time.Sleep(timeout * time.Millisecond)
-		delete(m.keysDown, key)
+		delete(ki.keysDown, key)
 	}()
 }
 
-func (m KeyInput) GetKeysDown() []string {
+func (ki KeyInput) GetKeysDown() []string {
 	keys := []string{}
-	for key := range m.keysDown {
+	for key := range ki.keysDown {
 		keys = append(keys, key)
 	}
 	return keys
