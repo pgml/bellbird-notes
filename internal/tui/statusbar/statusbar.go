@@ -4,6 +4,7 @@ import (
 	"bellbird-notes/internal/tui/directorytree"
 	"bellbird-notes/internal/tui/messages"
 	"bellbird-notes/internal/tui/mode"
+	"bellbird-notes/internal/tui/noteslist"
 	"bellbird-notes/internal/tui/theme"
 
 	"github.com/charmbracelet/bubbles/textinput"
@@ -20,14 +21,17 @@ const (
 )
 
 type StatusBar struct {
-	Content   string
-	Type      messages.MsgType
-	Prompt    textinput.Model
-	IsFocused bool
+	Content string
+	Type    messages.MsgType
+	Prompt  textinput.Model
+	// Indicates hether the directory tree column is focused.
+	// Used to determine if the status bar should receive keyboard shortcuts
+	Focused   bool
 	Mode      mode.Mode
 	Sender    messages.Sender
 	SenderMsg messages.StatusBarMsg
 	DirTree   directorytree.DirectoryTree
+	NotesList noteslist.NotesList
 }
 
 const (
@@ -84,16 +88,22 @@ func (s *StatusBar) View() string {
 	return style.Render(output)
 }
 
-func (s *StatusBar) ConfirmAction() messages.StatusBarMsg {
+func (s *StatusBar) ConfirmAction(sender messages.Sender) messages.StatusBarMsg {
 	if s.Prompt.Focused() {
 		switch s.Prompt.Value() {
 		case ResponseYES:
-			if s.Sender == messages.SenderDirTree {
+			if sender == messages.SenderDirTree {
 				return s.DirTree.Remove()
 			}
+			if sender == messages.SenderNotesList {
+				return s.NotesList.Remove()
+			}
 		case ResponseNO:
-			if s.Sender == messages.SenderDirTree {
+			if sender == messages.SenderDirTree {
 				return s.DirTree.CancelAction()
+			}
+			if sender == messages.SenderNotesList {
+				return s.NotesList.CancelAction()
 			}
 		}
 	}
