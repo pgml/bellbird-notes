@@ -39,6 +39,8 @@ func NewKeyInput() *KeyInput {
 		keyMaps: []keyAction{
 			keyAction{"ctrl+w l", "focusNextColumn", mode.Normal},
 			keyAction{"ctrl+w h", "focusPrevColumn", mode.Normal},
+			keyAction{"1", "focusDirectoryTree", mode.Normal},
+			keyAction{"2", "focusNotesList", mode.Normal},
 			keyAction{"e", "focusNextColumn", mode.Normal},
 			keyAction{"q", "focusPrevColumn", mode.Normal},
 			keyAction{"j", "moveDown", mode.Normal},

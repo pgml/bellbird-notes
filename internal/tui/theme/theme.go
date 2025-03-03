@@ -21,7 +21,7 @@ func BaseColumnLayout(size bl.Size, focused bool) lipgloss.Style {
 		BorderForeground(borderColour).
 		Foreground(lipgloss.NoColor{}).
 		Width(size.Width).
-		Height(termHeight - 3)
+		Height(termHeight - 1)
 }
 
 func GetTerminalSize() (int, int) {
