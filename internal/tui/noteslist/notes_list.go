@@ -1,7 +1,6 @@
 package noteslist
 
 import (
-	"bellbird-notes/internal/app"
 	"bellbird-notes/internal/config"
 	"bellbird-notes/internal/notes"
 	"bellbird-notes/internal/tui/messages"
@@ -228,10 +227,10 @@ func (l *NotesList) createNoteItem(note notes.Note) Note {
 	return childItem
 }
 
-// createVirtualDir creates a temporary, virtual directory `Dir`
+// createVirtualNote creates a temporary, virtual note `Note`
 //
-// This directory is mainly used as a placeholder when creating a directory
-func (l *NotesList) createVirtualDir() Note {
+// This note is mainly used as a placeholder when creating a note
+func (l *NotesList) createVirtualNote() Note {
 	selectedNote := l.SelectedNote()
 	tempNoteName := "New Note"
 	tempNotePath := filepath.Join(filepath.Dir(selectedNote.path), tempNoteName)
@@ -281,7 +280,6 @@ func (l *NotesList) insertDirAfter(afterIndex int, note Note) {
 
 func (l *NotesList) noteExists(path string) bool {
 	if _, err := os.Stat(path); err != nil {
-		app.LogErr(err)
 		return false
 	}
 	return true
@@ -333,10 +331,14 @@ func (l *NotesList) LineDown() messages.StatusBarMsg {
 // @todo: reindex directories immediately on creating temp dir
 func (l *NotesList) Create() messages.StatusBarMsg {
 	l.editingState = EditCreate
-	tmpdir := l.createVirtualDir()
+	tmpNote := l.createVirtualNote()
 	lastChild := l.getLastChild()
-	l.insertDirAfter(lastChild.index, tmpdir)
-	l.selectedIndex = lastChild.index + 1
+	if lastChild.name == "" {
+		l.notes = append(l.notes, tmpNote)
+	} else {
+		l.insertDirAfter(lastChild.index, tmpNote)
+		l.selectedIndex = lastChild.index + 1
+	}
 
 	if l.editingIndex == nil {
 		l.editingIndex = &l.selectedIndex
@@ -408,11 +410,11 @@ func (l *NotesList) ConfirmAction() messages.StatusBarMsg {
 	// renaming or creating a directory
 	if l.editingIndex != nil {
 		selectedNote := l.SelectedNote()
-		oldPath := selectedNote.path
-		newPath := filepath.Join(filepath.Dir(oldPath), l.editor.Value())
+		newPath := filepath.Join(l.CurrentPath, l.editor.Value())
 
 		switch l.editingState {
 		case EditRename:
+			oldPath := selectedNote.path
 			// rename if path exists
 			if _, err := os.Stat(oldPath); err == nil {
 				notes.Rename(oldPath, newPath)
