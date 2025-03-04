@@ -67,7 +67,7 @@ func (l *NotesList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmd tea.Cmd
 		//cmds []tea.Cmd
 	)
-	_, termHeight := theme.GetTerminalSize()
+	termWidth, termHeight := theme.GetTerminalSize()
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
@@ -83,13 +83,13 @@ func (l *NotesList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	case tea.WindowSizeMsg:
 		if !l.ready {
-			l.viewport = viewport.New(30, termHeight-1)
+			l.viewport = viewport.New(termWidth, termHeight-1)
 			l.viewport.SetContent(l.build())
 			l.viewport.KeyMap = viewport.KeyMap{}
 			l.lastVisibleLine = l.viewport.VisibleLineCount() - 3
 			l.ready = true
 		} else {
-			l.viewport.Width = 30
+			l.viewport.Width = termWidth
 			l.viewport.Height = termHeight - 1
 		}
 	}

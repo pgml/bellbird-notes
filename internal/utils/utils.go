@@ -52,3 +52,7 @@ func SortSliceAsc[T HasName](slice []T, skipFirst bool, setIndex func(*T, int)) 
 		}
 	}
 }
+
+func Pointer[T any](d T) *T {
+	return &d
+}

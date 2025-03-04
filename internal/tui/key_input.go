@@ -41,6 +41,7 @@ func NewKeyInput() *KeyInput {
 			keyAction{"ctrl+w h", "focusPrevColumn", app.NormalMode},
 			keyAction{"1", "focusDirectoryTree", app.NormalMode},
 			keyAction{"2", "focusNotesList", app.NormalMode},
+			keyAction{"3", "focusEditor", app.NormalMode},
 			keyAction{"e", "focusNextColumn", app.NormalMode},
 			keyAction{"q", "focusPrevColumn", app.NormalMode},
 			keyAction{"j", "lineDown", app.NormalMode},
@@ -55,10 +56,12 @@ func NewKeyInput() *KeyInput {
 			keyAction{"G", "goToBottom", app.NormalMode},
 			keyAction{"esc", "cancelAction", app.NormalMode},
 			keyAction{"esc", "cancelAction", app.InsertMode},
+			keyAction{"esc", "exitInsertMode", app.InsertMode},
 			keyAction{"esc", "cancelAction", app.CommandMode},
 			keyAction{"enter", "confirmAction", app.NormalMode},
 			keyAction{"enter", "confirmAction", app.InsertMode},
 			keyAction{"enter", "confirmAction", app.CommandMode},
+			keyAction{"i", "enterInsertMode", app.NormalMode},
 		},
 	}
 }

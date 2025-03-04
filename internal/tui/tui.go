@@ -4,13 +4,11 @@ import (
 	"bellbird-notes/internal/app"
 	"bellbird-notes/internal/tui/components"
 	"bellbird-notes/internal/tui/messages"
-	"bellbird-notes/internal/tui/theme"
 	"strconv"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
-	"github.com/charmbracelet/bubbles/textarea"
 	bl "github.com/winder/bubblelayout"
 )
 
@@ -25,18 +23,17 @@ type notesList struct {
 }
 
 type TuiModel struct {
-	layout     bl.BubbleLayout
-	editorID   bl.ID
-	editorSize bl.Size
-	mode       *app.ModeInstance
+	layout bl.BubbleLayout
+	mode   *app.ModeInstance
 
 	keyInput *KeyInput
-	textarea textarea.Model
 
 	currentColumnFocus int
-	directoryTree      *components.DirectoryTree
-	notesList          *components.NotesList
-	statusBar          *components.StatusBar
+
+	directoryTree *components.DirectoryTree
+	notesList     *components.NotesList
+	editor        *components.Editor
+	statusBar     *components.StatusBar
 }
 
 func InitialModel() TuiModel {
@@ -46,11 +43,13 @@ func InitialModel() TuiModel {
 		mode:               &app.ModeInstance{Current: app.NormalMode},
 		directoryTree:      components.NewDirectoryTree(),
 		notesList:          components.NewNotesList(),
+		editor:             components.NewEditor(),
 		statusBar:          components.NewStatusBar(),
 	}
 
 	m.layout = bl.New()
-	m.editorID = m.layout.Add("grow")
+
+	m.currentColumnFocus = 1
 
 	m.directoryTree.Id = m.layout.Add("width 30")
 	m.directoryTree.Focused = true
@@ -58,7 +57,8 @@ func InitialModel() TuiModel {
 	m.notesList.Id = m.layout.Add("width 30")
 	m.notesList.Focused = false
 
-	m.currentColumnFocus = 1
+	m.editor.Id = m.layout.Add("grow")
+	m.editor.Focused = false
 
 	m.keyInput = NewKeyInput()
 	m.keyInput.functions = m.KeyInputFn()
@@ -71,7 +71,9 @@ func (m TuiModel) Init() tea.Cmd {
 		return m.layout.Resize(80, 40)
 	}
 
-	return tea.Batch(resizeCmd)
+	editorCmd := m.editor.Init()
+
+	return tea.Batch(resizeCmd, editorCmd)
 }
 
 func (m TuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -79,8 +81,6 @@ func (m TuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmd  tea.Cmd
 		cmds []tea.Cmd
 	)
-
-	m.textarea, cmd = m.textarea.Update(msg)
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
@@ -97,6 +97,8 @@ func (m TuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// Convert WindowSizeMsg to BubbleLayoutMsg.
 		m.directoryTree.Update(msg)
 		m.notesList.Update(msg)
+		m.editor.Update(msg)
+
 		return m, func() tea.Msg {
 			return m.layout.Resize(msg.Width, msg.Height)
 		}
@@ -104,21 +106,32 @@ func (m TuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case bl.BubbleLayoutMsg:
 		m.directoryTree.Size, _ = msg.Size(m.directoryTree.Id)
 		m.notesList.Size, _ = msg.Size(m.notesList.Id)
-		m.editorSize, _ = msg.Size(m.editorID)
+		m.editor.Size, _ = msg.Size(m.editor.Id)
 
 	case messages.StatusBarMsg:
 		m.statusBar = m.statusBar.Update(msg, msg)
 	}
 
 	m.keyInput.mode = m.mode.Current
-	m.directoryTree.Mode = m.mode.Current
-	_, dirTreeCmd := m.directoryTree.Update(msg)
-	_, notesCmd := m.notesList.Update(msg)
+	var dirTreeCmd, notesCmd, editorCmd tea.Cmd
+
+	if m.directoryTree.Focused {
+		m.directoryTree.Mode = m.mode.Current
+		_, dirTreeCmd = m.directoryTree.Update(msg)
+	}
+	if m.notesList.Focused {
+		m.notesList.Mode = m.mode.Current
+		_, notesCmd = m.notesList.Update(msg)
+	}
+	if m.editor.Focused {
+		_, editorCmd = m.editor.Update(msg)
+	}
 
 	m.statusBar.DirTree = *m.directoryTree
 	m.statusBar.NotesList = *m.notesList
+	m.statusBar.Editor = *m.editor
 
-	cmds = append(cmds, cmd, notesCmd, dirTreeCmd)
+	cmds = append(cmds, cmd, notesCmd, dirTreeCmd, editorCmd)
 
 	return m, tea.Batch(cmds...)
 }
@@ -128,15 +141,11 @@ func (m TuiModel) GetTuiModel() TuiModel {
 }
 
 func (m TuiModel) View() string {
-	t := textarea.New()
-	t.Placeholder = "asdasd"
-	t.Focus()
-
 	return lipgloss.JoinVertical(lipgloss.Left,
 		lipgloss.JoinHorizontal(lipgloss.Bottom,
 			m.directoryTree.View(),
 			m.notesList.View(),
-			theme.BaseColumnLayout(m.editorSize, false).Render(t.View()),
+			m.editor.View(),
 		),
 		m.statusBar.View(),
 	)
@@ -149,15 +158,19 @@ func (m TuiModel) View() string {
 func (m *TuiModel) focusColumn(index int) messages.StatusBarMsg {
 	dirTree := m.directoryTree
 	notesList := m.notesList
+	editor := m.editor
 
 	dirTree.Focused = false
 	notesList.Focused = false
+	editor.Focused = false
 
 	switch index {
 	case 1:
 		dirTree.Focused = true
 	case 2:
 		notesList.Focused = true
+	case 3:
+		editor.Focused = true
 	}
 
 	m.currentColumnFocus = index
@@ -172,6 +185,11 @@ func (m *TuiModel) focusDirectoryTree() messages.StatusBarMsg {
 
 func (m *TuiModel) focusNotesList() messages.StatusBarMsg {
 	m.focusColumn(2)
+	return messages.StatusBarMsg{}
+}
+
+func (m *TuiModel) focusEditor() messages.StatusBarMsg {
+	m.focusColumn(3)
 	return messages.StatusBarMsg{}
 }
 
@@ -371,6 +389,7 @@ func (m *TuiModel) KeyInputFn() map[string]func() messages.StatusBarMsg {
 	return map[string]func() messages.StatusBarMsg{
 		"focusDirectoryTree": m.focusDirectoryTree,
 		"focusNotesList":     m.focusNotesList,
+		"focusEditor":        m.focusEditor,
 		"focusNextColumn":    m.focusNextColumn,
 		"focusPrevColumn":    m.focusPrevColumn,
 		"lineUp":             m.lineUp,
@@ -385,5 +404,7 @@ func (m *TuiModel) KeyInputFn() map[string]func() messages.StatusBarMsg {
 		"goToBottom":         m.goToBottom,
 		"cancelAction":       m.cancelAction,
 		"confirmAction":      m.confirmAction,
+		"enterInsertMode":    m.editor.EnterInsertMode,
+		"exitInsertMode":     m.editor.ExitInsertMode,
 	}
 }

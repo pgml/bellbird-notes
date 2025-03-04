@@ -30,6 +30,7 @@ type StatusBar struct {
 	SenderMsg messages.StatusBarMsg
 	DirTree   DirectoryTree
 	NotesList NotesList
+	Editor    Editor
 }
 
 const (
@@ -53,7 +54,7 @@ func (s *StatusBar) Init() tea.Cmd {
 }
 
 func (s *StatusBar) Update(msg messages.StatusBarMsg, teaMsg tea.Msg) *StatusBar {
-	if s.Mode == app.NormalMode {
+	if s.Focused && s.Mode == app.NormalMode {
 		s.Content = msg.Content
 		s.Type = msg.Type
 	}
@@ -62,7 +63,7 @@ func (s *StatusBar) Update(msg messages.StatusBarMsg, teaMsg tea.Msg) *StatusBar
 
 	switch teaMsg.(type) {
 	case tea.KeyMsg:
-		if s.Mode == app.InsertMode && s.Prompt.Focused() {
+		if s.Focused && s.Mode == app.InsertMode && s.Prompt.Focused() {
 			s.Prompt, _ = s.Prompt.Update(teaMsg)
 			return s
 		}

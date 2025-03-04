@@ -94,7 +94,7 @@ func (t *DirectoryTree) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmd tea.Cmd
 		//cmds []tea.Cmd
 	)
-	_, termHeight := theme.GetTerminalSize()
+	termWidth, termHeight := theme.GetTerminalSize()
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
@@ -110,13 +110,13 @@ func (t *DirectoryTree) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	case tea.WindowSizeMsg:
 		if !t.ready {
-			t.viewport = viewport.New(30, termHeight-1)
+			t.viewport = viewport.New(termWidth, termHeight-1)
 			t.viewport.SetContent(t.render())
 			t.viewport.KeyMap = viewport.KeyMap{}
 			t.lastVisibleLine = t.viewport.VisibleLineCount() - 3
 			t.ready = true
 		} else {
-			t.viewport.Width = 30
+			t.viewport.Width = termWidth
 			t.viewport.Height = termHeight - 1
 		}
 	}
