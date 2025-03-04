@@ -44,11 +44,15 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		if e.Focused && e.Mode.Current == app.InsertMode {
+		if !e.Textarea.Focused() && e.Mode.Current == app.InsertMode {
+			app.LogDebug("1")
 			cmd = e.Textarea.Focus()
-		} else {
-			e.Textarea.Blur()
 		}
+		//else {
+		//	app.LogDebug("2")
+		//	e.Textarea.Blur()
+		//	//e.ExitInsertMode()
+		//}
 		if !e.Textarea.Focused() {
 			//_, cmd := e.Textarea.Update(msg)
 			//cmds = append(cmds, cmd)
@@ -72,7 +76,7 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	cmds = append(cmds, cmd)
 	// Handle keyboard and mouse events in the viewport
 	//_, cmd = e.viewport.Update(msg)
-	cmds = append(cmds, cmd)
+	//cmds = append(cmds, cmd)
 
 	return e, tea.Batch(cmds...)
 }
@@ -85,10 +89,9 @@ func (e *Editor) View() string {
 	e.viewport.SetContent(e.build())
 	e.viewport.Style = theme.BaseColumnLayout(e.Size, e.Focused)
 
-	if e.Focused {
-		e.Textarea.Focus()
-	} else {
+	if !e.Focused {
 		e.Textarea.Blur()
+		e.ExitInsertMode()
 	}
 
 	return e.viewport.View()
@@ -127,8 +130,7 @@ func (e *Editor) EnterInsertMode() messages.StatusBarMsg {
 }
 
 func (e *Editor) ExitInsertMode() messages.StatusBarMsg {
-	if e.Focused {
-		e.Mode.Current = app.NormalMode
-	}
+	app.LogDebug("sad")
+	e.Mode.Current = app.NormalMode
 	return messages.StatusBarMsg{}
 }

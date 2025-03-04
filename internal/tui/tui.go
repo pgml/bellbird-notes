@@ -125,6 +125,7 @@ func (m TuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 	if m.editor.Focused {
 		_, editorCmd = m.editor.Update(msg)
+		m.keyInput.mode = m.editor.Mode.Current
 	}
 
 	m.statusBar.DirTree = *m.directoryTree
@@ -171,6 +172,8 @@ func (m *TuiModel) focusColumn(index int) messages.StatusBarMsg {
 		notesList.Focused = true
 	case 3:
 		editor.Focused = true
+	default:
+		editor.ExitInsertMode()
 	}
 
 	m.currentColumnFocus = index
