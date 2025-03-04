@@ -1,8 +1,8 @@
 package tui
 
 import (
+	"bellbird-notes/internal/app"
 	"bellbird-notes/internal/tui/messages"
-	"bellbird-notes/internal/tui/mode"
 	"strings"
 	"time"
 )
@@ -10,7 +10,7 @@ import (
 type keyAction struct {
 	keys   string
 	action string
-	mode   mode.Mode
+	mode   app.Mode
 }
 
 type keyMap struct {
@@ -25,7 +25,7 @@ type KeyInput struct {
 	keyMaps       []keyAction
 
 	isCtrlWDown bool
-	mode        mode.Mode
+	mode        app.Mode
 
 	functions map[string]func() messages.StatusBarMsg
 }
@@ -33,32 +33,32 @@ type KeyInput struct {
 func NewKeyInput() *KeyInput {
 	return &KeyInput{
 		isCtrlWDown:   false,
-		mode:          mode.Normal,
+		mode:          app.NormalMode,
 		keyComboCache: make(map[string]bool),
 		keysDown:      make(map[string]bool),
 		keyMaps: []keyAction{
-			keyAction{"ctrl+w l", "focusNextColumn", mode.Normal},
-			keyAction{"ctrl+w h", "focusPrevColumn", mode.Normal},
-			keyAction{"1", "focusDirectoryTree", mode.Normal},
-			keyAction{"2", "focusNotesList", mode.Normal},
-			keyAction{"e", "focusNextColumn", mode.Normal},
-			keyAction{"q", "focusPrevColumn", mode.Normal},
-			keyAction{"j", "moveDown", mode.Normal},
-			keyAction{"k", "moveUp", mode.Normal},
-			keyAction{"l", "expand", mode.Normal},
-			keyAction{"h", "collapse", mode.Normal},
-			keyAction{"R", "rename", mode.Normal},
-			keyAction{"d", "createDir", mode.Normal},
-			keyAction{"%", "createNote", mode.Normal},
-			keyAction{"D", "delete", mode.Normal},
-			keyAction{"g", "goToTop", mode.Normal},
-			keyAction{"G", "goToBottom", mode.Normal},
-			keyAction{"esc", "cancelAction", mode.Normal},
-			keyAction{"esc", "cancelAction", mode.Insert},
-			keyAction{"esc", "cancelAction", mode.Command},
-			keyAction{"enter", "confirmAction", mode.Normal},
-			keyAction{"enter", "confirmAction", mode.Insert},
-			keyAction{"enter", "confirmAction", mode.Command},
+			keyAction{"ctrl+w l", "focusNextColumn", app.NormalMode},
+			keyAction{"ctrl+w h", "focusPrevColumn", app.NormalMode},
+			keyAction{"1", "focusDirectoryTree", app.NormalMode},
+			keyAction{"2", "focusNotesList", app.NormalMode},
+			keyAction{"e", "focusNextColumn", app.NormalMode},
+			keyAction{"q", "focusPrevColumn", app.NormalMode},
+			keyAction{"j", "lineDown", app.NormalMode},
+			keyAction{"k", "lineUp", app.NormalMode},
+			keyAction{"l", "expand", app.NormalMode},
+			keyAction{"h", "collapse", app.NormalMode},
+			keyAction{"R", "rename", app.NormalMode},
+			keyAction{"d", "createDir", app.NormalMode},
+			keyAction{"%", "createNote", app.NormalMode},
+			keyAction{"D", "delete", app.NormalMode},
+			keyAction{"g", "goToTop", app.NormalMode},
+			keyAction{"G", "goToBottom", app.NormalMode},
+			keyAction{"esc", "cancelAction", app.NormalMode},
+			keyAction{"esc", "cancelAction", app.InsertMode},
+			keyAction{"esc", "cancelAction", app.CommandMode},
+			keyAction{"enter", "confirmAction", app.NormalMode},
+			keyAction{"enter", "confirmAction", app.InsertMode},
+			keyAction{"enter", "confirmAction", app.CommandMode},
 		},
 	}
 }
@@ -102,7 +102,7 @@ func (ki *KeyInput) handleKeyCombos(key string) messages.StatusBarMsg {
 	//	m.executeCmdModeCommand()
 	//}
 
-	if ki.mode != mode.Command {
+	if ki.mode != app.CommandMode {
 		ki.releaseKey(key)
 	}
 

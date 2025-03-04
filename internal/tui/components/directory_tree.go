@@ -1,97 +1,51 @@
-package directorytree
+package components
 
 import (
 	"bellbird-notes/internal/app"
 	"bellbird-notes/internal/config"
 	"bellbird-notes/internal/directories"
 	"bellbird-notes/internal/tui/messages"
-	"bellbird-notes/internal/tui/mode"
 	"bellbird-notes/internal/tui/theme"
-	"bellbird-notes/internal/tui/utils"
+	"bellbird-notes/internal/utils"
 	"fmt"
 	"os"
 	"path/filepath"
 	"slices"
-	"strconv"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	bl "github.com/winder/bubblelayout"
 )
 
 // DirectoryTree represents the bubbletea model.
 type DirectoryTree struct {
-	Id   bl.ID
-	Size bl.Size
+	List[Dir]
 
-	// The current mode the directory tree is in
-	// Possible modes are Normal, Insert, Command
-	Mode mode.Mode
-
-	// Indicates hether the directory tree column is focused.
-	// Used to determine if the directory tree should receive keyboard shortcuts
-	Focused bool
-
-	selectedIndex int // The currently selector directory row
-
-	editor       textinput.Model // The text input that is used for renaming or creating directories
-	editingIndex *int            // The index of the currently edited directory row
-	editingState EditState       // States if directory is being created or renamed
-
-	dirsList     []Dir           // The original directory hierarchy
 	dirsListFlat []Dir           // A flattened representation to make vertical navigation easier
 	expandedDirs map[string]bool // Stores currently expanded directories
-	//tree         *list.List
-
-	statusMessage string         // For displaying useful information in the status bar
-	viewport      viewport.Model // The tree viewport that allows scrolling
-	ready         bool
-
-	firstVisibleLine int
-	lastVisibleLine  int
-	visibleLineCount int
 }
-
-// EditState is the state in which the DirectoryTree.editor is
-// when the Insert mode is active
-type EditState int
-
-const (
-	EditNone EditState = iota
-	EditCreate
-	EditRename
-)
 
 //type statusMsg string
 
 // Dir represents a single directory tree row
 type Dir struct {
-	// The row's index is primarily used to determine the indentation
-	// of a directory.
-	index int
+	Item
 
 	// The parent index of the directory.
 	// Used to make expanding and collapsing a directory possible
 	// using DirectoryTree.dirsListFlat
-	parent int
-
-	Name     string
-	Path     string
+	parent   int
 	children []Dir
 
 	expanded bool // Indicates whether a directory is expanded
-	selected bool
 
 	// Indicates the depth of a directory
 	// Used to determine the indentation of DirectoryTree.dirsFlatList
 	level      int
-	nbrNotes   int // the amount of notes a directory contains
-	nbrFolders int // the amount of sub directories a directory has
-
-	styles styles
+	NbrNotes   int // the amount of notes a directory contains
+	NbrFolders int // the amount of sub directories a directory has
 }
 
 // The string representation of a Dir
@@ -156,7 +110,7 @@ func (t *DirectoryTree) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		if !t.ready {
 			t.viewport = viewport.New(30, termHeight-1)
-			t.viewport.SetContent(t.renderTree())
+			t.viewport.SetContent(t.render())
 			t.viewport.KeyMap = viewport.KeyMap{}
 			t.lastVisibleLine = t.viewport.VisibleLineCount() - 3
 			t.ready = true
@@ -177,52 +131,54 @@ func (t *DirectoryTree) View() string {
 		return "\n  Initializing..."
 	}
 
-	t.viewport.SetContent(t.renderTree())
+	t.viewport.SetContent(t.render())
 
-	if t.visibleLineCount != t.viewport.VisibleLineCount() {
-		t.visibleLineCount = t.viewport.VisibleLineCount() - 3
-		t.lastVisibleLine = t.visibleLineCount
-	}
+	t.UpdateViewportInfo()
 
 	t.viewport.Style = theme.BaseColumnLayout(t.Size, t.Focused)
 	return t.viewport.View()
 }
 
 // New creates a new model with default settings.
-func New() *DirectoryTree {
+func NewDirectoryTree() *DirectoryTree {
 	ti := textinput.New()
 	ti.Prompt = " "
 	ti.CharLimit = 100
 
 	tree := &DirectoryTree{
-		selectedIndex: 0,
-		editingIndex:  nil,
-		editingState:  EditNone,
-		editor:        ti,
-		expandedDirs:  make(map[string]bool),
+		List: List[Dir]{
+			selectedIndex: 0,
+			editingIndex:  nil,
+			editingState:  EditNone,
+			editor:        ti,
+			items:         make([]Dir, 0, 0),
+		},
+		expandedDirs: make(map[string]bool),
 	}
 	conf := config.New()
 	notesDir := conf.Value(config.General, config.UserNotesDirectory)
 
 	// append root directory
-	tree.dirsList = append(tree.dirsList, Dir{
-		index:    0,
-		Name:     "Bellbird Notes",
+	tree.items = append(tree.items, Dir{
+		Item: Item{
+			index:  0,
+			Name:   "Bellbird Notes",
+			Path:   notesDir,
+			styles: DirTreeStyle(),
+		},
 		expanded: true,
 		level:    0,
-		Path:     notesDir,
 		parent:   -1,
 		children: tree.getChildren(notesDir, 0),
-		styles:   defaultStyles(),
 	})
 
-	tree.buildTree()
+	tree.build()
 	return tree
 }
 
-// buildTree prepares t.dirsListFlat for rendering
+// build prepares t.dirsListFlat for rendering
 // checking directory states etc.
-func (t *DirectoryTree) buildTree() {
+func (t *DirectoryTree) build() {
 	//dirTree := list.New().
 	//	Enumerator(func(items list.Items, index int) string { return "" })
 
@@ -232,10 +188,12 @@ func (t *DirectoryTree) buildTree() {
 		//dirTree.Item(dir)
 	}
 
+	t.length = len(t.dirsListFlat)
+	t.lastIndex = t.dirsListFlat[len(t.dirsListFlat)-1].index
 	//t.tree = dirTree
 }
 
-func (t DirectoryTree) renderTree() string {
+func (t DirectoryTree) render() string {
 	var tree string
 
 	for i, dir := range t.dirsListFlat {
@@ -260,7 +218,6 @@ func (t DirectoryTree) renderTree() string {
 		}
 	}
 
-	//app.LogDebug(t.tree.String())
 	return tree
 }
 
@@ -282,17 +239,19 @@ func (t DirectoryTree) isExpanded(dirPath string) bool {
 }
 
 func (m *DirectoryTree) createDirectoryItem(dir directories.Directory, level int) Dir {
-	style := defaultStyles()
+	style := DirTreeStyle()
 	dirItem := Dir{
-		index:      0,
-		Name:       dir.Name,
-		Path:       dir.Path,
+		Item: Item{
+			index:  0,
+			Name:   dir.Name,
+			Path:   dir.Path,
+			styles: style,
+		},
 		expanded:   dir.IsExpanded,
 		parent:     0,
 		children:   m.getChildren(dir.Path, level+1),
-		nbrFolders: dir.NbrFolders,
+		NbrFolders: dir.NbrFolders,
 		level:      level,
-		styles:     style,
 	}
 	return dirItem
 }
@@ -311,9 +270,11 @@ func (t *DirectoryTree) createVirtualDir() Dir {
 	//}
 
 	return Dir{
-		index:    len(t.dirsListFlat),
-		Name:     tempFolderName,
-		Path:     tempFolderPath,
+		Item: Item{
+			index: len(t.dirsListFlat),
+			Name:  tempFolderName,
+			Path:  tempFolderPath,
+		},
 		expanded: false,
 		children: nil,
 		parent:   selectedDir.index,
@@ -321,13 +282,18 @@ func (t *DirectoryTree) createVirtualDir() Dir {
 	}
 }
 
-// RefreshTreeBranch refreshes a tree branch by its branch index
+// Refresh updates the currently selected tree branch
+func (t *DirectoryTree) Refresh() {
+	t.RefreshBranch(t.SelectedDir().parent, t.selectedIndex)
+}
+
+// RefreshBranch refreshes a tree branch by its branch index
 //
 // Use `selectAfter` to change the selection after the branch got refreshed
 // If  `selectAfter` is -1 the branch root is selected
-func (t *DirectoryTree) RefreshTreeBranch(index int, selectAfter int) {
+func (t *DirectoryTree) RefreshBranch(index int, selectAfter int) {
 	t.selectedIndex = index
-	if dir := findDirInTree(t.dirsList, t.SelectedDir().Path); dir != nil {
+	if dir := findDirInTree(t.items, t.SelectedDir().Path); dir != nil {
 		dir.children = t.getChildren(dir.Path, dir.level+1)
 	}
 
@@ -336,23 +302,17 @@ func (t *DirectoryTree) RefreshTreeBranch(index int, selectAfter int) {
 	}
 
 	t.selectedIndex = selectAfter
-	t.buildTree()
+	t.build()
 }
 
 // SelectedDir returns the currently selected directory in the directory tree
 func (t *DirectoryTree) SelectedDir() Dir {
-	if len(t.dirsListFlat) == 0 {
-		return Dir{}
-	}
-	if t.selectedIndex >= 0 && t.selectedIndex < len(t.dirsListFlat) {
-		return t.dirsListFlat[t.selectedIndex]
-	}
-	return Dir{}
+	return t.SelectedItem(t.dirsListFlat)
 }
 
 func (t *DirectoryTree) refreshFlatList() {
 	nextIndex := 0
-	t.dirsListFlat = t.flatten(t.dirsList, 0, -1, &nextIndex)
+	t.dirsListFlat = t.flatten(t.items, 0, -1, &nextIndex)
 }
 
 // flatten converts a slice of Dir and its sub slices into a one dimensional slice
@@ -477,11 +437,11 @@ func (t *DirectoryTree) Collapse() messages.StatusBarMsg {
 		return messages.StatusBarMsg{}
 	}
 
-	if dir := findDirInTree(t.dirsList, t.SelectedDir().Path); dir != nil {
+	if dir := findDirInTree(t.items, t.SelectedDir().Path); dir != nil {
 		if dir.expanded {
 			delete(t.expandedDirs, dir.Path)
 			dir.expanded = false
-			t.buildTree()
+			t.build()
 		}
 	}
 	return messages.StatusBarMsg{}
@@ -493,35 +453,15 @@ func (t *DirectoryTree) Expand() messages.StatusBarMsg {
 		return messages.StatusBarMsg{}
 	}
 
-	if dir := findDirInTree(t.dirsList, t.SelectedDir().Path); dir != nil {
+	if dir := findDirInTree(t.items, t.SelectedDir().Path); dir != nil {
 		if !dir.expanded {
 			t.expandedDirs[dir.Path] = true
 			dir.children = t.getChildren(dir.Path, dir.level+1)
 			dir.expanded = true
-			t.buildTree()
+			t.build()
 		}
 	}
 	return messages.StatusBarMsg{}
-}
-
-// MoveUp decrements `m.selectedIndex`
-func (t *DirectoryTree) MoveUp() messages.StatusBarMsg {
-	if t.selectedIndex > 0 {
-		t.selectedIndex--
-	}
-	return messages.StatusBarMsg{
-		Content: strconv.Itoa(t.SelectedDir().nbrFolders) + " folders",
-	}
-}
-
-// MoveDown increments `m.selectedIndex`
-func (t *DirectoryTree) MoveDown() messages.StatusBarMsg {
-	if t.selectedIndex < len(t.dirsListFlat)-1 {
-		t.selectedIndex++
-	}
-	return messages.StatusBarMsg{
-		Content: strconv.Itoa(t.SelectedDir().nbrFolders) + " folders",
-	}
 }
 
 // Create creates a directory after the last child of the currently selected directory
@@ -541,31 +481,6 @@ func (t *DirectoryTree) Create() messages.StatusBarMsg {
 		t.editingIndex = &t.selectedIndex
 		t.editor.SetValue(t.SelectedDir().Name)
 	}
-	return messages.StatusBarMsg{}
-}
-
-// Rename renames the currently selected directory and
-// returns a message that is displayed in the status bar
-func (t *DirectoryTree) Rename() messages.StatusBarMsg {
-	if t.editingIndex == nil {
-		t.editingState = EditRename
-		t.editingIndex = &t.selectedIndex
-		t.editor.SetValue(t.SelectedDir().Name)
-		// set cursor to last position
-		t.editor.CursorEnd()
-	}
-	return messages.StatusBarMsg{}
-}
-
-// GoToTop moves the selection and viewport to the top of the tree
-func (t *DirectoryTree) GoToTop() messages.StatusBarMsg {
-	t.selectedIndex = 0
-	return messages.StatusBarMsg{}
-}
-
-// GoToBottom moves the selection and viewport to the bottom of the tree
-func (t *DirectoryTree) GoToBottom() messages.StatusBarMsg {
-	t.selectedIndex = t.dirsListFlat[len(t.dirsListFlat)-1].index
 	return messages.StatusBarMsg{}
 }
 
@@ -596,7 +511,7 @@ func (t *DirectoryTree) Remove() messages.StatusBarMsg {
 		resultMsg = err.Error()
 	}
 
-	t.RefreshTreeBranch(dir.parent, index)
+	t.RefreshBranch(dir.parent, index)
 	return messages.StatusBarMsg{Content: resultMsg, Type: msgType}
 }
 
@@ -614,10 +529,10 @@ func (t *DirectoryTree) ConfirmAction() messages.StatusBarMsg {
 			// rename if path exists
 			if _, err := os.Stat(oldPath); err == nil {
 				directories.Rename(oldPath, newPath)
-				if dir := findDirInTree(t.dirsList, oldPath); dir != nil {
+				if dir := findDirInTree(t.items, oldPath); dir != nil {
 					dir.Name = filepath.Base(newPath)
 					dir.Path = newPath
-					t.RefreshTreeBranch(dir.parent, dir.index)
+					t.RefreshBranch(dir.parent, dir.index)
 				}
 			}
 
@@ -627,20 +542,9 @@ func (t *DirectoryTree) ConfirmAction() messages.StatusBarMsg {
 			}
 		}
 
-		t.CancelAction()
+		t.CancelAction(func() { t.Refresh() })
 		return messages.StatusBarMsg{Content: "yep"}
 	}
 
-	return messages.StatusBarMsg{}
-}
-
-// Cancel the current action and blurs the editor
-func (t *DirectoryTree) CancelAction() messages.StatusBarMsg {
-	if t.editingState != EditNone {
-		t.editingIndex = nil
-		t.editingState = EditNone
-		t.editor.Blur()
-		t.RefreshTreeBranch(t.SelectedDir().parent, t.selectedIndex)
-	}
 	return messages.StatusBarMsg{}
 }

@@ -1,10 +1,8 @@
-package statusbar
+package components
 
 import (
-	"bellbird-notes/internal/tui/directorytree"
+	"bellbird-notes/internal/app"
 	"bellbird-notes/internal/tui/messages"
-	"bellbird-notes/internal/tui/mode"
-	"bellbird-notes/internal/tui/noteslist"
 	"bellbird-notes/internal/tui/theme"
 
 	"github.com/charmbracelet/bubbles/textinput"
@@ -27,11 +25,11 @@ type StatusBar struct {
 	// Indicates hether the directory tree column is focused.
 	// Used to determine if the status bar should receive keyboard shortcuts
 	Focused   bool
-	Mode      mode.Mode
+	Mode      app.Mode
 	Sender    messages.Sender
 	SenderMsg messages.StatusBarMsg
-	DirTree   directorytree.DirectoryTree
-	NotesList noteslist.NotesList
+	DirTree   DirectoryTree
+	NotesList NotesList
 }
 
 const (
@@ -39,7 +37,7 @@ const (
 	ResponseNO  = "n"
 )
 
-func New() *StatusBar {
+func NewStatusBar() *StatusBar {
 	ti := textinput.New()
 	ti.Prompt = " "
 	ti.CharLimit = 100
@@ -55,7 +53,7 @@ func (s *StatusBar) Init() tea.Cmd {
 }
 
 func (s *StatusBar) Update(msg messages.StatusBarMsg, teaMsg tea.Msg) *StatusBar {
-	if s.Mode == mode.Normal {
+	if s.Mode == app.NormalMode {
 		s.Content = msg.Content
 		s.Type = msg.Type
 	}
@@ -64,11 +62,11 @@ func (s *StatusBar) Update(msg messages.StatusBarMsg, teaMsg tea.Msg) *StatusBar
 
 	switch teaMsg.(type) {
 	case tea.KeyMsg:
-		if s.Mode == mode.Insert && s.Prompt.Focused() {
+		if s.Mode == app.InsertMode && s.Prompt.Focused() {
 			s.Prompt, _ = s.Prompt.Update(teaMsg)
 			return s
 		}
-		if s.Mode == mode.Normal {
+		if s.Mode == app.NormalMode {
 			s.BlurPrompt()
 		}
 	}
@@ -100,10 +98,10 @@ func (s *StatusBar) ConfirmAction(sender messages.Sender) messages.StatusBarMsg 
 			}
 		case ResponseNO:
 			if sender == messages.SenderDirTree {
-				return s.DirTree.CancelAction()
+				return s.DirTree.CancelAction(func() { s.DirTree.Refresh() })
 			}
 			if sender == messages.SenderNotesList {
-				return s.NotesList.CancelAction()
+				return s.NotesList.CancelAction(func() { s.DirTree.Refresh() })
 			}
 		}
 	}

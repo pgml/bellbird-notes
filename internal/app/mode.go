@@ -1,17 +1,17 @@
-package mode
+package app
 
 type Mode int
 
 const (
-	Normal Mode = iota
-	Insert
-	Command
+	NormalMode Mode = iota
+	InsertMode
+	CommandMode
 )
 
 var modeName = map[Mode]string{
-	Normal:  "n",
-	Insert:  "i",
-	Command: "c",
+	NormalMode:  "n",
+	InsertMode:  "i",
+	CommandMode: "c",
 }
 
 func (m Mode) String() string {
@@ -20,12 +20,6 @@ func (m Mode) String() string {
 
 type ModeInstance struct {
 	Current Mode
-}
-
-func New() *ModeInstance {
-	return &ModeInstance{
-		Current: Normal,
-	}
 }
 
 func (m ModeInstance) GetCurrent() Mode {

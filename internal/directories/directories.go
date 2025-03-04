@@ -3,6 +3,7 @@ package directories
 import (
 	"bellbird-notes/internal/app"
 	"bellbird-notes/internal/tui/errors"
+	"bellbird-notes/internal/utils"
 	"os"
 	"path/filepath"
 )
@@ -13,6 +14,10 @@ type Directory struct {
 	NbrNotes   int
 	NbrFolders int
 	IsExpanded bool
+}
+
+func (d Directory) GetName() string {
+	return d.Name
 }
 
 func List(dirPath string) ([]Directory, error) {
@@ -39,6 +44,9 @@ func List(dirPath string) ([]Directory, error) {
 			IsExpanded: false,
 		})
 	}
+
+	// Sort directory list aphabetically
+	utils.SortSliceAsc(Directories, false, nil)
 
 	return Directories, nil
 }

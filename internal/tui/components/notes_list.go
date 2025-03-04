@@ -1,12 +1,11 @@
-package noteslist
+package components
 
 import (
 	"bellbird-notes/internal/config"
 	"bellbird-notes/internal/notes"
 	"bellbird-notes/internal/tui/messages"
-	"bellbird-notes/internal/tui/mode"
 	"bellbird-notes/internal/tui/theme"
-	"bellbird-notes/internal/tui/utils"
+	"bellbird-notes/internal/utils"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -16,65 +15,26 @@ import (
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	bl "github.com/winder/bubblelayout"
 )
 
 type NotesList struct {
-	Id   bl.ID
-	Size bl.Size
-
-	// The current mode the directory tree is in
-	// Possible modes are Normal, Insert, Command
-	Mode mode.Mode
-
-	// Indicates hether the directory tree column is focused.
-	// Used to determine if the notes list should receive keyboard shortcuts
-	Focused bool
-
-	selectedIndex int // The currently selector note
-
-	editor       textinput.Model // The text input that is used for renaming or creating notes
-	editingIndex *int            // The index of the currently edited note
-	editingState EditState       // States if a note is being created or renamed
+	List[Note]
 
 	// The directory path of the currently displayed notes.
 	// This path might not match the directory that is selected in the
 	// directory tree since we don't automatically display a directory's
 	// content on a selection change
 	CurrentPath string
-	notes       []Note // Stores the notes of a directory
-
-	statusMessage string         // For displaying useful information in the status bar
-	viewport      viewport.Model // The tree viewport that allows scrolling
-	ready         bool
-
-	firstVisibleLine int
-	lastVisibleLine  int
-	visibleLineCount int
 }
 
-type EditState int
-
-const (
-	EditNone EditState = iota
-	EditCreate
-	EditRename
-)
-
-type statusMsg string
-
 type Note struct {
-	index    int
-	name     string
-	path     string
-	selected bool
+	Item
 	isPinned bool
-	styles   styles
 }
 
 func (n Note) String() string {
 	r := n.styles.note.Render
-	name := utils.TruncateText(n.name, 22)
+	name := utils.TruncateText(n.Name, 22)
 
 	icon := " 󰎞"
 	noNerdFonts := false
@@ -91,7 +51,7 @@ func (n Note) String() string {
 }
 
 func (n Note) GetName() string {
-	return n.name
+	return n.Name
 }
 
 // Init initialises the Model on program load. It partly implements the tea.Model interface.
@@ -121,7 +81,7 @@ func (l *NotesList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		if !l.ready {
 			l.viewport = viewport.New(30, termHeight-1)
-			l.viewport.SetContent(l.buildList())
+			l.viewport.SetContent(l.build())
 			l.viewport.KeyMap = viewport.KeyMap{}
 			l.lastVisibleLine = l.viewport.VisibleLineCount() - 3
 			l.ready = true
@@ -143,42 +103,41 @@ func (l *NotesList) View() string {
 		return "\n  Initializing..."
 	}
 
-	l.viewport.SetContent(l.buildList())
-
-	if l.visibleLineCount != l.viewport.VisibleLineCount() {
-		l.visibleLineCount = l.viewport.VisibleLineCount() - 3
-		l.lastVisibleLine = l.visibleLineCount
-	}
+	l.viewport.SetContent(l.build())
+	l.UpdateViewportInfo()
 
 	l.viewport.Style = theme.BaseColumnLayout(l.Size, l.Focused)
 	return l.viewport.View()
 }
 
-func New() *NotesList {
+func NewNotesList() *NotesList {
 	ti := textinput.New()
 	ti.Prompt = "  "
 	ti.CharLimit = 100
 
 	conf := config.New()
 	list := &NotesList{
-		selectedIndex:    0,
-		editingIndex:     nil,
-		editingState:     EditNone,
-		editor:           ti,
-		notes:            make([]Note, 0, 0),
-		CurrentPath:      conf.Value(config.General, config.UserNotesDirectory),
-		lastVisibleLine:  0,
-		firstVisibleLine: 0,
+		List: List[Note]{
+			selectedIndex:    0,
+			editingIndex:     nil,
+			editingState:     EditNone,
+			editor:           ti,
+			lastVisibleLine:  0,
+			firstVisibleLine: 0,
+			items:            make([]Note, 0, 0),
+		},
+		//notes:       make([]Note, 0, 0),
+		CurrentPath: conf.Value(config.General, config.UserNotesDirectory),
 	}
 
 	list.Refresh()
 	return list
 }
 
-func (l NotesList) buildList() string {
+func (l NotesList) build() string {
 	var list string
 
-	for i, note := range l.notes {
+	for i, note := range l.items {
 		note.selected = (l.selectedIndex == i)
 
 		//style := lipgloss.NewStyle().Foreground(lipgloss.Color("#999"))
@@ -204,25 +163,32 @@ func (l *NotesList) Refresh() messages.StatusBarMsg {
 		}
 	}
 
-	l.notes = make([]Note, 0, len(notes))
+	l.items = make([]Note, 0, len(notes))
 
 	for i, note := range notes {
 		noteItem := l.createNoteItem(note)
 		noteItem.index = i
-		l.notes = append(l.notes, noteItem)
+		l.items = append(l.items, noteItem)
 	}
 
+	l.length = len(l.items)
+	l.lastIndex = 0
+	if l.length > 0 {
+		l.lastIndex = l.items[len(l.items)-1].index
+	}
 	return messages.StatusBarMsg{}
 }
 
 func (l *NotesList) createNoteItem(note notes.Note) Note {
-	style := defaultStyles()
+	style := NotesListStyle()
 	childItem := Note{
-		index:    0,
-		name:     note.Name,
-		path:     note.Path,
+		Item: Item{
+			index:  0,
+			Name:   note.Name,
+			Path:   note.Path,
+			styles: style,
+		},
 		isPinned: note.IsPinned,
-		styles:   style,
 	}
 	return childItem
 }
@@ -231,34 +197,24 @@ func (l *NotesList) createNoteItem(note notes.Note) Note {
 //
 // This note is mainly used as a placeholder when creating a note
 func (l *NotesList) createVirtualNote() Note {
-	selectedNote := l.SelectedNote()
+	selectedNote := l.SelectedItem(nil)
 	tempNoteName := "New Note"
-	tempNotePath := filepath.Join(filepath.Dir(selectedNote.path), tempNoteName)
+	tempNotePath := filepath.Join(filepath.Dir(selectedNote.Path), tempNoteName)
 
 	return Note{
-		index: len(l.notes),
-		name:  tempNoteName,
-		path:  tempNotePath,
+		Item: Item{
+			index: len(l.items),
+			Name:  tempNoteName,
+			Path:  tempNotePath,
+		},
 	}
-}
-
-// Returns the currently selected note
-// or an empty note if there's nothing to select
-func (l *NotesList) SelectedNote() Note {
-	if len(l.notes) == 0 {
-		return Note{}
-	}
-	if l.selectedIndex >= 0 && l.selectedIndex < len(l.notes) {
-		return l.notes[l.selectedIndex]
-	}
-	return Note{}
 }
 
 func (l NotesList) getLastChild() Note {
-	if len(l.notes) <= 0 {
+	if len(l.items) <= 0 {
 		return Note{}
 	}
-	return l.notes[len(l.notes)-1]
+	return l.items[len(l.items)-1]
 }
 
 // Inserts an item after `afterIndex`
@@ -267,11 +223,11 @@ func (l NotesList) getLastChild() Note {
 // of the directories.
 // To make it persistent write it to the file system
 func (l *NotesList) insertDirAfter(afterIndex int, note Note) {
-	for i, dir := range l.notes {
+	for i, dir := range l.items {
 		if dir.index == afterIndex {
-			l.notes = append(
-				l.notes[:i+1],
-				append([]Note{note}, l.notes[i+1:]...)...,
+			l.items = append(
+				l.items[:i+1],
+				append([]Note{note}, l.items[i+1:]...)...,
 			)
 			break
 		}
@@ -285,46 +241,6 @@ func (l *NotesList) noteExists(path string) bool {
 	return true
 }
 
-///
-/// keyboard shortcut commands
-///
-
-// Decrements `m.selectedIndex`
-func (l *NotesList) LineUp() messages.StatusBarMsg {
-	if l.selectedIndex > 0 {
-		l.selectedIndex--
-	}
-
-	// scroll up
-	if l.selectedIndex < l.firstVisibleLine {
-		l.firstVisibleLine = l.selectedIndex
-		l.lastVisibleLine = l.visibleLineCount + l.firstVisibleLine
-		l.viewport.LineUp(1)
-	}
-
-	return messages.StatusBarMsg{
-		Content: l.SelectedNote().name,
-	}
-}
-
-// Increments `m.selectedIndex`
-func (l *NotesList) LineDown() messages.StatusBarMsg {
-	if l.selectedIndex < len(l.notes)-1 {
-		l.selectedIndex++
-	}
-
-	// scroll down
-	if l.selectedIndex > l.visibleLineCount {
-		l.firstVisibleLine = l.selectedIndex - l.visibleLineCount
-		l.lastVisibleLine = l.selectedIndex
-		l.viewport.LineDown(1)
-	}
-
-	return messages.StatusBarMsg{
-		Content: l.SelectedNote().name,
-	}
-}
-
 // Create creates a directory after the last child of the currently selected directory
 // If root is selected, directory will be created at the end
 //
@@ -333,8 +249,8 @@ func (l *NotesList) Create() messages.StatusBarMsg {
 	l.editingState = EditCreate
 	tmpNote := l.createVirtualNote()
 	lastChild := l.getLastChild()
-	if lastChild.name == "" {
-		l.notes = append(l.notes, tmpNote)
+	if lastChild.Name == "" {
+		l.items = append(l.items, tmpNote)
 	} else {
 		l.insertDirAfter(lastChild.index, tmpNote)
 		l.selectedIndex = lastChild.index + 1
@@ -342,40 +258,15 @@ func (l *NotesList) Create() messages.StatusBarMsg {
 
 	if l.editingIndex == nil {
 		l.editingIndex = &l.selectedIndex
-		l.editor.SetValue(l.SelectedNote().name)
+		l.editor.SetValue(l.SelectedItem(nil).Name)
 	}
-	return messages.StatusBarMsg{}
-}
-
-// Rename renames the currently selected directory and
-// returns a message that is displayed in the status bar
-func (l *NotesList) Rename() messages.StatusBarMsg {
-	if l.editingIndex == nil {
-		l.editingState = EditRename
-		l.editingIndex = &l.selectedIndex
-		l.editor.SetValue(l.SelectedNote().name)
-		// set cursor to last position
-		l.editor.CursorEnd()
-	}
-	return messages.StatusBarMsg{}
-}
-
-func (l *NotesList) GoToTop() messages.StatusBarMsg {
-	l.selectedIndex = 0
-	l.viewport.GotoTop()
-	return messages.StatusBarMsg{}
-}
-
-func (l *NotesList) GoToBottom() messages.StatusBarMsg {
-	l.selectedIndex = l.notes[len(l.notes)-1].index
-	l.viewport.GotoBottom()
 	return messages.StatusBarMsg{}
 }
 
 func (l *NotesList) ConfirmRemove() messages.StatusBarMsg {
-	selectedNote := l.SelectedNote()
+	selectedNote := l.SelectedItem(nil)
 	msgType := messages.PromptError
-	resultMsg := fmt.Sprintf(messages.RemovePrompt, selectedNote.path)
+	resultMsg := fmt.Sprintf(messages.RemovePrompt, selectedNote.Path)
 
 	return messages.StatusBarMsg{
 		Content: resultMsg,
@@ -387,13 +278,13 @@ func (l *NotesList) ConfirmRemove() messages.StatusBarMsg {
 // Renames the currently selected directory
 // Returns a message to be displayed in the status bar
 func (l *NotesList) Remove() messages.StatusBarMsg {
-	note := l.SelectedNote()
+	note := l.SelectedItem(nil)
 	index := l.selectedIndex
-	resultMsg := fmt.Sprintf(messages.SuccessRemove, note.path)
+	resultMsg := fmt.Sprintf(messages.SuccessRemove, note.Path)
 	msgType := messages.Success
 
-	if err := notes.Delete(note.path); err == nil {
-		l.notes = slices.Delete(l.notes, index, index+1)
+	if err := notes.Delete(note.Path); err == nil {
+		l.items = slices.Delete(l.items, index, index+1)
 	} else {
 		msgType = messages.Error
 		resultMsg = err.Error()
@@ -409,17 +300,17 @@ func (l *NotesList) ConfirmAction() messages.StatusBarMsg {
 	// if editingindex is set it most likely means that we are
 	// renaming or creating a directory
 	if l.editingIndex != nil {
-		selectedNote := l.SelectedNote()
+		selectedNote := l.SelectedItem(nil)
 		newPath := filepath.Join(l.CurrentPath, l.editor.Value())
 
 		switch l.editingState {
 		case EditRename:
-			oldPath := selectedNote.path
+			oldPath := selectedNote.Path
 			// rename if path exists
 			if _, err := os.Stat(oldPath); err == nil {
 				notes.Rename(oldPath, newPath)
-				selectedNote.name = filepath.Base(newPath)
-				selectedNote.path = newPath
+				selectedNote.Name = filepath.Base(newPath)
+				selectedNote.Path = newPath
 			}
 
 		case EditCreate:
@@ -428,22 +319,11 @@ func (l *NotesList) ConfirmAction() messages.StatusBarMsg {
 			}
 		}
 
-		l.CancelAction()
+		l.CancelAction(func() { l.Refresh() })
 		return messages.StatusBarMsg{Content: "yep", Sender: messages.SenderNotesList}
 	}
 
 	l.Refresh()
 
 	return messages.StatusBarMsg{Sender: messages.SenderNotesList}
-}
-
-// Cancel the current action and blurs the editor
-func (l *NotesList) CancelAction() messages.StatusBarMsg {
-	if l.editingState != EditNone {
-		l.editingIndex = nil
-		l.editingState = EditNone
-		l.editor.Blur()
-	}
-	l.Refresh()
-	return messages.StatusBarMsg{}
 }

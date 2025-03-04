@@ -1,12 +1,11 @@
 package tui
 
 import (
-	"bellbird-notes/internal/tui/directorytree"
+	"bellbird-notes/internal/app"
+	"bellbird-notes/internal/tui/components"
 	"bellbird-notes/internal/tui/messages"
-	"bellbird-notes/internal/tui/mode"
-	"bellbird-notes/internal/tui/noteslist"
-	"bellbird-notes/internal/tui/statusbar"
 	"bellbird-notes/internal/tui/theme"
+	"strconv"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -29,25 +28,25 @@ type TuiModel struct {
 	layout     bl.BubbleLayout
 	editorID   bl.ID
 	editorSize bl.Size
-	mode       *mode.ModeInstance
+	mode       *app.ModeInstance
 
 	keyInput *KeyInput
 	textarea textarea.Model
 
 	currentColumnFocus int
-	directoryTree      *directorytree.DirectoryTree
-	notesList          *noteslist.NotesList
-	statusBar          *statusbar.StatusBar
+	directoryTree      *components.DirectoryTree
+	notesList          *components.NotesList
+	statusBar          *components.StatusBar
 }
 
 func InitialModel() TuiModel {
 	m := TuiModel{
 		layout:             bl.New(),
 		currentColumnFocus: 1,
-		mode:               mode.New(),
-		directoryTree:      directorytree.New(),
-		notesList:          noteslist.New(),
-		statusBar:          statusbar.New(),
+		mode:               &app.ModeInstance{Current: app.NormalMode},
+		directoryTree:      components.NewDirectoryTree(),
+		notesList:          components.NewNotesList(),
+		statusBar:          components.NewStatusBar(),
 	}
 
 	m.layout = bl.New()
@@ -191,12 +190,12 @@ func (m *TuiModel) focusPrevColumn() messages.StatusBarMsg {
 	return messages.StatusBarMsg{}
 }
 
-func (m *TuiModel) moveUp() messages.StatusBarMsg {
+func (m *TuiModel) lineUp() messages.StatusBarMsg {
 	dirTree := m.directoryTree
 	notesList := m.notesList
 
 	if dirTree.Focused {
-		return dirTree.MoveUp()
+		return dirTree.LineUp()
 	}
 	if notesList.Focused {
 		return notesList.LineUp()
@@ -204,24 +203,26 @@ func (m *TuiModel) moveUp() messages.StatusBarMsg {
 	return messages.StatusBarMsg{}
 }
 
-func (m *TuiModel) moveDown() messages.StatusBarMsg {
+func (m *TuiModel) lineDown() messages.StatusBarMsg {
 	dirTree := m.directoryTree
 	notesList := m.notesList
+	statusMsg := messages.StatusBarMsg{}
 
 	if dirTree.Focused {
-		return dirTree.MoveDown()
+		statusMsg = dirTree.LineDown()
+		statusMsg.Content = strconv.Itoa(dirTree.SelectedDir().NbrFolders) + " folders"
 	}
 	if notesList.Focused {
 		return notesList.LineDown()
 	}
-	return messages.StatusBarMsg{}
+	return statusMsg
 }
 
 func (m *TuiModel) createDir() messages.StatusBarMsg {
 	dirTree := m.directoryTree
 
 	if dirTree.Focused {
-		m.mode.Current = mode.Insert
+		m.mode.Current = app.InsertMode
 		m.statusBar.Focused = false
 		return dirTree.Create()
 	}
@@ -232,7 +233,7 @@ func (m *TuiModel) createNote() messages.StatusBarMsg {
 	notesList := m.notesList
 
 	if notesList.Focused {
-		m.mode.Current = mode.Insert
+		m.mode.Current = app.InsertMode
 		m.statusBar.Focused = false
 		return notesList.Create()
 	}
@@ -244,15 +245,15 @@ func (m *TuiModel) rename() messages.StatusBarMsg {
 	notesList := m.notesList
 
 	if dirTree.Focused {
-		m.mode.Current = mode.Insert
+		m.mode.Current = app.InsertMode
 		m.statusBar.Focused = false
-		return dirTree.Rename()
+		return dirTree.Rename(dirTree.SelectedDir().Name)
 	}
 
 	if notesList.Focused {
-		m.mode.Current = mode.Insert
+		m.mode.Current = app.InsertMode
 		m.statusBar.Focused = false
-		return notesList.Rename()
+		return notesList.Rename(notesList.SelectedItem(nil).Name)
 	}
 	return messages.StatusBarMsg{}
 }
@@ -262,7 +263,7 @@ func (m *TuiModel) remove() messages.StatusBarMsg {
 	notesList := m.notesList
 	// go into insert mode because we always ask for
 	// confirmation before deleting anything
-	m.mode.Current = mode.Insert
+	m.mode.Current = app.InsertMode
 
 	if dirTree.Focused {
 		m.statusBar.Focused = true
@@ -279,7 +280,7 @@ func (m *TuiModel) goToTop() messages.StatusBarMsg {
 	dirTree := m.directoryTree
 	notesList := m.notesList
 
-	if m.mode.Current == mode.Normal {
+	if m.mode.Current == app.NormalMode {
 		if dirTree.Focused {
 			return dirTree.GoToTop()
 		}
@@ -294,7 +295,7 @@ func (m *TuiModel) goToBottom() messages.StatusBarMsg {
 	dirTree := m.directoryTree
 	notesList := m.notesList
 
-	if m.mode.Current == mode.Normal {
+	if m.mode.Current == app.NormalMode {
 		if dirTree.Focused {
 			return dirTree.GoToBottom()
 		}
@@ -311,7 +312,7 @@ func (m *TuiModel) confirmAction() messages.StatusBarMsg {
 	statusMsg := messages.StatusBarMsg{}
 
 	if dirTree.Focused {
-		if m.mode.Current != mode.Normal {
+		if m.mode.Current != app.NormalMode {
 			statusMsg = dirTree.ConfirmAction()
 		} else {
 			notesList.CurrentPath = dirTree.SelectedDir().Path
@@ -320,7 +321,7 @@ func (m *TuiModel) confirmAction() messages.StatusBarMsg {
 	}
 
 	if notesList.Focused {
-		if m.mode.Current != mode.Normal {
+		if m.mode.Current != app.NormalMode {
 			statusMsg = notesList.ConfirmAction()
 		} else {
 			//notesList.CurrentPath = dirTree.SelectedDir().Path
@@ -332,31 +333,31 @@ func (m *TuiModel) confirmAction() messages.StatusBarMsg {
 		statusMsg = m.statusBar.ConfirmAction(statusMsg.Sender)
 	}
 
-	m.mode.Current = mode.Normal
+	m.mode.Current = app.NormalMode
 	return statusMsg
 }
 
 func (m *TuiModel) cancelAction() messages.StatusBarMsg {
 	dirTree := m.directoryTree
 	notesList := m.notesList
-	m.mode.Current = mode.Normal
+	m.mode.Current = app.NormalMode
 	m.statusBar.Focused = false
 
 	if dirTree.Focused {
-		return dirTree.CancelAction()
+		return dirTree.CancelAction(func() { dirTree.Refresh() })
 	}
 	if notesList.Focused {
-		return notesList.CancelAction()
+		return notesList.CancelAction(func() { notesList.Refresh() })
 	}
 	return messages.StatusBarMsg{}
 }
 
 func (m *TuiModel) enterCmdMode() {
-	m.mode.Current = mode.Command
+	m.mode.Current = app.CommandMode
 }
 
 func (m *TuiModel) exitCmdMode() {
-	m.mode.Current = mode.Normal
+	m.mode.Current = app.NormalMode
 	m.keyInput.resetKeysDown()
 }
 
@@ -372,8 +373,8 @@ func (m *TuiModel) KeyInputFn() map[string]func() messages.StatusBarMsg {
 		"focusNotesList":     m.focusNotesList,
 		"focusNextColumn":    m.focusNextColumn,
 		"focusPrevColumn":    m.focusPrevColumn,
-		"moveUp":             m.moveUp,
-		"moveDown":           m.moveDown,
+		"lineUp":             m.lineUp,
+		"lineDown":           m.lineDown,
 		"collapse":           m.directoryTree.Collapse,
 		"expand":             m.directoryTree.Expand,
 		"createDir":          m.createDir,

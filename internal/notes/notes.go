@@ -3,7 +3,7 @@ package notes
 import (
 	"bellbird-notes/internal/app"
 	"bellbird-notes/internal/tui/errors"
-	"bellbird-notes/internal/tui/utils"
+	"bellbird-notes/internal/utils"
 	"os"
 	"path/filepath"
 )
