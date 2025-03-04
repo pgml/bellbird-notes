@@ -32,6 +32,9 @@ type Note struct {
 	isPinned bool
 }
 
+func (n Note) GetIndex() int   { return n.index }
+func (n Note) GetPath() string { return n.Path }
+
 func (n Note) String() string {
 	r := n.styles.note.Render
 	name := utils.TruncateText(n.Name, 22)
@@ -130,7 +133,7 @@ func NewNotesList() *NotesList {
 		CurrentPath: conf.Value(config.General, config.UserNotesDirectory),
 	}
 
-	list.Refresh()
+	list.Refresh(false)
 	return list
 }
 
@@ -152,8 +155,10 @@ func (l NotesList) build() string {
 	return list
 }
 
-func (l *NotesList) Refresh() messages.StatusBarMsg {
-	l.selectedIndex = 0
+func (l *NotesList) Refresh(resetSelectedIndex bool) messages.StatusBarMsg {
+	if resetSelectedIndex {
+		l.selectedIndex = 0
+	}
 	notes, err := notes.List(l.CurrentPath)
 
 	if err != nil {
@@ -290,7 +295,7 @@ func (l *NotesList) Remove() messages.StatusBarMsg {
 		resultMsg = err.Error()
 	}
 
-	l.Refresh()
+	l.Refresh(false)
 	//l.buildList()
 	return messages.StatusBarMsg{Content: resultMsg, Type: msgType}
 }
@@ -306,11 +311,16 @@ func (l *NotesList) ConfirmAction() messages.StatusBarMsg {
 		switch l.editingState {
 		case EditRename:
 			oldPath := selectedNote.Path
-			// rename if path exists
-			if _, err := os.Stat(oldPath); err == nil {
-				notes.Rename(oldPath, newPath)
+			if err := notes.Rename(oldPath, newPath); err == nil {
 				selectedNote.Name = filepath.Base(newPath)
 				selectedNote.Path = newPath
+
+				// These next three lines are a bit ugly but that's what they know me for
+				// @todo Refresh() and build() shouldn't be necessary.
+				// Find a way without those two
+				l.Refresh(false)
+				l.selectedIndex = l.indexByPath(newPath, nil)
+				l.build()
 			}
 
 		case EditCreate:
@@ -319,11 +329,9 @@ func (l *NotesList) ConfirmAction() messages.StatusBarMsg {
 			}
 		}
 
-		l.CancelAction(func() { l.Refresh() })
+		l.CancelAction(func() { l.Refresh(false) })
 		return messages.StatusBarMsg{Content: "yep", Sender: messages.SenderNotesList}
 	}
-
-	l.Refresh()
 
 	return messages.StatusBarMsg{Sender: messages.SenderNotesList}
 }

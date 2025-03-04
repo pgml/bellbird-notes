@@ -23,8 +23,13 @@ type ListActions interface {
 	Refresh()
 }
 
+type ListItem interface {
+	GetIndex() int
+	GetPath() string
+}
+
 // List represents a bubbletea model
-type List[T any] struct {
+type List[T ListItem] struct {
 	Id   bl.ID
 	Size bl.Size
 
@@ -82,7 +87,7 @@ func (l *List[T]) UpdateViewportInfo() {
 }
 
 // SelectedDir returns the currently selected directory in the directory tree
-func (l *List[T]) SelectedItem(items []T) T {
+func (l List[T]) SelectedItem(items []T) T {
 	var empty T
 
 	if l.length == 0 {
@@ -97,6 +102,19 @@ func (l *List[T]) SelectedItem(items []T) T {
 		return items[l.selectedIndex]
 	}
 	return empty
+}
+
+func (l List[T]) indexByPath(path string, items []T) int {
+	if items == nil {
+		items = l.items
+	}
+	for _, item := range items {
+		app.LogDebug(item.GetPath(), path, item.GetIndex())
+		if item.GetPath() == path {
+			return item.GetIndex()
+		}
+	}
+	return 0
 }
 
 ///
@@ -117,9 +135,6 @@ func (l *List[T]) LineUp() messages.StatusBarMsg {
 	}
 
 	return messages.StatusBarMsg{}
-	//return messages.StatusBarMsg{
-	//	Content: c.SelectedNote().name,
-	//}
 }
 
 // Increments `m.selectedIndex`
@@ -136,9 +151,6 @@ func (l *List[T]) LineDown() messages.StatusBarMsg {
 	}
 
 	return messages.StatusBarMsg{}
-	//return messages.StatusBarMsg{
-	//	Content: l.SelectedNote().name,
-	//}
 }
 
 // GoToTop moves the selection and viewport to the top of the tree

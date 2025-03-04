@@ -1,14 +1,12 @@
 package components
 
 import (
-	"bellbird-notes/internal/app"
 	"bellbird-notes/internal/config"
 	"bellbird-notes/internal/directories"
 	"bellbird-notes/internal/tui/messages"
 	"bellbird-notes/internal/tui/theme"
 	"bellbird-notes/internal/utils"
 	"fmt"
-	"os"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -47,6 +45,9 @@ type Dir struct {
 	NbrNotes   int // the amount of notes a directory contains
 	NbrFolders int // the amount of sub directories a directory has
 }
+
+func (d Dir) GetIndex() int   { return d.index }
+func (d Dir) GetPath() string { return d.Path }
 
 // The string representation of a Dir
 func (d Dir) String() string {
@@ -347,12 +348,12 @@ func (t DirectoryTree) lastChildOfSelection() Dir {
 	lastChild := t.getLastChild(selectedDir.index)
 
 	if lastChild.expanded && len(lastChild.children) > 0 {
-		app.LogDebug(selectedDir.index, lastChild.index)
 		lastChild = t.getLastChild(lastChild.index)
 	}
 	return lastChild
 }
 
+// getLastChild returns the last child of the item with the given index
 func (t DirectoryTree) getLastChild(index int) Dir {
 	lastChild := t.dirsListFlat[len(t.dirsListFlat)-1]
 	dir := t.dirsListFlat[index]
@@ -472,8 +473,10 @@ func (t *DirectoryTree) Create() messages.StatusBarMsg {
 	t.editingState = EditCreate
 	t.refreshFlatList()
 	t.Expand()
+
 	lastChild := t.lastChildOfSelection()
 	tmpdir := t.createVirtualDir()
+
 	t.insertDirAfter(lastChild.index, tmpdir)
 	t.selectedIndex = lastChild.index + 1
 
@@ -526,14 +529,9 @@ func (t *DirectoryTree) ConfirmAction() messages.StatusBarMsg {
 
 		switch t.editingState {
 		case EditRename:
-			// rename if path exists
-			if _, err := os.Stat(oldPath); err == nil {
-				directories.Rename(oldPath, newPath)
-				if dir := findDirInTree(t.items, oldPath); dir != nil {
-					dir.Name = filepath.Base(newPath)
-					dir.Path = newPath
-					t.RefreshBranch(dir.parent, dir.index)
-				}
+			if err := directories.Rename(oldPath, newPath); err == nil {
+				t.Refresh()
+				t.selectedIndex = t.indexByPath(newPath, t.dirsListFlat)
 			}
 
 		case EditCreate:

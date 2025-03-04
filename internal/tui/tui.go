@@ -316,7 +316,7 @@ func (m *TuiModel) confirmAction() messages.StatusBarMsg {
 			statusMsg = dirTree.ConfirmAction()
 		} else {
 			notesList.CurrentPath = dirTree.SelectedDir().Path
-			statusMsg = notesList.Refresh()
+			statusMsg = notesList.Refresh(true)
 		}
 	}
 
@@ -347,7 +347,7 @@ func (m *TuiModel) cancelAction() messages.StatusBarMsg {
 		return dirTree.CancelAction(func() { dirTree.Refresh() })
 	}
 	if notesList.Focused {
-		return notesList.CancelAction(func() { notesList.Refresh() })
+		return notesList.CancelAction(func() { notesList.Refresh(false) })
 	}
 	return messages.StatusBarMsg{}
 }
