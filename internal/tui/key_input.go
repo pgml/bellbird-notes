@@ -56,7 +56,6 @@ func NewKeyInput() *KeyInput {
 			keyAction{"G", "goToBottom", app.NormalMode},
 			keyAction{"esc", "cancelAction", app.NormalMode},
 			keyAction{"esc", "cancelAction", app.InsertMode},
-			keyAction{"esc", "exitInsertMode", app.InsertMode},
 			keyAction{"esc", "cancelAction", app.CommandMode},
 			keyAction{"enter", "confirmAction", app.NormalMode},
 			keyAction{"enter", "confirmAction", app.InsertMode},

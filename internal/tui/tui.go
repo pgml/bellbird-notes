@@ -143,7 +143,7 @@ func (m TuiModel) GetTuiModel() TuiModel {
 
 func (m TuiModel) View() string {
 	return lipgloss.JoinVertical(lipgloss.Left,
-		lipgloss.JoinHorizontal(lipgloss.Bottom,
+		lipgloss.JoinHorizontal(lipgloss.Top,
 			m.directoryTree.View(),
 			m.notesList.View(),
 			m.editor.View(),
@@ -172,8 +172,8 @@ func (m *TuiModel) focusColumn(index int) messages.StatusBarMsg {
 		notesList.Focused = true
 	case 3:
 		editor.Focused = true
-	default:
-		editor.ExitInsertMode()
+		//default:
+		//	editor.ExitInsertMode()
 	}
 
 	m.currentColumnFocus = index
@@ -330,6 +330,7 @@ func (m *TuiModel) goToBottom() messages.StatusBarMsg {
 func (m *TuiModel) confirmAction() messages.StatusBarMsg {
 	dirTree := m.directoryTree
 	notesList := m.notesList
+	editor := m.editor
 	statusMsg := messages.StatusBarMsg{}
 
 	if dirTree.Focused {
@@ -345,8 +346,8 @@ func (m *TuiModel) confirmAction() messages.StatusBarMsg {
 		if m.mode.Current != app.NormalMode {
 			statusMsg = notesList.ConfirmAction()
 		} else {
-			//notesList.CurrentPath = dirTree.SelectedDir().Path
-			//statusMsg = notesList.Refresh()
+			notePath := notesList.SelectedItem(nil).GetPath()
+			editor.NewBuffer(notePath)
 		}
 	}
 
@@ -361,6 +362,7 @@ func (m *TuiModel) confirmAction() messages.StatusBarMsg {
 func (m *TuiModel) cancelAction() messages.StatusBarMsg {
 	dirTree := m.directoryTree
 	notesList := m.notesList
+	editor := m.editor
 	m.mode.Current = app.NormalMode
 	m.statusBar.Focused = false
 
@@ -370,6 +372,9 @@ func (m *TuiModel) cancelAction() messages.StatusBarMsg {
 	if notesList.Focused {
 		return notesList.CancelAction(func() { notesList.Refresh(false) })
 	}
+	if editor.Focused {
+		return editor.ExitInsertMode()
+	}
 	return messages.StatusBarMsg{}
 }
 
@@ -378,8 +383,13 @@ func (m *TuiModel) enterCmdMode() {
 }
 
 func (m *TuiModel) exitCmdMode() {
-	m.mode.Current = app.NormalMode
+	m.EnterNormalMode()
 	m.keyInput.resetKeysDown()
+}
+
+func (m *TuiModel) EnterNormalMode() {
+	m.mode.Current = app.NormalMode
+	m.editor.ExitInsertMode()
 }
 
 func (m *TuiModel) executeCmdModeCommand() {}
@@ -408,6 +418,5 @@ func (m *TuiModel) KeyInputFn() map[string]func() messages.StatusBarMsg {
 		"cancelAction":       m.cancelAction,
 		"confirmAction":      m.confirmAction,
 		"enterInsertMode":    m.editor.EnterInsertMode,
-		"exitInsertMode":     m.editor.ExitInsertMode,
 	}
 }
