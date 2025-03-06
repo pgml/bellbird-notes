@@ -204,7 +204,7 @@ func (m *TuiModel) focusNextColumn() messages.StatusBarMsg {
 
 func (m *TuiModel) focusPrevColumn() messages.StatusBarMsg {
 	index := m.currentColumnFocus - 1
-	if index < 3 {
+	if index < 0 {
 		index = 1
 	}
 	m.focusColumn(index)
