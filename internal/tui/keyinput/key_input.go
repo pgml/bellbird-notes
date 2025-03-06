@@ -1,4 +1,4 @@
-package tui
+package keyinput
 
 import (
 	"bellbird-notes/internal/app"
@@ -19,24 +19,28 @@ type keyMap struct {
 	//triggered bool
 }
 
-type KeyInput struct {
-	keyComboCache map[string]bool
-	keysDown      map[string]bool
-	keyMaps       []keyAction
+type Input struct {
+	KeySequence map[string]bool
+	KeysDown    map[string]bool
+	KeyMaps     []keyAction
 
-	isCtrlWDown bool
-	mode        app.Mode
+	Ctrl  bool
+	Alt   bool
+	Shift bool
+	Mode  app.Mode
 
-	functions map[string]func() messages.StatusBarMsg
+	Functions map[string]func() messages.StatusBarMsg
 }
 
-func NewKeyInput() *KeyInput {
-	return &KeyInput{
-		isCtrlWDown:   false,
-		mode:          app.NormalMode,
-		keyComboCache: make(map[string]bool),
-		keysDown:      make(map[string]bool),
-		keyMaps: []keyAction{
+func New() *Input {
+	return &Input{
+		Ctrl:        false,
+		Alt:         false,
+		Shift:       false,
+		Mode:        app.NormalMode,
+		KeySequence: make(map[string]bool),
+		KeysDown:    make(map[string]bool),
+		KeyMaps: []keyAction{
 			keyAction{"ctrl+w l", "focusNextColumn", app.NormalMode},
 			keyAction{"ctrl+w h", "focusPrevColumn", app.NormalMode},
 			keyAction{"1", "focusDirectoryTree", app.NormalMode},
@@ -65,20 +69,20 @@ func NewKeyInput() *KeyInput {
 	}
 }
 
-func (ki *KeyInput) handleKeyCombos(key string) messages.StatusBarMsg {
+func (ki *Input) HandleSequences(key string) messages.StatusBarMsg {
 	if key == "ctrl+w" {
-		ki.isCtrlWDown = true
+		ki.Ctrl = true
 	}
 
-	if ki.isCtrlWDown && strings.Contains(key, "ctrl+") {
-		ki.keysDown["ctrl+w"] = true
+	if ki.Ctrl && strings.Contains(key, "ctrl+") {
+		ki.KeysDown["ctrl+w"] = true
 		key = strings.Split(key, "+")[1]
 	}
 
-	ki.keysDown[key] = true
+	ki.KeysDown[key] = true
 	//ki.keyComboCache[key] = true
 
-	actionString := mapToActionString(ki.keysDown)
+	actionString := mapToActionString(ki.KeysDown)
 	//if len(ki.keyComboCache) > 0 {
 	//	actionString = mapToActionString(ki.keyComboCache)
 	//}
@@ -104,19 +108,19 @@ func (ki *KeyInput) handleKeyCombos(key string) messages.StatusBarMsg {
 	//	m.executeCmdModeCommand()
 	//}
 
-	if ki.mode != app.CommandMode {
+	if ki.Mode != app.CommandMode {
 		ki.releaseKey(key)
 	}
 
 	return statusMsg
 }
 
-func (ki *KeyInput) executeAction(keys string) messages.StatusBarMsg {
-	for _, keyMap := range ki.keyMaps {
-		if keyMap.keys == keys && ki.mode == keyMap.mode {
-			if fn, exists := ki.functions[keyMap.action]; exists {
-				ki.resetKeysDown()
-				ki.resetKeysComboCache()
+func (ki *Input) executeAction(keys string) messages.StatusBarMsg {
+	for _, keyMap := range ki.KeyMaps {
+		if keyMap.keys == keys && ki.Mode == keyMap.mode {
+			if fn, exists := ki.Functions[keyMap.action]; exists {
+				ki.ResetKeysDown()
+				ki.resetSequenceCache()
 				return fn()
 			}
 		}
@@ -124,28 +128,28 @@ func (ki *KeyInput) executeAction(keys string) messages.StatusBarMsg {
 	return messages.StatusBarMsg{}
 }
 
-func (ki *KeyInput) resetKeysDown() {
-	ki.isCtrlWDown = false
-	ki.keysDown = make(map[string]bool)
+func (ki *Input) ResetKeysDown() {
+	ki.Ctrl = false
+	ki.KeysDown = make(map[string]bool)
 }
 
-func (ki *KeyInput) resetKeysComboCache() {
-	ki.isCtrlWDown = false
-	ki.keyComboCache = make(map[string]bool)
+func (ki *Input) resetSequenceCache() {
+	ki.Ctrl = false
+	ki.KeySequence = make(map[string]bool)
 }
 
 // simulate keyUp event
-func (ki *KeyInput) releaseKey(key string) {
+func (ki *Input) releaseKey(key string) {
 	var timeout time.Duration = 50
 	go func() {
 		time.Sleep(timeout * time.Millisecond)
-		delete(ki.keysDown, key)
+		delete(ki.KeysDown, key)
 	}()
 }
 
-func (ki KeyInput) GetKeysDown() []string {
+func (ki Input) GetKeysDown() []string {
 	keys := []string{}
-	for key := range ki.keysDown {
+	for key := range ki.KeysDown {
 		keys = append(keys, key)
 	}
 	return keys

@@ -5,13 +5,21 @@ type Mode int
 const (
 	NormalMode Mode = iota
 	InsertMode
+	VisualMode
+	VisualLineMode
+	VisualBlockMode
+	OperatorMode
 	CommandMode
 )
 
 var modeName = map[Mode]string{
-	NormalMode:  "n",
-	InsertMode:  "i",
-	CommandMode: "c",
+	NormalMode:      "n",
+	InsertMode:      "i",
+	VisualMode:      "v",
+	VisualLineMode:  "vi",
+	VisualBlockMode: "vb",
+	OperatorMode:    "o",
+	CommandMode:     "c",
 }
 
 func (m Mode) String() string {

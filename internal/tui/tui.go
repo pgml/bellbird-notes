@@ -3,6 +3,7 @@ package tui
 import (
 	"bellbird-notes/internal/app"
 	"bellbird-notes/internal/tui/components"
+	"bellbird-notes/internal/tui/keyinput"
 	"bellbird-notes/internal/tui/messages"
 	"strconv"
 
@@ -26,7 +27,7 @@ type TuiModel struct {
 	layout bl.BubbleLayout
 	mode   *app.ModeInstance
 
-	keyInput *KeyInput
+	keyInput *keyinput.Input
 
 	currentColumnFocus int
 
@@ -60,8 +61,8 @@ func InitialModel() TuiModel {
 	m.editor.Id = m.layout.Add("grow")
 	m.editor.Focused = false
 
-	m.keyInput = NewKeyInput()
-	m.keyInput.functions = m.KeyInputFn()
+	m.keyInput = keyinput.New()
+	m.keyInput.Functions = m.KeyInputFn()
 
 	return m
 }
@@ -89,7 +90,7 @@ func (m TuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		}
 
-		statusMsg := m.keyInput.handleKeyCombos(msg.String())
+		statusMsg := m.keyInput.HandleSequences(msg.String())
 		m.statusBar = m.statusBar.Update(statusMsg, msg)
 		m.statusBar.Mode = m.mode.Current
 
@@ -112,7 +113,7 @@ func (m TuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.statusBar = m.statusBar.Update(msg, msg)
 	}
 
-	m.keyInput.mode = m.mode.Current
+	m.keyInput.Mode = m.mode.Current
 	var dirTreeCmd, notesCmd, editorCmd tea.Cmd
 
 	if m.directoryTree.Focused {
@@ -125,7 +126,7 @@ func (m TuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 	if m.editor.Focused {
 		_, editorCmd = m.editor.Update(msg)
-		m.keyInput.mode = m.editor.Mode.Current
+		m.keyInput.Mode = m.editor.Vim.Mode.Current
 	}
 
 	m.statusBar.DirTree = *m.directoryTree
@@ -362,7 +363,6 @@ func (m *TuiModel) confirmAction() messages.StatusBarMsg {
 func (m *TuiModel) cancelAction() messages.StatusBarMsg {
 	dirTree := m.directoryTree
 	notesList := m.notesList
-	editor := m.editor
 	m.mode.Current = app.NormalMode
 	m.statusBar.Focused = false
 
@@ -372,9 +372,6 @@ func (m *TuiModel) cancelAction() messages.StatusBarMsg {
 	if notesList.Focused {
 		return notesList.CancelAction(func() { notesList.Refresh(false) })
 	}
-	if editor.Focused {
-		return editor.ExitInsertMode()
-	}
 	return messages.StatusBarMsg{}
 }
 
@@ -383,15 +380,9 @@ func (m *TuiModel) enterCmdMode() {
 }
 
 func (m *TuiModel) exitCmdMode() {
-	m.EnterNormalMode()
-	m.keyInput.resetKeysDown()
-}
-
-func (m *TuiModel) EnterNormalMode() {
 	m.mode.Current = app.NormalMode
-	m.editor.ExitInsertMode()
+	m.keyInput.ResetKeysDown()
 }
-
 func (m *TuiModel) executeCmdModeCommand() {}
 
 func (m *TuiModel) quit() {
@@ -417,6 +408,5 @@ func (m *TuiModel) KeyInputFn() map[string]func() messages.StatusBarMsg {
 		"goToBottom":         m.goToBottom,
 		"cancelAction":       m.cancelAction,
 		"confirmAction":      m.confirmAction,
-		"enterInsertMode":    m.editor.EnterInsertMode,
 	}
 }

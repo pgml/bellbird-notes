@@ -2,14 +2,12 @@ package components
 
 import (
 	"bellbird-notes/internal/app"
+	"bellbird-notes/internal/tui/components/textarea"
+	"bellbird-notes/internal/tui/keyinput"
 	"bellbird-notes/internal/tui/messages"
 	"os"
 	"strings"
-	"unicode"
 
-	"slices"
-
-	"github.com/charmbracelet/bubbles/textarea"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
@@ -20,7 +18,7 @@ type Editor struct {
 	Buffers       []Buffer
 	CurrentBuffer Buffer
 	Textarea      textarea.Model
-	Mode          app.ModeInstance
+	Vim           Vim
 
 	err error
 }
@@ -29,14 +27,20 @@ type errMsg error
 type Buffer struct {
 	Index       int
 	CurrentLine int
-	CursorPos   int
+	CursorPos   CursorPos
 	Path        string
 	Content     string
 }
 
-type EditorText struct {
-	text      string
-	cursorPos CursorPos
+type Input struct {
+	keyinput.Input
+	key      string
+	operator string
+}
+
+type Vim struct {
+	Mode    app.ModeInstance
+	Pending Input
 }
 
 type CursorPos struct {
@@ -79,46 +83,129 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			cmd = e.Textarea.Focus()
 		}
 
-		switch e.Mode.Current {
+		key := msg.String()
+		if strings.Contains(key, "ctrl+") {
+			e.Vim.Pending.Ctrl = true
+			e.Vim.Pending.key = strings.Split(key, "+")[1]
+		}
+		if strings.Contains(key, "alt+") {
+			e.Vim.Pending.Alt = true
+			e.Vim.Pending.key = strings.Split(key, "+")[1]
+		}
+		if strings.Contains(key, "shift+") {
+			e.Vim.Pending.Shift = true
+			e.Vim.Pending.key = strings.Split(key, "+")[1]
+		}
+
+		switch e.Vim.Mode.Current {
 		case app.InsertMode:
 			if msg.String() == "esc" {
-				e.Mode.Current = app.NormalMode
+				e.Vim.Mode.Current = app.NormalMode
 				return e, nil
 			}
 
 			e.Textarea, cmd = e.Textarea.Update(msg)
-			//app.LogDebug(e.Textarea.LineInfo().Width)
-			//editorText := e.wordWrap(e.Textarea.Value(), e.Size.Width-5)
-			//e.Textarea.InsertString(editorText.text)
-			//e.Textarea.SetCursor(editorText.cursorPos.ColOffset)
 
 			return e, cmd
 
 		case app.NormalMode:
-			cursorPos := e.Textarea.LineInfo().ColumnOffset
 			switch msg.String() {
 			case "i":
-				e.EnterInsertMode()
+				e.Vim.Mode.Current = app.InsertMode
+			case "a":
+				e.Textarea.CharacterRight()
+				e.Vim.Mode.Current = app.InsertMode
 			case "h":
-				if cursorPos < 0 {
-					e.Textarea.CursorUp()
-					e.Textarea.CursorEnd()
-				} else {
-					e.Textarea.SetCursor(cursorPos - 1)
-				}
+				e.Textarea.CharacterLeft(false)
+				e.Vim.Pending.ResetKeysDown()
 			case "l":
-				if cursorPos > e.Textarea.LineInfo().Width-3 {
-					e.Textarea.CursorDown()
-					e.Textarea.SetCursor(0)
-				} else {
-					e.Textarea.SetCursor(cursorPos + 1)
-				}
+				e.Textarea.CharacterRight()
+				e.Vim.Pending.ResetKeysDown()
 			case "j":
 				e.Textarea.CursorDown()
+				e.Textarea.RepositionView()
+				e.Vim.Pending.ResetKeysDown()
 			case "k":
 				e.Textarea.CursorUp()
+				e.Textarea.RepositionView()
+				e.Vim.Pending.ResetKeysDown()
+			case "w":
+				e.Textarea.WordRight()
+				e.Textarea.CharacterRight()
+				e.Vim.Pending.ResetKeysDown()
+			case "e":
+				e.Textarea.WordRight()
+				e.Textarea.CharacterRight()
+				e.Textarea.CharacterLeft(false)
+				e.Vim.Pending.ResetKeysDown()
+			case "b":
+				e.Textarea.WordLeft()
+				e.Vim.Pending.ResetKeysDown()
+			case "^", "_":
+				e.Textarea.CursorInputStart()
+			case "0":
+				e.Textarea.CursorStart()
+				e.Vim.Pending.ResetKeysDown()
+			case "$":
+				e.Textarea.CursorEnd()
+				e.Vim.Pending.ResetKeysDown()
+			case "o":
+				e.Textarea.CursorEnd()
+				e.Textarea.InsertRune('\n')
+				e.Vim.Mode.Current = app.InsertMode
+				e.Vim.Pending.ResetKeysDown()
+			case "O":
+				e.Textarea.CursorUp()
+				e.Textarea.CursorEnd()
+				e.Textarea.InsertRune('\n')
+				e.Vim.Mode.Current = app.InsertMode
+				e.Vim.Pending.ResetKeysDown()
+			case "d":
+				e.operator("d")
+			case "D":
+				e.Textarea.DeleteAfterCursor()
+			case "g":
+				e.operator("g")
+			case "G":
+				e.Textarea.MoveToEnd()
+				e.Textarea.RepositionView()
+			case "ctrl+d":
+				e.Textarea.DownHalfPage()
+			case "ctrl+u":
+				e.Textarea.UpHalfPage()
 			}
+			//app.LogDebug(
+			//	e.Vim.Pending.key,
+			//	e.Vim.Pending.Ctrl,
+			//	e.Vim.Pending.Alt,
+			//	e.Vim.Pending.Shift,
+			//)
+
+		// handles the double key thingy like dd, yy, gg
+		case app.OperatorMode:
+			if e.Vim.Pending.operator == "d" {
+				switch msg.String() {
+				case "d":
+					e.Textarea.DeleteLine()
+				case "j":
+					e.Textarea.DeleteLines(2, false)
+				case "k":
+					e.Textarea.DeleteLines(2, true)
+				}
+			}
+			if e.Vim.Pending.operator == "g" {
+				switch msg.String() {
+				case "g":
+					e.Textarea.MoveToBegin()
+					e.Textarea.RepositionView()
+				}
+			}
+			e.Vim.Pending.ResetKeysDown()
+			e.Vim.Mode.Current = app.NormalMode
+			e.Vim.Pending.operator = ""
 		}
+
+		e.updateCursorPos()
 
 	case tea.WindowSizeMsg:
 		e.Size.Width = msg.Width
@@ -159,7 +246,14 @@ func NewEditor() *Editor {
 	textarea.MaxHeight = maxHeight
 
 	editor := &Editor{
-		Mode:     app.ModeInstance{Current: app.NormalMode},
+		Vim: Vim{
+			Mode: app.ModeInstance{Current: app.NormalMode},
+			Pending: Input{
+				keyinput.Input{Ctrl: false, Alt: false, Shift: false},
+				"",
+				"",
+			},
+		},
 		Textarea: textarea,
 	}
 
@@ -178,12 +272,10 @@ func (e *Editor) NewBuffer(path string) messages.StatusBarMsg {
 		return messages.StatusBarMsg{Content: err.Error()}
 	}
 
-	noteString := string(note)
-	noteString = e.wordWrap(noteString, e.Size.Width-5).text
 	buffer := Buffer{
 		Index:   len(e.Buffers) + 1,
 		Path:    path,
-		Content: noteString,
+		Content: string(note),
 	}
 
 	e.Buffers = append(e.Buffers, buffer)
@@ -193,107 +285,21 @@ func (e *Editor) NewBuffer(path string) messages.StatusBarMsg {
 	if e.CurrentBuffer != (Buffer{}) {
 		content = e.CurrentBuffer.Content
 	}
-	e.Textarea.SetValue("")
-	e.Textarea.CursorStart()
-	e.Textarea.InsertString(content)
-	e.Textarea.CursorStart()
+
+	e.Textarea.SetValue(content)
+	e.Textarea.MoveToBegin()
 	e.Textarea.SetWidth(e.Size.Width)
 	e.Textarea.SetHeight(e.Size.Height - 3)
 
 	return messages.StatusBarMsg{}
 }
 
-// wordWrap wraps the given str by width
-//
-// This is a go translation of https://stackoverflow.com/a/17635
-func (e *Editor) wordWrap(str string, width int) EditorText {
-	splitChars := []rune{' ', '-', '\t', '.'}
-	words := explode(str, splitChars)
-
-	lineLength := e.Textarea.LineInfo().Width
-	var strBuilder strings.Builder
-
-	for _, word := range words {
-		// If adding the new word to the current line would be too long,
-		// then put it on a new line (and split it up if it's too long).
-		if lineLength > width {
-			// Only move down to a new line if we have text on the current line.
-			// Avoids situation where
-			// wrapped whitespace causes emptylines in text.
-			if lineLength > 0 {
-				strBuilder.WriteString("\n")
-				//lin = 0
-			}
-
-			// If the current word is too long
-			// to fit on a line (even on its own),
-			// then split the word up.
-			for len(word) > width {
-				strBuilder.WriteString(word[:width-1] + "-\n")
-				word = word[width-1:]
-			}
-
-			// Remove leading whitespace from the word,
-			// so the new line starts flush to the left.
-			word = strings.TrimLeftFunc(word, unicode.IsSpace)
-		}
-		strBuilder.WriteString(word)
-		//currLineLength += len(word)
-	}
-
-	e.Textarea.LineInfo()
-	return EditorText{
-		text: strBuilder.String(),
-		cursorPos: CursorPos{
-			e.Textarea.LineInfo().ColumnOffset,
-			e.Textarea.Line(),
-		},
-	}
+func (e *Editor) updateCursorPos() {
+	e.CurrentBuffer.CursorPos.ColOffset = e.Textarea.LineInfo().ColumnOffset
+	e.CurrentBuffer.CursorPos.Line = e.Textarea.Line()
 }
 
-// This is a go translation of https://stackoverflow.com/a/17635
-func explode(str string, splitChars []rune) []string {
-	parts := []string{}
-	startIndex := 0
-
-	for i, r := range str {
-		if slices.Contains(splitChars, r) {
-			word := str[startIndex:i]
-			if word != "" {
-				parts = append(parts, word)
-			}
-
-			// Dashes and the like should stick to the word occuring before it.
-			// Whitespace doesn't have to.
-			if unicode.IsSpace(r) {
-				parts = append(parts, string(r))
-			} else {
-				if len(parts) > 0 {
-					parts[len(parts)-1] += string(r)
-				} else {
-					parts = append(parts, string(r))
-				}
-			}
-
-			startIndex = i + 1
-		}
-	}
-
-	if startIndex < len(str) {
-		parts = append(parts, str[startIndex:])
-	}
-
-	return parts
-}
-
-func (e *Editor) EnterInsertMode() messages.StatusBarMsg {
-	if e.Focused {
-		e.Mode.Current = app.InsertMode
-	}
-	return messages.StatusBarMsg{}
-}
-
-func (e *Editor) ExitInsertMode() messages.StatusBarMsg {
-	e.Mode.Current = app.NormalMode
-	return messages.StatusBarMsg{}
+func (e *Editor) operator(c string) {
+	e.Vim.Mode.Current = app.OperatorMode
+	e.Vim.Pending.operator = c
 }
