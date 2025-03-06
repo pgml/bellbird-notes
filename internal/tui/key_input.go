@@ -60,7 +60,7 @@ func NewKeyInput() *KeyInput {
 			keyAction{"enter", "confirmAction", app.NormalMode},
 			keyAction{"enter", "confirmAction", app.InsertMode},
 			keyAction{"enter", "confirmAction", app.CommandMode},
-			keyAction{"i", "enterInsertMode", app.NormalMode},
+			//keyAction{"i", "enterInsertMode", app.NormalMode},
 		},
 	}
 }

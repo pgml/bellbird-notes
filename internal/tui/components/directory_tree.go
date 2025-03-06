@@ -59,7 +59,6 @@ func (d Dir) String() string {
 	name := utils.TruncateText(d.Name, 22)
 
 	toggle := map[string]string{"open": "", "close": "󰉋"}
-	noNerdFonts := false
 	if noNerdFonts {
 		toggle = map[string]string{"open": "▼", "close": "▶"}
 	}

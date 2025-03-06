@@ -7,6 +7,8 @@ import (
 	"strings"
 	"unicode"
 
+	"slices"
+
 	"github.com/charmbracelet/bubbles/textarea"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -34,31 +36,32 @@ type Buffer struct {
 
 type EditorText struct {
 	text      string
-	cursorPos int
+	cursorPos CursorPos
 }
 
+type CursorPos struct {
+	ColOffset int
+	Line      int
+}
+
+const (
+	charLimit       = 0
+	maxHeight       = 0
+	showLineNumbers = false
+)
+
 var (
-	cursorStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("212"))
+	cursorLine          = lipgloss.NewStyle()
+	borderColour        = lipgloss.Color("#424B5D")
+	focusedBorderColour = lipgloss.Color("#69c8dc")
 
-	cursorLineStyle = lipgloss.NewStyle().
-			Background(lipgloss.Color("57")).
-			Foreground(lipgloss.Color("230"))
+	focusedStyle = lipgloss.NewStyle().
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(focusedBorderColour)
 
-	placeholderStyle = lipgloss.NewStyle().
-				Foreground(lipgloss.Color("238"))
-
-	endOfBufferStyle = lipgloss.NewStyle().
-				Foreground(lipgloss.Color("235"))
-
-	focusedPlaceholderStyle = lipgloss.NewStyle().
-				Foreground(lipgloss.Color("99"))
-
-	focusedBorderStyle = lipgloss.NewStyle().
-				Border(lipgloss.RoundedBorder()).
-				BorderForeground(lipgloss.Color("238"))
-
-	blurredBorderStyle = lipgloss.NewStyle().
-				Border(lipgloss.HiddenBorder())
+	blurredStyle = lipgloss.NewStyle().
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(borderColour)
 )
 
 // Init initialises the Model on program load. It partly implements the tea.Model interface.
@@ -69,8 +72,6 @@ func (e *Editor) Init() tea.Cmd {
 func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 	var cmd tea.Cmd
-
-	//termWidth, termHeight := theme.GetTerminalSize()
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
@@ -86,42 +87,42 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 			e.Textarea, cmd = e.Textarea.Update(msg)
+			//app.LogDebug(e.Textarea.LineInfo().Width)
 			//editorText := e.wordWrap(e.Textarea.Value(), e.Size.Width-5)
-			//e.Textarea.SetValue(editorText.text)
-			//e.Textarea.SetCursor(editorText.cursorPos)
-			//app.LogDebug(editorText.cursorPos)
+			//e.Textarea.InsertString(editorText.text)
+			//e.Textarea.SetCursor(editorText.cursorPos.ColOffset)
 
 			return e, cmd
 
 		case app.NormalMode:
 			cursorPos := e.Textarea.LineInfo().ColumnOffset
 			switch msg.String() {
-			//case "i":
-			//	e.EnterInsertMode()
+			case "i":
+				e.EnterInsertMode()
 			case "h":
-				e.Textarea.SetCursor(cursorPos - 1)
+				if cursorPos < 0 {
+					e.Textarea.CursorUp()
+					e.Textarea.CursorEnd()
+				} else {
+					e.Textarea.SetCursor(cursorPos - 1)
+				}
 			case "l":
-				e.Textarea.SetCursor(cursorPos + 1)
+				if cursorPos > e.Textarea.LineInfo().Width-3 {
+					e.Textarea.CursorDown()
+					e.Textarea.SetCursor(0)
+				} else {
+					e.Textarea.SetCursor(cursorPos + 1)
+				}
 			case "j":
 				e.Textarea.CursorDown()
 			case "k":
 				e.Textarea.CursorUp()
 			}
 		}
-		//return e.vim(msg)
 
 	case tea.WindowSizeMsg:
 		e.Size.Width = msg.Width
 		e.Size.Height = msg.Height - 1
-	//if !e.ready {
-	//	e.viewport = viewport.New(termWidth, termHeight-1)
-	//	e.viewport.SetContent(e.build())
-	//	e.viewport.KeyMap = viewport.KeyMap{}
-	//	e.ready = true
-	//} else {
-	//	e.viewport.Width = termWidth
-	//	e.viewport.Height = termHeight - 1
-	//}
 	case errMsg:
 		e.err = msg
 		return e, nil
@@ -140,50 +141,28 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (e *Editor) View() string {
-	//if !e.ready {
-	//	return "\n  Initializing..."
-	//}
-
-	//e.viewport.SetContent(e.build())
-	//e.viewport.Style = theme.BaseColumnLayout(e.Size, e.Focused)
-
 	if !e.Focused {
 		e.Textarea.Blur()
 	}
 
-	app.LogDebug(len(e.Buffers))
-
 	return e.build()
-	//return e.viewport.View()
 }
 
 func NewEditor() *Editor {
 	textarea := textarea.New()
-	//textarea.ShowLineNumbers = false
+	textarea.ShowLineNumbers = showLineNumbers
 	textarea.Prompt = ""
-	//app.LogDebug(termWidth, termHeight, "asd")
-	//textarea.FocusedStyle.CursorLine = lipgloss.NewStyle()
-
-	//conf := config.New()
-
-	borderColour := lipgloss.Color("#424B5D")
-	focusedBorderColour := lipgloss.Color("#69c8dc")
-	textarea.FocusedStyle.Base = lipgloss.NewStyle().
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(focusedBorderColour)
-
-	textarea.BlurredStyle.Base = lipgloss.NewStyle().
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(borderColour)
-	textarea.CharLimit = 0
-	textarea.MaxHeight = 0
+	textarea.FocusedStyle.CursorLine = cursorLine
+	textarea.FocusedStyle.Base = focusedStyle
+	textarea.BlurredStyle.Base = blurredStyle
+	textarea.CharLimit = charLimit
+	textarea.MaxHeight = maxHeight
 
 	editor := &Editor{
 		Mode:     app.ModeInstance{Current: app.NormalMode},
 		Textarea: textarea,
 	}
 
-	//editor.Refresh(false)
 	return editor
 }
 
@@ -194,18 +173,17 @@ func (e *Editor) build() string {
 func (e *Editor) NewBuffer(path string) messages.StatusBarMsg {
 	note, err := os.ReadFile(path)
 
-	//e.Buffers = []Buffer{}
-
-	//runtime.GC()
 	if err != nil {
 		app.LogErr(err)
 		return messages.StatusBarMsg{Content: err.Error()}
 	}
-	cleanedText := strings.ReplaceAll(string(note), "\r\n", "\n")
+
+	noteString := string(note)
+	noteString = e.wordWrap(noteString, e.Size.Width-5).text
 	buffer := Buffer{
 		Index:   len(e.Buffers) + 1,
 		Path:    path,
-		Content: cleanedText,
+		Content: noteString,
 	}
 
 	e.Buffers = append(e.Buffers, buffer)
@@ -215,18 +193,14 @@ func (e *Editor) NewBuffer(path string) messages.StatusBarMsg {
 	if e.CurrentBuffer != (Buffer{}) {
 		content = e.CurrentBuffer.Content
 	}
-	e.Textarea.SetValue(content)
+	e.Textarea.SetValue("")
+	e.Textarea.CursorStart()
+	e.Textarea.InsertString(content)
+	e.Textarea.CursorStart()
+	e.Textarea.SetWidth(e.Size.Width)
+	e.Textarea.SetHeight(e.Size.Height - 3)
 
 	return messages.StatusBarMsg{}
-}
-func cleanText(input string) string {
-	// Remove non-printable characters
-	return strings.Map(func(r rune) rune {
-		if unicode.IsPrint(r) || r == '\n' || r == '\t' {
-			return r
-		}
-		return -1
-	}, input)
 }
 
 // wordWrap wraps the given str by width
@@ -236,19 +210,19 @@ func (e *Editor) wordWrap(str string, width int) EditorText {
 	splitChars := []rune{' ', '-', '\t', '.'}
 	words := explode(str, splitChars)
 
-	currLineLength := 0
+	lineLength := e.Textarea.LineInfo().Width
 	var strBuilder strings.Builder
 
 	for _, word := range words {
 		// If adding the new word to the current line would be too long,
 		// then put it on a new line (and split it up if it's too long).
-		if currLineLength+len(word) > width {
+		if lineLength > width {
 			// Only move down to a new line if we have text on the current line.
 			// Avoids situation where
 			// wrapped whitespace causes emptylines in text.
-			if currLineLength > 0 {
+			if lineLength > 0 {
 				strBuilder.WriteString("\n")
-				currLineLength = 0
+				//lin = 0
 			}
 
 			// If the current word is too long
@@ -264,12 +238,16 @@ func (e *Editor) wordWrap(str string, width int) EditorText {
 			word = strings.TrimLeftFunc(word, unicode.IsSpace)
 		}
 		strBuilder.WriteString(word)
-		currLineLength += len(word)
+		//currLineLength += len(word)
 	}
 
+	e.Textarea.LineInfo()
 	return EditorText{
-		text:      strBuilder.String(),
-		cursorPos: e.Textarea.LineInfo().ColumnOffset,
+		text: strBuilder.String(),
+		cursorPos: CursorPos{
+			e.Textarea.LineInfo().ColumnOffset,
+			e.Textarea.Line(),
+		},
 	}
 }
 
@@ -279,28 +257,25 @@ func explode(str string, splitChars []rune) []string {
 	startIndex := 0
 
 	for i, r := range str {
-		for _, char := range splitChars {
-			if r == char {
-				word := str[startIndex:i]
-				if word != "" {
-					parts = append(parts, word)
-				}
-
-				// Dashes and the like should stick to the word occuring before it.
-				// Whitespace doesn't have to.
-				if unicode.IsSpace(r) {
-					parts = append(parts, string(r))
-				} else {
-					if len(parts) > 0 {
-						parts[len(parts)-1] += string(r)
-					} else {
-						parts = append(parts, string(r))
-					}
-				}
-
-				startIndex = i + 1
-				break
+		if slices.Contains(splitChars, r) {
+			word := str[startIndex:i]
+			if word != "" {
+				parts = append(parts, word)
 			}
+
+			// Dashes and the like should stick to the word occuring before it.
+			// Whitespace doesn't have to.
+			if unicode.IsSpace(r) {
+				parts = append(parts, string(r))
+			} else {
+				if len(parts) > 0 {
+					parts[len(parts)-1] += string(r)
+				} else {
+					parts = append(parts, string(r))
+				}
+			}
+
+			startIndex = i + 1
 		}
 	}
 

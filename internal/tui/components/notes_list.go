@@ -40,7 +40,6 @@ func (n Note) String() string {
 	name := utils.TruncateText(n.Name, 22)
 
 	icon := " 󰎞"
-	noNerdFonts := false
 	if noNerdFonts {
 		icon = " "
 	}
