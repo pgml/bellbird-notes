@@ -8,6 +8,7 @@ const (
 	VisualMode
 	VisualLineMode
 	VisualBlockMode
+	ReplaceMode
 	OperatorMode
 	CommandMode
 )
@@ -19,6 +20,7 @@ var modeName = map[Mode]string{
 	VisualLineMode:  "vi",
 	VisualBlockMode: "vb",
 	OperatorMode:    "o",
+	ReplaceMode:     "r",
 	CommandMode:     "c",
 }
 

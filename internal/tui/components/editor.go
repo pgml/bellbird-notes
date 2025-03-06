@@ -115,51 +115,46 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case "a":
 				e.Textarea.CharacterRight()
 				e.Vim.Mode.Current = app.InsertMode
+			case "r":
+				e.Vim.Mode.Current = app.ReplaceMode
+			case "v":
+				e.Vim.Mode.Current = app.VisualMode
 			case "h":
 				e.Textarea.CharacterLeft(false)
-				e.Vim.Pending.ResetKeysDown()
 			case "l":
 				e.Textarea.CharacterRight()
-				e.Vim.Pending.ResetKeysDown()
 			case "j":
 				e.Textarea.CursorDown()
 				e.Textarea.RepositionView()
-				e.Vim.Pending.ResetKeysDown()
 			case "k":
 				e.Textarea.CursorUp()
 				e.Textarea.RepositionView()
-				e.Vim.Pending.ResetKeysDown()
 			case "w":
 				e.Textarea.WordRight()
 				e.Textarea.CharacterRight()
-				e.Vim.Pending.ResetKeysDown()
 			case "e":
 				e.Textarea.WordRight()
 				e.Textarea.CharacterRight()
 				e.Textarea.CharacterLeft(false)
-				e.Vim.Pending.ResetKeysDown()
 			case "b":
 				e.Textarea.WordLeft()
-				e.Vim.Pending.ResetKeysDown()
 			case "^", "_":
 				e.Textarea.CursorInputStart()
 			case "0":
 				e.Textarea.CursorStart()
-				e.Vim.Pending.ResetKeysDown()
 			case "$":
 				e.Textarea.CursorEnd()
-				e.Vim.Pending.ResetKeysDown()
 			case "o":
 				e.Textarea.CursorEnd()
 				e.Textarea.InsertRune('\n')
+				e.Textarea.RepositionView()
 				e.Vim.Mode.Current = app.InsertMode
-				e.Vim.Pending.ResetKeysDown()
 			case "O":
 				e.Textarea.CursorUp()
 				e.Textarea.CursorEnd()
 				e.Textarea.InsertRune('\n')
+				e.Textarea.RepositionView()
 				e.Vim.Mode.Current = app.InsertMode
-				e.Vim.Pending.ResetKeysDown()
 			case "d":
 				e.operator("d")
 			case "D":
@@ -174,12 +169,15 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case "ctrl+u":
 				e.Textarea.UpHalfPage()
 			}
+			e.Vim.Pending.ResetKeysDown()
 			//app.LogDebug(
 			//	e.Vim.Pending.key,
 			//	e.Vim.Pending.Ctrl,
 			//	e.Vim.Pending.Alt,
 			//	e.Vim.Pending.Shift,
 			//)
+
+		//case app.ReplaceMode:
 
 		// handles the double key thingy like dd, yy, gg
 		case app.OperatorMode:

@@ -24,4 +24,4 @@ type Component struct {
 	ready         bool
 }
 
-const noNerdFonts = false
+const noNerdFonts = true
