@@ -4,16 +4,38 @@
 
 package textarea
 
+import (
+	"bellbird-notes/internal/tui/components/cursor"
+
+	"github.com/charmbracelet/lipgloss"
+)
+
+type Selection struct {
+	Cursor   cursor.Model
+	Start    Pos
+	StartRow int
+	StartCol int
+	//Characters [][]rune
+}
+
+type Pos struct{ Row, Col int }
+
+// characterRight moves the cursor one character to the right.
+func (m *Model) CharacterRight() {
+	if m.col < len(m.value[m.row]) {
+		m.SetCursor(m.col + 1)
+	}
+	//m.characterRight()
+}
+
 // characterLeft moves the cursor one character to the left.
 // If insideLine is set, the cursor is moved to the last
 // character in the previous line, instead of one past that.
 func (m *Model) CharacterLeft(inside bool) {
-	m.characterLeft(inside)
-}
-
-// characterRight moves the cursor one character to the right.
-func (m *Model) CharacterRight() {
-	m.characterRight()
+	if m.col > 0 {
+		m.SetCursor(m.col - 1)
+	}
+	//m.characterLeft(inside)
 }
 
 // repositionView repositions the view of the viewport based on the defined
@@ -64,9 +86,39 @@ func (m *Model) DeleteAfterCursor() {
 	m.SetCursor(len(m.value[m.row]) - 1)
 }
 
+func (m Model) MemoizedWrap(runes []rune, width int) [][]rune {
+	return m.memoizedWrap(runes, width)
+}
+
+func (m Model) Row() int {
+	return m.row
+}
+
+func (m Model) Col() int {
+	return m.col
+}
+
 ///
 /// custom methods
 ///
+
+// SetCursor moves the cursor to the given position. If the position is
+// out of bounds the cursor will be moved to the start or end accordingly.
+func (m *Model) MoveCursor(row int, col int) {
+	m.col = clamp(col, 0, len(m.value[m.row]))
+	m.row = clamp(row, 0, len(m.value[m.col]))
+	// Any time that we move the cursor horizontally we need to reset the last
+	// offset so that the horizontal position when navigating is adjusted.
+	//m.lastCharOffset = 0
+}
+
+func (m Model) TextValue() [][]rune {
+	return m.value
+}
+
+func (m *Model) SelectionStyle() lipgloss.Style {
+	return m.style.computedCursorLine()
+}
 
 // DeleteLine deletes current line
 func (m *Model) DeleteLine() {
@@ -110,4 +162,48 @@ func (m *Model) UpHalfPage() {
 	if row := m.cursorLineNumber(); row < min {
 		m.viewport.LineUp(min - row)
 	}
+}
+
+func (m *Model) StartSelection() {
+	m.Selection.Cursor.Focus()
+	m.Selection.StartRow = m.row
+	m.Selection.StartCol = m.LineInfo().CharOffset
+}
+
+func (m *Model) SelectionRange() (Pos, Pos) {
+	selectionStart := Pos{
+		m.Selection.StartRow,
+		m.Selection.StartCol,
+	}
+	cursor := Pos{
+		m.row,
+		m.LineInfo().ColumnOffset,
+	}
+
+	if selectionStart.GreaterThan(cursor) {
+		return cursor, selectionStart
+	}
+	return selectionStart, cursor
+}
+
+//func (m *Model) UpdateSelection() {
+//	//m.Selection.end = uint(m.LineInfo().CharOffset)
+//	m.Selection.Cursor.SetWidth(max(m.Selection.Start, m.LineInfo().CharOffset))
+//}
+
+func (m *Model) ReplaceRune(c rune, row int, col int) {
+	m.value[row][col] = c
+}
+
+func (p Pos) GreaterThan(other Pos) bool {
+	return p.Row > other.Row || (p.Row == other.Row && p.Col > other.Col)
+}
+
+func (p Pos) InRange(min, max Pos) bool {
+	if min.Col == -1 || min.Row == -1 {
+		return false
+	}
+
+	return p.Row >= min.Row && p.Row <= max.Row &&
+		p.Col >= min.Col && p.Col <= max.Col
 }

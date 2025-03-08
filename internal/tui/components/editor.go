@@ -2,6 +2,7 @@ package components
 
 import (
 	"bellbird-notes/internal/app"
+	"bellbird-notes/internal/tui/components/cursor"
 	"bellbird-notes/internal/tui/components/textarea"
 	"bellbird-notes/internal/tui/keyinput"
 	"bellbird-notes/internal/tui/messages"
@@ -66,6 +67,11 @@ var (
 	blurredStyle = lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
 			BorderForeground(borderColour)
+
+	highlightStyle = lipgloss.NewStyle().
+			Background(lipgloss.Color("57")). // Green background
+			Foreground(lipgloss.Color("0")).  // Black text
+			Bold(true)
 )
 
 // Init initialises the Model on program load. It partly implements the tea.Model interface.
@@ -76,6 +82,8 @@ func (e *Editor) Init() tea.Cmd {
 func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 	var cmd tea.Cmd
+
+	e.Textarea.Selection.Cursor.Blur()
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
@@ -119,6 +127,7 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				e.Vim.Mode.Current = app.ReplaceMode
 			case "v":
 				e.Vim.Mode.Current = app.VisualMode
+				e.Textarea.StartSelection()
 			case "h":
 				e.Textarea.CharacterLeft(false)
 			case "l":
@@ -178,6 +187,32 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			//)
 
 		//case app.ReplaceMode:
+		case app.VisualMode:
+			//colOffset := e.Textarea.LineInfo().ColumnOffset
+			//row := e.Textarea.Row()
+			//var selection strings.Builder
+			//selection := []rune{}
+
+			//col := e.Textarea.Col()
+			//e.Textarea.Selection.Characters[row][colOffset] = e.Textarea.TextValue()[row][colOffset]
+			switch msg.String() {
+			case "esc":
+				e.Textarea.Cursor.SetWidth(1)
+				e.Vim.Mode.Current = app.NormalMode
+				e.Textarea.Selection.StartRow = -1
+				e.Textarea.Selection.StartCol = -1
+				//e.Textarea.Selection.Characters = [][]rune{}
+			case "h":
+				e.Textarea.CharacterLeft(false)
+			case "l":
+				e.Textarea.CharacterRight()
+			case "j":
+				e.Textarea.CursorDown()
+				e.Textarea.RepositionView()
+			case "k":
+				e.Textarea.CursorUp()
+				e.Textarea.RepositionView()
+			}
 
 		// handles the double key thingy like dd, yy, gg
 		case app.OperatorMode:
@@ -215,9 +250,10 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	e.Textarea.SetWidth(e.Size.Width)
 	e.Textarea.SetHeight(e.Size.Height - 3)
+	_, selectionCmd := e.Textarea.Selection.Cursor.Update(msg)
 
 	//e.Textarea, cmd = e.Textarea.Update(msg)
-	cmds = append(cmds, cmd)
+	cmds = append(cmds, cmd, selectionCmd)
 	// Handle keyboard and mouse events in the viewport
 	//_, cmd = e.viewport.Update(msg)
 	//cmds = append(cmds, cmd)
@@ -230,18 +266,25 @@ func (e *Editor) View() string {
 		e.Textarea.Blur()
 	}
 
+	e.Textarea.Selection.Cursor.SetMode(cursor.CursorStatic)
+	e.Textarea.Selection.Cursor.TextStyle = e.Textarea.SelectionStyle()
+	e.Textarea.Selection.Cursor.Style = e.Textarea.SelectionStyle()
+	e.Textarea.Cursor.UpdateStyle()
+
 	return e.build()
 }
 
 func NewEditor() *Editor {
-	textarea := textarea.New()
-	textarea.ShowLineNumbers = showLineNumbers
-	textarea.Prompt = ""
-	textarea.FocusedStyle.CursorLine = cursorLine
-	textarea.FocusedStyle.Base = focusedStyle
-	textarea.BlurredStyle.Base = blurredStyle
-	textarea.CharLimit = charLimit
-	textarea.MaxHeight = maxHeight
+	ta := textarea.New()
+	ta.ShowLineNumbers = showLineNumbers
+	ta.Prompt = ""
+	ta.FocusedStyle.CursorLine = cursorLine
+	ta.FocusedStyle.Base = focusedStyle
+	ta.BlurredStyle.Base = blurredStyle
+	ta.CharLimit = charLimit
+	ta.MaxHeight = maxHeight
+	ta.Selection.StartRow = -1
+	ta.Selection.StartCol = -1
 
 	editor := &Editor{
 		Vim: Vim{
@@ -252,7 +295,7 @@ func NewEditor() *Editor {
 				"",
 			},
 		},
-		Textarea: textarea,
+		Textarea: ta,
 	}
 
 	return editor

@@ -1,6 +1,8 @@
 package textarea
 
 import (
+	"bellbird-notes/internal/app"
+	"bellbird-notes/internal/tui/components/cursor"
 	"crypto/sha256"
 	"fmt"
 	"strconv"
@@ -8,7 +10,6 @@ import (
 	"unicode"
 
 	"github.com/atotto/clipboard"
-	"github.com/charmbracelet/bubbles/cursor"
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/runeutil"
 	"github.com/charmbracelet/bubbles/textarea/memoization"
@@ -275,6 +276,11 @@ type Model struct {
 
 	// rune sanitizer for input.
 	rsan runeutil.Sanitizer
+
+	// --- custom
+
+	// Selectionis the text area selection.
+	Selection Selection
 }
 
 // New creates a new model with default settings.
@@ -1102,6 +1108,8 @@ func (m Model) View() string {
 		lineInfo         = m.LineInfo()
 	)
 
+	colOffset := lineInfo.ColumnOffset
+
 	displayLine := 0
 	for l, line := range m.value {
 		wrappedLines := m.memoizedWrap(line, m.width)
@@ -1158,19 +1166,104 @@ func (m Model) View() string {
 				wrappedLine = []rune(strings.TrimSuffix(string(wrappedLine), " "))
 				padding -= m.width - strwidth
 			}
+
+			minRange, maxRange := m.SelectionRange()
+			cursor := Pos{m.row, colOffset}
+			isInRange := cursor.InRange(minRange, maxRange)
+			selectionColour := lipgloss.Color("#666")
+			wrappedStr := string(wrappedLine)
+
 			if m.row == l && lineInfo.RowOffset == wl {
-				s.WriteString(style.Render(string(wrappedLine[:lineInfo.ColumnOffset])))
-				if m.col >= len(line) && lineInfo.CharOffset >= m.width {
+				var (
+					before    string
+					selection string
+					after     string
+				)
+
+				//if isInRange {
+				//	if minRange.Row == l && maxRange.Row == l {
+				//		before = wrappedStr[:minRange.Col]
+				//		selection = wrappedStr[minRange.Col:maxRange.Col]
+				//		after = wrappedStr[maxRange.Col+1:]
+				//	} else if minRange.Row == l {
+				//		// Selection starts here and continues down
+				//		before = wrappedStr[:minRange.Col]
+				//		selection = wrappedStr[minRange.Col:]
+				//		after = ""
+				//	} else if maxRange.Row == l {
+				//		// Selection ends here
+				//		before = ""
+				//		selection = wrappedStr[:maxRange.Col]
+				//		after = wrappedStr[maxRange.Col+1:]
+				//	}
+				//} else {
+				//	before = wrappedStr[:colOffset]
+				//	selection = ""
+				//	//s.WriteString(style.Render(wrappedStr[:colOffset]))
+				//	after = wrappedStr[colOffset+1:]
+				//}
+
+				if isInRange {
+					if minRange.Row == l && maxRange.Row == l {
+						before = wrappedStr[:minRange.Col]
+						selection = wrappedStr[minRange.Col:colOffset]
+						app.LogDebug("1")
+					} else if minRange.Row == l {
+						before = wrappedStr[:minRange.Col]
+						selection = wrappedStr[minRange.Col:]
+						app.LogDebug("2")
+					} else if maxRange.Row == l {
+						before = ""
+						selection = wrappedStr[:maxRange.Col]
+						app.LogDebug("3")
+					}
+				} else {
+					before = wrappedStr[:colOffset]
+					selection = ""
+				}
+
+				s.WriteString(style.Render(before))
+				s.WriteString(style.Background(selectionColour).Render(selection))
+
+				if m.col >= len(line) && colOffset >= m.width {
 					m.Cursor.SetChar(" ")
 					s.WriteString(m.Cursor.View())
 				} else {
-					m.Cursor.SetChar(string(wrappedLine[lineInfo.ColumnOffset]))
+					// drawCursor
+					m.Cursor.SetChar(string(wrappedLine[colOffset]))
 					s.WriteString(style.Render(m.Cursor.View()))
-					s.WriteString(style.Render(string(wrappedLine[lineInfo.ColumnOffset+1:])))
+
+					if isInRange {
+						if minRange.Row == l && maxRange.Row == l {
+							selection = wrappedStr[colOffset+1 : maxRange.Col+1]
+							after = wrappedStr[maxRange.Col+1:]
+						} else if minRange.Row == l {
+							selection = wrappedStr[colOffset+1 : maxRange.Col+1]
+							after = ""
+						} else if maxRange.Row == l {
+							selection = wrappedStr[colOffset+1 : maxRange.Col+1]
+							after = wrappedStr[colOffset+1:]
+						}
+					} else {
+						selection = ""
+						after = wrappedStr[colOffset+1:]
+					}
+					s.WriteString(style.Background(selectionColour).Render(selection))
+					s.WriteString(style.Render(after))
+
+					//s.WriteString(style.Render(string(wrappedLine[colOffset+1:])))
 				}
 			} else {
-				s.WriteString(style.Render(string(wrappedLine)))
+				// Render full wrapped line (checking if it's in selection range)
+				minRange, maxRange := m.SelectionRange()
+
+				if m.Selection.StartRow > -1 && minRange.Row < l && l < maxRange.Row {
+					s.WriteString(style.Background(selectionColour).Render(string(wrappedLine)))
+				} else {
+					s.WriteString(style.Render(string(wrappedLine)))
+				}
 			}
+
 			s.WriteString(style.Render(strings.Repeat(" ", max(0, padding))))
 			s.WriteRune('\n')
 			newLines++
@@ -1480,4 +1573,3 @@ func max(a, b int) int {
 	}
 	return b
 }
-
