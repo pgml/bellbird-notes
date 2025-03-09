@@ -12,42 +12,6 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-type Editor struct {
-	Component
-
-	Buffers       []Buffer
-	CurrentBuffer Buffer
-	Textarea      textarea.Model
-	Vim           Vim
-
-	err error
-}
-type errMsg error
-
-type Buffer struct {
-	Index       int
-	CurrentLine int
-	CursorPos   CursorPos
-	Path        string
-	Content     string
-}
-
-type Input struct {
-	keyinput.Input
-	key      string
-	operator string
-}
-
-type Vim struct {
-	Mode    app.ModeInstance
-	Pending Input
-}
-
-type CursorPos struct {
-	ColOffset int
-	Line      int
-}
-
 const (
 	charLimit       = 0
 	maxHeight       = 0
@@ -67,6 +31,104 @@ var (
 			Border(lipgloss.RoundedBorder()).
 			BorderForeground(borderColour)
 )
+
+type Editor struct {
+	Component
+
+	Buffers       []Buffer
+	CurrentBuffer Buffer
+	Textarea      textarea.Model
+	Vim           Vim
+
+	err error
+}
+
+type errMsg error
+
+type Buffer struct {
+	Index       int
+	CurrentLine int
+	CursorPos   CursorPos
+	Path        string
+	Content     string
+
+	History textarea.History
+}
+
+type Input struct {
+	keyinput.Input
+	key      string
+	operator string
+}
+
+type Vim struct {
+	Mode    app.ModeInstance
+	Pending Input
+}
+
+type CursorPos struct {
+	Row       int
+	ColOffset int
+}
+
+func NewEditor() *Editor {
+	ta := textarea.New()
+	ta.ShowLineNumbers = showLineNumbers
+	ta.Prompt = ""
+	ta.FocusedStyle.CursorLine = cursorLine
+	ta.FocusedStyle.Base = focusedStyle
+	ta.BlurredStyle.Base = blurredStyle
+	ta.CharLimit = charLimit
+	ta.MaxHeight = maxHeight
+
+	editor := &Editor{
+		Vim: Vim{
+			Mode: app.ModeInstance{Current: app.NormalMode},
+			Pending: Input{
+				keyinput.Input{Ctrl: false, Alt: false, Shift: false},
+				"",
+				"",
+			},
+		},
+		Textarea: ta,
+	}
+
+	return editor
+}
+
+func (e *Editor) NewBuffer(path string) messages.StatusBarMsg {
+	note, err := os.ReadFile(path)
+
+	if err != nil {
+		app.LogErr(err)
+		return messages.StatusBarMsg{Content: err.Error()}
+	}
+
+	buffer := Buffer{
+		Index:   len(e.Buffers) + 1,
+		Path:    path,
+		Content: string(note),
+		History: textarea.NewHistory(),
+	}
+
+	e.Buffers = append(e.Buffers, buffer)
+	e.CurrentBuffer = buffer
+
+	content := ""
+	if e.CurrentBuffer.Path == path {
+		content = e.CurrentBuffer.Content
+	}
+
+	e.CurrentBuffer.History.NewEntry()
+	e.CurrentBuffer.History.UpdateEntry(content)
+
+	e.Textarea.SetValue(content)
+	e.Textarea.MoveToBegin()
+	e.Textarea.SetWidth(e.Size.Width)
+	e.Textarea.SetHeight(e.Size.Height - 3)
+
+	return messages.StatusBarMsg{}
+}
 
 // Init initialises the Model on program load. It partly implements the tea.Model interface.
 func (e *Editor) Init() tea.Cmd {
@@ -101,6 +163,7 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case app.InsertMode:
 			if msg.String() == "esc" {
 				e.Vim.Mode.Current = app.NormalMode
+				e.CurrentBuffer.History.UpdateEntry(e.Textarea.Value())
 				return e, nil
 			}
 
@@ -111,14 +174,14 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case app.NormalMode:
 			switch msg.String() {
 			case "i":
-				e.Vim.Mode.Current = app.InsertMode
+				e.enterInsertMode()
 			case "a":
 				e.Textarea.CharacterRight()
-				e.Vim.Mode.Current = app.InsertMode
+				e.enterInsertMode()
 			case "r":
 				e.Vim.Mode.Current = app.ReplaceMode
-			case "v":
-				e.Vim.Mode.Current = app.VisualMode
+			//case "v":
+			//	e.Vim.Mode.Current = app.VisualMode
 			case "h":
 				e.Textarea.CharacterLeft(false)
 			case "l":
@@ -129,6 +192,14 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case "k":
 				e.Textarea.CursorUp()
 				e.Textarea.RepositionView()
+			case "u":
+				cursorPos := e.Textarea.CursorPos()
+				val := e.CurrentBuffer.History.Undo()
+				e.Textarea.SetValue(val)
+				e.Textarea.MoveCursor(cursorPos.Row, cursorPos.ColumnOffset)
+			case "ctrl+r":
+				val := e.CurrentBuffer.History.Redo()
+				e.Textarea.SetValue(val)
 			case "w":
 				e.Textarea.WordRight()
 				e.Textarea.CharacterRight()
@@ -203,8 +274,6 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			e.Vim.Pending.operator = ""
 		}
 
-		e.updateCursorPos()
-
 	case tea.WindowSizeMsg:
 		e.Size.Width = msg.Width
 		e.Size.Height = msg.Height - 1
@@ -233,68 +302,13 @@ func (e *Editor) View() string {
 	return e.build()
 }
 
-func NewEditor() *Editor {
-	textarea := textarea.New()
-	textarea.ShowLineNumbers = showLineNumbers
-	textarea.Prompt = ""
-	textarea.FocusedStyle.CursorLine = cursorLine
-	textarea.FocusedStyle.Base = focusedStyle
-	textarea.BlurredStyle.Base = blurredStyle
-	textarea.CharLimit = charLimit
-	textarea.MaxHeight = maxHeight
-
-	editor := &Editor{
-		Vim: Vim{
-			Mode: app.ModeInstance{Current: app.NormalMode},
-			Pending: Input{
-				keyinput.Input{Ctrl: false, Alt: false, Shift: false},
-				"",
-				"",
-			},
-		},
-		Textarea: textarea,
-	}
-
-	return editor
-}
-
 func (e *Editor) build() string {
 	return e.Textarea.View()
 }
 
-func (e *Editor) NewBuffer(path string) messages.StatusBarMsg {
-	note, err := os.ReadFile(path)
-
-	if err != nil {
-		app.LogErr(err)
-		return messages.StatusBarMsg{Content: err.Error()}
-	}
-
-	buffer := Buffer{
-		Index:   len(e.Buffers) + 1,
-		Path:    path,
-		Content: string(note),
-	}
-
-	e.Buffers = append(e.Buffers, buffer)
-	e.CurrentBuffer = buffer
-
-	content := ""
-	if e.CurrentBuffer != (Buffer{}) {
-		content = e.CurrentBuffer.Content
-	}
-
-	e.Textarea.SetValue(content)
-	e.Textarea.MoveToBegin()
-	e.Textarea.SetWidth(e.Size.Width)
-	e.Textarea.SetHeight(e.Size.Height - 3)
-
-	return messages.StatusBarMsg{}
-}
-
-func (e *Editor) updateCursorPos() {
-	e.CurrentBuffer.CursorPos.ColOffset = e.Textarea.LineInfo().ColumnOffset
-	e.CurrentBuffer.CursorPos.Line = e.Textarea.Line()
+func (e *Editor) enterInsertMode() {
+	e.Vim.Mode.Current = app.InsertMode
+	e.CurrentBuffer.History.NewEntry()
 }
 
 func (e *Editor) operator(c string) {

@@ -4,6 +4,11 @@
 
 package textarea
 
+type CursorPos struct {
+	Row          int
+	ColumnOffset int
+}
+
 // characterLeft moves the cursor one character to the left.
 // If insideLine is set, the cursor is moved to the last
 // character in the previous line, instead of one past that.
@@ -67,6 +72,23 @@ func (m *Model) DeleteAfterCursor() {
 ///
 /// custom methods
 ///
+
+// SetCursor moves the cursor to the given position. If the position is
+// out of bounds the cursor will be moved to the start or end accordingly.
+func (m *Model) MoveCursor(row int, col int) {
+	m.col = clamp(col, 0, len(m.value[m.row]))
+	m.row = clamp(row, 0, len(m.value[m.col]))
+	// Any time that we move the cursor horizontally we need to reset the last
+	// offset so that the horizontal position when navigating is adjusted.
+	//m.lastCharOffset = 0
+}
+
+func (m Model) CursorPos() CursorPos {
+	return CursorPos{
+		Row:          m.row,
+		ColumnOffset: m.LineInfo().ColumnOffset,
+	}
+}
 
 // DeleteLine deletes current line
 func (m *Model) DeleteLine() {
