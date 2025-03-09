@@ -4,6 +4,8 @@
 
 package textarea
 
+import "slices"
+
 type CursorPos struct {
 	Row          int
 	ColumnOffset int
@@ -92,7 +94,7 @@ func (m Model) CursorPos() CursorPos {
 
 // DeleteLine deletes current line
 func (m *Model) DeleteLine() {
-	m.value = append(m.value[:m.row], m.value[m.row+1:]...)
+	m.value = slices.Delete(m.value, m.row, m.row+1)
 }
 
 // DeleteLines deletes l lines
@@ -102,14 +104,14 @@ func (m *Model) DeleteLines(l int, up bool) {
 		row -= l - 1
 		m.CursorUp()
 	}
-	for i := 0; i < l; i++ {
-		m.value = append(m.value[:row], m.value[row+1:]...)
+	for range l {
+		m.value = slices.Delete(m.value, row, row+1)
 	}
 }
 
 // DownHalfPage move cursor and screen down 1/2 page
 func (m *Model) DownHalfPage() {
-	for i := 0; i < m.viewport.Height/2; i++ {
+	for range m.viewport.Height / 2 {
 		m.CursorDown()
 	}
 
@@ -123,7 +125,7 @@ func (m *Model) DownHalfPage() {
 
 // UpHalfPage move cursor and screen down 1/2 page
 func (m *Model) UpHalfPage() {
-	for i := 0; i < m.viewport.Height/2; i++ {
+	for range m.viewport.Height / 2 {
 		m.CursorUp()
 	}
 
