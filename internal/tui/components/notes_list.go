@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 
 	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbles/viewport"
@@ -38,6 +39,7 @@ func (n Note) GetPath() string { return n.Path }
 func (n Note) String() string {
 	r := n.styles.note.Render
 	name := utils.TruncateText(n.Name, 22)
+	name = strings.TrimSuffix(name, filepath.Ext(name))
 
 	icon := " 󰎞"
 	if noNerdFonts {
@@ -46,7 +48,12 @@ func (n Note) String() string {
 
 	baseStyle := lipgloss.NewStyle().Width(30)
 	if n.selected {
-		baseStyle = baseStyle.Background(lipgloss.Color("#424B5D")).Bold(true)
+		baseStyle = baseStyle.Background(
+			lipgloss.AdaptiveColor{
+				Light: "#333",
+				Dark:  "#424B5D",
+			},
+		).Bold(true)
 	}
 	return baseStyle.Render(icon + r(name))
 	//return baseStyle.Render(icon + r(name+" "+strconv.Itoa(n.index)))

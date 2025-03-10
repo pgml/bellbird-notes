@@ -73,8 +73,9 @@ func (m TuiModel) Init() tea.Cmd {
 	}
 
 	editorCmd := m.editor.Init()
+	statusBarCmd := m.statusBar.Init()
 
-	return tea.Batch(resizeCmd, editorCmd)
+	return tea.Batch(resizeCmd, editorCmd, statusBarCmd)
 }
 
 func (m TuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -132,6 +133,10 @@ func (m TuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	m.statusBar.DirTree = *m.directoryTree
 	m.statusBar.NotesList = *m.notesList
 	m.statusBar.Editor = *m.editor
+
+	if m.editor.Vim.Mode.Current != app.NormalMode {
+		m.statusBar.Mode = m.editor.Vim.Mode.Current
+	}
 
 	cmds = append(cmds, cmd, notesCmd, dirTreeCmd, editorCmd)
 
