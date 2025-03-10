@@ -80,8 +80,12 @@ func (m *Model) DeleteAfterCursor() {
 // SetCursor moves the cursor to the given position. If the position is
 // out of bounds the cursor will be moved to the start or end accordingly.
 func (m *Model) MoveCursor(row int, col int) {
-	m.row = clamp(row, 0, len(m.value[m.col]))
-	m.col = clamp(col, 0, len(m.value[m.row]))
+	if len(m.value) > m.col {
+		m.row = clamp(row, 0, len(m.value[m.col]))
+	}
+	if len(m.value) > m.row {
+		m.col = clamp(col, 0, len(m.value[m.row]))
+	}
 	// Any time that we move the cursor horizontally we need to reset the last
 	// offset so that the horizontal position when navigating is adjusted.
 	//m.lastCharOffset = 0
