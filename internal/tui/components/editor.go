@@ -48,7 +48,7 @@ type errMsg error
 type Buffer struct {
 	Index       int
 	CurrentLine int
-	CursorPos   CursorPos
+	CursorPos   textarea.CursorPos
 	Path        string
 	Content     string
 
@@ -64,11 +64,6 @@ type Input struct {
 type Vim struct {
 	Mode    app.ModeInstance
 	Pending Input
-}
-
-type CursorPos struct {
-	Row       int
-	ColOffset int
 }
 
 func NewEditor() *Editor {
@@ -119,8 +114,8 @@ func (e *Editor) NewBuffer(path string) messages.StatusBarMsg {
 		content = e.CurrentBuffer.Content
 	}
 
-	e.CurrentBuffer.History.NewEntry()
-	e.CurrentBuffer.History.UpdateEntry(content)
+	e.CurrentBuffer.History.NewEntry(e.Textarea.CursorPos())
+	e.CurrentBuffer.History.UpdateEntry(content, textarea.CursorPos{})
 
 	e.Textarea.SetValue(content)
 	e.Textarea.MoveToBegin()
@@ -163,7 +158,10 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case app.InsertMode:
 			if msg.String() == "esc" {
 				e.Vim.Mode.Current = app.NormalMode
-				e.CurrentBuffer.History.UpdateEntry(e.Textarea.Value())
+				e.CurrentBuffer.History.UpdateEntry(
+					e.Textarea.Value(),
+					e.Textarea.CursorPos(),
+				)
 				return e, nil
 			}
 
@@ -193,13 +191,13 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				e.Textarea.CursorUp()
 				e.Textarea.RepositionView()
 			case "u":
-				cursorPos := e.Textarea.CursorPos()
-				val := e.CurrentBuffer.History.Undo()
+				val, cursorPos := e.CurrentBuffer.History.Undo()
 				e.Textarea.SetValue(val)
 				e.Textarea.MoveCursor(cursorPos.Row, cursorPos.ColumnOffset)
 			case "ctrl+r":
-				val := e.CurrentBuffer.History.Redo()
+				val, cursorPos := e.CurrentBuffer.History.Redo()
 				e.Textarea.SetValue(val)
+				defer e.Textarea.MoveCursor(cursorPos.Row, cursorPos.ColumnOffset)
 			case "w":
 				e.Textarea.WordRight()
 				e.Textarea.CharacterRight()
@@ -219,13 +217,13 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				e.Textarea.CursorEnd()
 				e.Textarea.InsertRune('\n')
 				e.Textarea.RepositionView()
-				e.Vim.Mode.Current = app.InsertMode
+				e.enterInsertMode()
 			case "O":
 				e.Textarea.CursorUp()
 				e.Textarea.CursorEnd()
 				e.Textarea.InsertRune('\n')
 				e.Textarea.RepositionView()
-				e.Vim.Mode.Current = app.InsertMode
+				e.enterInsertMode()
 			case "d":
 				e.operator("d")
 			case "D":
@@ -282,6 +280,7 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return e, nil
 	}
 
+	e.CurrentBuffer.CursorPos = e.Textarea.CursorPos()
 	e.Textarea.SetWidth(e.Size.Width)
 	e.Textarea.SetHeight(e.Size.Height - 3)
 
@@ -308,7 +307,7 @@ func (e *Editor) build() string {
 
 func (e *Editor) enterInsertMode() {
 	e.Vim.Mode.Current = app.InsertMode
-	e.CurrentBuffer.History.NewEntry()
+	e.CurrentBuffer.History.NewEntry(e.Textarea.CursorPos())
 }
 
 func (e *Editor) operator(c string) {
