@@ -34,4 +34,5 @@ type StatusBarMsg struct {
 	Type    MsgType
 	Sender  Sender
 	Arg     any
+	Column  int
 }

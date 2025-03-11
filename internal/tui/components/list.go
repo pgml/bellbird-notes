@@ -117,7 +117,7 @@ func (l *List[T]) LineUp() messages.StatusBarMsg {
 		l.viewport.LineUp(1)
 	}
 
-	return messages.StatusBarMsg{}
+	return messages.StatusBarMsg{Column: 2}
 }
 
 // Increments `m.selectedIndex`
@@ -133,7 +133,7 @@ func (l *List[T]) LineDown() messages.StatusBarMsg {
 		l.viewport.LineDown(1)
 	}
 
-	return messages.StatusBarMsg{}
+	return messages.StatusBarMsg{Column: 2}
 }
 
 // GoToTop moves the selection and viewport to the top of the tree

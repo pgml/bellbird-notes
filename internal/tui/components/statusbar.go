@@ -8,7 +8,6 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	bl "github.com/winder/bubblelayout"
 )
 
 type StatusBarMode int
@@ -33,7 +32,6 @@ type StatusBar struct {
 	NotesList NotesList
 	Editor    Editor
 
-	layout  bl.BubbleLayout
 	Columns []StatusBarColumn
 }
 
@@ -43,8 +41,6 @@ const (
 )
 
 type StatusBarColumn struct {
-	id      bl.ID
-	size    bl.Size
 	content string
 }
 
@@ -54,14 +50,14 @@ func NewStatusBar() *StatusBar {
 	ti.CharLimit = 100
 
 	statusBar := &StatusBar{
-		layout: bl.New(),
 		Prompt: ti,
 	}
 
 	statusBar.Columns = []StatusBarColumn{
-		StatusBarColumn{id: statusBar.layout.Add("width 10")},
-		StatusBarColumn{id: statusBar.layout.Add("grow")},
-		StatusBarColumn{id: statusBar.layout.Add("width 10")},
+		StatusBarColumn{},
+		StatusBarColumn{},
+		StatusBarColumn{},
+		StatusBarColumn{},
 	}
 
 	return statusBar
@@ -69,17 +65,14 @@ func NewStatusBar() *StatusBar {
 
 // Init initialises the Model on program load. It partly implements the tea.Model interface.
 func (s *StatusBar) Init() tea.Cmd {
-	resizeCmd := func() tea.Msg {
-		return s.layout.Resize(80, 40)
-	}
-
-	return tea.Batch(resizeCmd)
+	return nil
 }
 
 func (s *StatusBar) Update(msg messages.StatusBarMsg, teaMsg tea.Msg) *StatusBar {
 	if s.Focused && s.Mode == app.NormalMode {
-		s.Content = msg.Content
+		//s.Content = msg.Content
 		s.Type = msg.Type
+		s.Columns[msg.Column].content = msg.Content
 	}
 
 	s.Sender = msg.Sender
@@ -100,52 +93,60 @@ func (s *StatusBar) Update(msg messages.StatusBarMsg, teaMsg tea.Msg) *StatusBar
 		//	}
 	}
 
-	app.LogDebug(s.Columns[0].size.Width, s.Columns[1].size.Width)
+	//app.LogDebug(s.Columns[0].size.Width, s.Columns[1].size.Width)
 
 	return s
 }
 
 func (s *StatusBar) View() string {
-	style := style().Foreground(s.Type.Colour())
-	output := s.Content
+	style := style()
+	//output := s.Content
+
+	c1 := s.ModeView()
+	c2 := style.Render(s.Columns[1].content)
+	c3 := s.Columns[2].content
+	c4 := s.Columns[3].content
 
 	if s.Type == messages.PromptError {
-		termWidth, _ := theme.GetTerminalSize()
 		s.Prompt.Focus()
-		s.Prompt.PromptStyle.Width(termWidth + 10)
-		output += s.Prompt.View() + ""
+		//s.Prompt.PromptStyle.Width(termWidth + 10)
+		c2 += s.Prompt.View() + ""
 	}
 
-	rightCol := lipgloss.NewStyle().Align(lipgloss.Right).Background(lipgloss.Color("#f00")).
-		Width(10).
-		Render("saasdasdad")
+	width, _ := theme.GetTerminalSize()
+	c1width := 10
+	if s.Prompt.Focused() {
+		c1width = 0
+	}
+	app.LogDebug(c1width)
+	c3width := 15
+	c4width := 15
+	c2width := width - (c1width + c3width + c4width)
 
-	s.Columns[0].content = s.ModeView()
-	s.Columns[1].content = style.Render(output)
-	s.Columns[2].content = rightCol
-
-	//app.LogDebug(s.Mode)
+	if c2width < 1 {
+		c2width = 1
+	}
 
 	return lipgloss.JoinHorizontal(lipgloss.Right,
-		s.Columns[0].content,
-		s.Columns[1].content,
-		s.Columns[2].content,
+		style.Width(c1width).Render(c1),
+		style.Width(c2width).Foreground(s.Type.Colour()).Render(c2),
+		style.Width(c3width).Align(lipgloss.Right).Render(c3),
+		style.Width(c4width).Align(lipgloss.Right).Render(c4),
 	)
 }
 
 func (s StatusBar) ModeView() string {
-	// hide mode if there's a prompt focused
-	if s.Prompt.Focused() {
-		return ""
-	}
-
 	style := lipgloss.NewStyle().
 		Foreground(s.Mode.Colour()).
-		Width(10).
 		PaddingLeft(1).
 		PaddingRight(1)
 
-	return style.Render(s.Mode.FullString())
+	mode := s.Mode.FullString()
+	if s.Prompt.Focused() {
+		mode = ""
+	}
+
+	return style.Render(mode)
 }
 
 func (s *StatusBar) ConfirmAction(sender messages.Sender) messages.StatusBarMsg {
@@ -161,6 +162,7 @@ func (s *StatusBar) ConfirmAction(sender messages.Sender) messages.StatusBarMsg 
 			}
 		case ResponseNO:
 			s.BlurPrompt()
+			s.Columns[1].content = ""
 			if sender == messages.SenderDirTree {
 				return s.DirTree.CancelAction(func() { s.DirTree.Refresh() })
 			}
@@ -179,10 +181,8 @@ func (s *StatusBar) BlurPrompt() {
 }
 
 func style() lipgloss.Style {
-	termWidth, _ := theme.GetTerminalSize()
 	return lipgloss.NewStyle().
 		AlignVertical(lipgloss.Center).
 		PaddingLeft(1).
-		Height(1).
-		Width(termWidth - 20)
+		Height(1)
 }

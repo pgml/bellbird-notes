@@ -220,14 +220,16 @@ func (m *TuiModel) focusPrevColumn() messages.StatusBarMsg {
 func (m *TuiModel) lineUp() messages.StatusBarMsg {
 	dirTree := m.directoryTree
 	notesList := m.notesList
+	statusMsg := messages.StatusBarMsg{}
 
 	if dirTree.Focused {
-		return dirTree.LineUp()
+		statusMsg = dirTree.LineUp()
 	}
 	if notesList.Focused {
-		return notesList.LineUp()
+		statusMsg = notesList.LineUp()
+		statusMsg.Content = strconv.Itoa(dirTree.SelectedDir().NbrFolders) + " folders"
 	}
-	return messages.StatusBarMsg{}
+	return statusMsg
 }
 
 func (m *TuiModel) lineDown() messages.StatusBarMsg {

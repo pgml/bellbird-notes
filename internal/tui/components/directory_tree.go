@@ -495,6 +495,7 @@ func (t *DirectoryTree) ConfirmRemove() messages.StatusBarMsg {
 		Content: resultMsg,
 		Type:    msgType,
 		Sender:  messages.SenderDirTree,
+		Column:  1,
 	}
 }
 

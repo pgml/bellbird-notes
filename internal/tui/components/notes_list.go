@@ -283,6 +283,7 @@ func (l *NotesList) ConfirmRemove() messages.StatusBarMsg {
 		Content: resultMsg,
 		Type:    msgType,
 		Sender:  messages.SenderNotesList,
+		Column:  1,
 	}
 }
 
