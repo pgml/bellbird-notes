@@ -69,10 +69,9 @@ func (s *StatusBar) Init() tea.Cmd {
 }
 
 func (s *StatusBar) Update(msg messages.StatusBarMsg, teaMsg tea.Msg) *StatusBar {
+	s.Columns[msg.Column].content = msg.Content
 	if s.Focused && s.Mode == app.NormalMode {
-		//s.Content = msg.Content
 		s.Type = msg.Type
-		s.Columns[msg.Column].content = msg.Content
 	}
 
 	s.Sender = msg.Sender
@@ -109,7 +108,6 @@ func (s *StatusBar) View() string {
 
 	if s.Type == messages.PromptError {
 		s.Prompt.Focus()
-		//s.Prompt.PromptStyle.Width(termWidth + 10)
 		c2 += s.Prompt.View() + ""
 	}
 
@@ -118,14 +116,9 @@ func (s *StatusBar) View() string {
 	if s.Prompt.Focused() {
 		c1width = 0
 	}
-	app.LogDebug(c1width)
 	c3width := 15
 	c4width := 15
-	c2width := width - (c1width + c3width + c4width)
-
-	if c2width < 1 {
-		c2width = 1
-	}
+	c2width := max(width-(c1width+c3width+c4width), 1)
 
 	return lipgloss.JoinHorizontal(lipgloss.Right,
 		style.Width(c1width).Render(c1),

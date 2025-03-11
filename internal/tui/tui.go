@@ -227,8 +227,8 @@ func (m *TuiModel) lineUp() messages.StatusBarMsg {
 	}
 	if notesList.Focused {
 		statusMsg = notesList.LineUp()
-		statusMsg.Content = strconv.Itoa(dirTree.SelectedDir().NbrFolders) + " folders"
 	}
+	statusMsg.Content = strconv.Itoa(dirTree.SelectedDir().NbrFolders) + " Folders"
 	return statusMsg
 }
 
@@ -239,11 +239,11 @@ func (m *TuiModel) lineDown() messages.StatusBarMsg {
 
 	if dirTree.Focused {
 		statusMsg = dirTree.LineDown()
-		statusMsg.Content = strconv.Itoa(dirTree.SelectedDir().NbrFolders) + " folders"
 	}
 	if notesList.Focused {
-		return notesList.LineDown()
+		statusMsg = notesList.LineDown()
 	}
+	statusMsg.Content = strconv.Itoa(dirTree.SelectedDir().NbrFolders) + " Folders"
 	return statusMsg
 }
 
