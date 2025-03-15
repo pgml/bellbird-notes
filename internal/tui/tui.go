@@ -13,8 +13,6 @@ import (
 	bl "github.com/winder/bubblelayout"
 )
 
-const noNerdFonts = false
-
 type notesList struct {
 	id            bl.ID
 	size          bl.Size
@@ -86,21 +84,18 @@ func (m TuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		switch msg.String() {
-		case "ctrl+c":
+		if msg.String() == "ctrl+c" {
 			return m, tea.Quit
 		}
-
 		statusMsg := m.keyInput.HandleSequences(msg.String())
 		m.statusBar = m.statusBar.Update(statusMsg, msg)
 		m.statusBar.Mode = m.mode.Current
 
 	case tea.WindowSizeMsg:
-		// Convert WindowSizeMsg to BubbleLayoutMsg.
 		m.directoryTree.Update(msg)
 		m.notesList.Update(msg)
 		m.editor.Update(msg)
-
+		// Convert WindowSizeMsg to BubbleLayoutMsg.
 		return m, func() tea.Msg {
 			return m.layout.Resize(msg.Width, msg.Height)
 		}
