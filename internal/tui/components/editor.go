@@ -173,8 +173,14 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			switch msg.String() {
 			case "i":
 				e.enterInsertMode()
+			case "I":
+				e.Textarea.CursorInputStart()
+				e.enterInsertMode()
 			case "a":
 				e.Textarea.CharacterRight()
+				e.enterInsertMode()
+			case "A":
+				e.Textarea.CursorEnd()
 				e.enterInsertMode()
 			case "r":
 				e.Vim.Mode.Current = app.ReplaceMode
