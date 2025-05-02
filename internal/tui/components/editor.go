@@ -265,6 +265,8 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				case "k":
 					e.Textarea.DeleteLines(2, true)
 				}
+
+				e.CurrentBuffer.History.NewEntry(e.Textarea.CursorPos())
 			}
 			if e.Vim.Pending.operator == "g" {
 				switch msg.String() {
