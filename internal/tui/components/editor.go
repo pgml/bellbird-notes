@@ -208,8 +208,8 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				e.Textarea.WordRight()
 				e.Textarea.CharacterRight()
 			case "e":
-				e.Textarea.WordRight()
 				e.Textarea.CharacterRight()
+				e.Textarea.WordRight()
 				e.Textarea.CharacterLeft(false)
 			case "b":
 				e.Textarea.WordLeft()
