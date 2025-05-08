@@ -115,6 +115,10 @@ func (m *Model) DeleteLines(l int, up bool) {
 	}
 }
 
+func (m *Model) DeleteWordRight() {
+	m.deleteWordRight()
+}
+
 // DownHalfPage move cursor and screen down 1/2 page
 func (m *Model) DownHalfPage() {
 	for range m.viewport.Height / 2 {

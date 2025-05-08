@@ -53,12 +53,7 @@ func NewStatusBar() *StatusBar {
 		Prompt: ti,
 	}
 
-	statusBar.Columns = []StatusBarColumn{
-		StatusBarColumn{},
-		StatusBarColumn{},
-		StatusBarColumn{},
-		StatusBarColumn{},
-	}
+	statusBar.Columns = []StatusBarColumn{{}, {}, {}, {}}
 
 	return statusBar
 }

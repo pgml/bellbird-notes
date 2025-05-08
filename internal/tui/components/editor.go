@@ -264,6 +264,8 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					e.Textarea.DeleteLines(2, false)
 				case "k":
 					e.Textarea.DeleteLines(2, true)
+				case "w":
+					e.Textarea.DeleteWordRight()
 				}
 
 				e.CurrentBuffer.History.NewEntry(e.Textarea.CursorPos())
