@@ -1,15 +1,16 @@
 package components
 
 import (
+	"fmt"
+	"path/filepath"
+	"slices"
+	"strings"
+
 	"bellbird-notes/internal/config"
 	"bellbird-notes/internal/directories"
 	"bellbird-notes/internal/tui/messages"
 	"bellbird-notes/internal/tui/theme"
 	"bellbird-notes/internal/utils"
-	"fmt"
-	"path/filepath"
-	"slices"
-	"strings"
 
 	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbles/viewport"
@@ -64,8 +65,11 @@ func (d Dir) String() string {
 	}
 
 	baseStyle := lipgloss.NewStyle().Width(30)
+
 	if d.selected {
-		baseStyle = baseStyle.Background(lipgloss.Color("#424B5D")).Bold(true)
+		baseStyle = baseStyle.
+			Background(lipgloss.Color("#424B5D")).
+			Bold(true)
 	}
 
 	row := e(indent)
@@ -107,6 +111,7 @@ func (t *DirectoryTree) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			t.editor, cmd = t.editor.Update(msg)
 			return t, cmd
 		}
+
 	case tea.WindowSizeMsg:
 		if !t.ready {
 			t.viewport = viewport.New(termWidth, termHeight-1)
@@ -132,9 +137,7 @@ func (t *DirectoryTree) View() string {
 	}
 
 	t.viewport.SetContent(t.render())
-
 	t.UpdateViewportInfo()
-
 	t.viewport.Style = theme.BaseColumnLayout(t.Size, t.Focused)
 	return t.viewport.View()
 }
@@ -151,7 +154,7 @@ func NewDirectoryTree() *DirectoryTree {
 			editingIndex:  nil,
 			editingState:  EditNone,
 			editor:        ti,
-			items:         make([]Dir, 0, 0),
+			items:         make([]Dir, 0),
 		},
 		expandedDirs: make(map[string]bool),
 	}
@@ -504,7 +507,10 @@ func (t *DirectoryTree) ConfirmRemove() messages.StatusBarMsg {
 func (t *DirectoryTree) Remove() messages.StatusBarMsg {
 	dir := t.SelectedDir()
 	index := t.selectedIndex
-	resultMsg := fmt.Sprintf(messages.SuccessRemove, dir.Path)
+	resultMsg := fmt.Sprintln(
+		messages.SuccessRemove,
+		dir.Path,
+	)
 	msgType := messages.Success
 
 	if err := directories.Delete(dir.Path, false); err == nil {

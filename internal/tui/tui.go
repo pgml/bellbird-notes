@@ -377,19 +377,20 @@ func (m *TuiModel) cancelAction() messages.StatusBarMsg {
 	return messages.StatusBarMsg{}
 }
 
-func (m *TuiModel) enterCmdMode() {
-	m.mode.Current = app.CommandMode
-}
+//func (m *TuiModel) enterCmdMode() {
+//	m.mode.Current = app.CommandMode
+//}
 
-func (m *TuiModel) exitCmdMode() {
-	m.mode.Current = app.NormalMode
-	m.keyInput.ResetKeysDown()
-}
-func (m *TuiModel) executeCmdModeCommand() {}
+//func (m *TuiModel) exitCmdMode() {
+//	m.mode.Current = app.NormalMode
+//	m.keyInput.ResetKeysDown()
+//}
 
-func (m *TuiModel) quit() {
-	tea.Quit()
-}
+//func (m *TuiModel) executeCmdModeCommand() {}
+
+//func (m *TuiModel) quit() {
+//	tea.Quit()
+//}
 
 func (m *TuiModel) KeyInputFn() map[string]func() messages.StatusBarMsg {
 	return map[string]func() messages.StatusBarMsg{

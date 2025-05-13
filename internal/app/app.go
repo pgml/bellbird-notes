@@ -40,7 +40,7 @@ func NotesRootDir() (string, error) {
 	}
 
 	appName, _ := ModuleName()
-	notesDir := filepath.Join(Home, "." + appName)
+	notesDir := filepath.Join(Home, "."+appName)
 
 	if _, err := os.Stat(notesDir); err != nil {
 		os.Mkdir(notesDir, 0755)
@@ -93,7 +93,7 @@ func ConfigFile() (string, error) {
 		return "", err
 	}
 
-	configFile := filepath.Join(configDir, appName + ".conf")
+	configFile := filepath.Join(configDir, appName+".conf")
 
 	return configFile, nil
 }

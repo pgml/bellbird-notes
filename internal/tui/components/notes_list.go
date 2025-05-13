@@ -1,16 +1,17 @@
 package components
 
 import (
-	"bellbird-notes/internal/config"
-	"bellbird-notes/internal/notes"
-	"bellbird-notes/internal/tui/messages"
-	"bellbird-notes/internal/tui/theme"
-	"bellbird-notes/internal/utils"
 	"fmt"
 	"os"
 	"path/filepath"
 	"slices"
 	"strings"
+
+	"bellbird-notes/internal/config"
+	"bellbird-notes/internal/notes"
+	"bellbird-notes/internal/tui/messages"
+	"bellbird-notes/internal/tui/theme"
+	"bellbird-notes/internal/utils"
 
 	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbles/viewport"
@@ -133,7 +134,7 @@ func NewNotesList() *NotesList {
 			editor:           ti,
 			lastVisibleLine:  0,
 			firstVisibleLine: 0,
-			items:            make([]Note, 0, 0),
+			items:            make([]Note, 0),
 		},
 		//notes:       make([]Note, 0, 0),
 		CurrentPath: conf.Value(config.General, config.UserNotesDirectory),
@@ -292,7 +293,7 @@ func (l *NotesList) ConfirmRemove() messages.StatusBarMsg {
 func (l *NotesList) Remove() messages.StatusBarMsg {
 	note := l.SelectedItem(nil)
 	index := l.selectedIndex
-	resultMsg := fmt.Sprintf(messages.SuccessRemove, note.Path)
+	resultMsg := fmt.Sprintln(messages.SuccessRemove, note.Path)
 	msgType := messages.Success
 
 	if err := notes.Delete(note.Path); err == nil {

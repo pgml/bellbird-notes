@@ -7,7 +7,7 @@ type PromptError struct {
 	Message string
 }
 
-func IsPromptError(t interface{}) bool {
+func IsPromptError(t any) bool {
 	switch t.(type) {
 	case PromptError:
 		return true

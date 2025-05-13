@@ -1,10 +1,11 @@
 package keyinput
 
 import (
-	"bellbird-notes/internal/app"
-	"bellbird-notes/internal/tui/messages"
 	"strings"
 	"time"
+
+	"bellbird-notes/internal/app"
+	"bellbird-notes/internal/tui/messages"
 )
 
 type keyAction struct {
@@ -41,30 +42,30 @@ func New() *Input {
 		KeySequence: make(map[string]bool),
 		KeysDown:    make(map[string]bool),
 		KeyMaps: []keyAction{
-			keyAction{"ctrl+w l", "focusNextColumn", app.NormalMode},
-			keyAction{"ctrl+w h", "focusPrevColumn", app.NormalMode},
-			keyAction{"1", "focusDirectoryTree", app.NormalMode},
-			keyAction{"2", "focusNotesList", app.NormalMode},
-			keyAction{"3", "focusEditor", app.NormalMode},
-			keyAction{"e", "focusNextColumn", app.NormalMode},
-			keyAction{"q", "focusPrevColumn", app.NormalMode},
-			keyAction{"j", "lineDown", app.NormalMode},
-			keyAction{"k", "lineUp", app.NormalMode},
-			keyAction{"l", "expand", app.NormalMode},
-			keyAction{"h", "collapse", app.NormalMode},
-			keyAction{"R", "rename", app.NormalMode},
-			keyAction{"d", "createDir", app.NormalMode},
-			keyAction{"%", "createNote", app.NormalMode},
-			keyAction{"D", "delete", app.NormalMode},
-			keyAction{"g", "goToTop", app.NormalMode},
-			keyAction{"G", "goToBottom", app.NormalMode},
-			keyAction{"esc", "cancelAction", app.NormalMode},
-			keyAction{"esc", "cancelAction", app.InsertMode},
-			keyAction{"esc", "cancelAction", app.CommandMode},
-			keyAction{"enter", "confirmAction", app.NormalMode},
-			keyAction{"enter", "confirmAction", app.InsertMode},
-			keyAction{"enter", "confirmAction", app.CommandMode},
-			//keyAction{"i", "enterInsertMode", app.NormalMode},
+			{"ctrl+w l", "focusNextColumn", app.NormalMode},
+			{"ctrl+w h", "focusPrevColumn", app.NormalMode},
+			{"1", "focusDirectoryTree", app.NormalMode},
+			{"2", "focusNotesList", app.NormalMode},
+			{"3", "focusEditor", app.NormalMode},
+			{"e", "focusNextColumn", app.NormalMode},
+			{"q", "focusPrevColumn", app.NormalMode},
+			{"j", "lineDown", app.NormalMode},
+			{"k", "lineUp", app.NormalMode},
+			{"l", "expand", app.NormalMode},
+			{"h", "collapse", app.NormalMode},
+			{"R", "rename", app.NormalMode},
+			{"d", "createDir", app.NormalMode},
+			{"%", "createNote", app.NormalMode},
+			{"D", "delete", app.NormalMode},
+			{"g", "goToTop", app.NormalMode},
+			{"G", "goToBottom", app.NormalMode},
+			{"esc", "cancelAction", app.NormalMode},
+			{"esc", "cancelAction", app.InsertMode},
+			{"esc", "cancelAction", app.CommandMode},
+			{"enter", "confirmAction", app.NormalMode},
+			{"enter", "confirmAction", app.InsertMode},
+			{"enter", "confirmAction", app.CommandMode},
+			//{"i", "enterInsertMode", app.NormalMode},
 		},
 	}
 }
