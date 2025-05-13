@@ -157,6 +157,7 @@ func (m TuiModel) View() string {
 /// Keyboard shortcut commands
 ///
 
+// focusColumn selects and higlights a column with index `index`
 func (m *TuiModel) focusColumn(index int) messages.StatusBarMsg {
 	dirTree := m.directoryTree
 	notesList := m.notesList
@@ -182,27 +183,39 @@ func (m *TuiModel) focusColumn(index int) messages.StatusBarMsg {
 	return messages.StatusBarMsg{}
 }
 
+// focusDirectoryTree selects and higlights the directory tree column
+// this is simply a helper shortcut
 func (m *TuiModel) focusDirectoryTree() messages.StatusBarMsg {
 	m.focusColumn(1)
 	return messages.StatusBarMsg{}
 }
 
+// focusNotesList selects and higlights tht notes list column
+// this is simply a helper shortcut
 func (m *TuiModel) focusNotesList() messages.StatusBarMsg {
 	m.focusColumn(2)
 	return messages.StatusBarMsg{}
 }
 
+// focusEditor selects and higlights the editor column
+// this is simply a helper shortcut
 func (m *TuiModel) focusEditor() messages.StatusBarMsg {
 	m.focusColumn(3)
 	return messages.StatusBarMsg{}
 }
 
+// focusNextColumn selects and highlights the respectivley next of the
+// currently selected column.
+// Selects the first if the currently selected column is the last column...
 func (m *TuiModel) focusNextColumn() messages.StatusBarMsg {
 	index := min(m.currentColumnFocus+1, 3)
 	m.focusColumn(index)
 	return messages.StatusBarMsg{}
 }
 
+// focusNextColumn selects and highlights the respectivley next of the
+// currently selected column.
+// Selects the first if the currently selected column is the last column...
 func (m *TuiModel) focusPrevColumn() messages.StatusBarMsg {
 	index := m.currentColumnFocus - 1
 	if index < 0 {
@@ -212,6 +225,11 @@ func (m *TuiModel) focusPrevColumn() messages.StatusBarMsg {
 	return messages.StatusBarMsg{}
 }
 
+// --- I am 69% sure I can make everything below this comment better...
+// --- Just need to find out how...
+
+// lineUp moves the cursor one line up in the currently focused columns.
+// Ignores editor since it handles it differently
 func (m *TuiModel) lineUp() messages.StatusBarMsg {
 	dirTree := m.directoryTree
 	notesList := m.notesList
@@ -227,6 +245,8 @@ func (m *TuiModel) lineUp() messages.StatusBarMsg {
 	return statusMsg
 }
 
+// lineUp moves the cursor one line up in the currently focused columns.
+// Ignores editor since it handles it differently
 func (m *TuiModel) lineDown() messages.StatusBarMsg {
 	dirTree := m.directoryTree
 	notesList := m.notesList
@@ -242,6 +262,7 @@ func (m *TuiModel) lineDown() messages.StatusBarMsg {
 	return statusMsg
 }
 
+// createDir enters insert mode and triggers directoryTree's create function
 func (m *TuiModel) createDir() messages.StatusBarMsg {
 	dirTree := m.directoryTree
 
@@ -253,6 +274,7 @@ func (m *TuiModel) createDir() messages.StatusBarMsg {
 	return messages.StatusBarMsg{}
 }
 
+// createNote enters insert mode and triggers notesList's create function
 func (m *TuiModel) createNote() messages.StatusBarMsg {
 	notesList := m.notesList
 
