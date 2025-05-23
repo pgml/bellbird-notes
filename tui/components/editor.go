@@ -5,10 +5,10 @@ import (
 	"strings"
 
 	"bellbird-notes/app"
-	"bellbird-notes/tui"
 	"bellbird-notes/tui/components/textarea"
 	"bellbird-notes/tui/keyinput"
 	"bellbird-notes/tui/messages"
+	"bellbird-notes/tui/mode"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -64,7 +64,7 @@ type Input struct {
 }
 
 type Vim struct {
-	Mode    tui.ModeInstance
+	Mode    mode.ModeInstance
 	Pending Input
 }
 
@@ -80,7 +80,7 @@ func NewEditor() *Editor {
 
 	editor := &Editor{
 		Vim: Vim{
-			Mode: tui.ModeInstance{Current: tui.NormalMode},
+			Mode: mode.ModeInstance{Current: mode.Normal},
 			Pending: Input{
 				keyinput.Input{Ctrl: false, Alt: false, Shift: false},
 				"",
@@ -157,9 +157,9 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		switch e.Vim.Mode.Current {
-		case tui.InsertMode:
+		case mode.Insert:
 			if msg.String() == "esc" {
-				e.Vim.Mode.Current = tui.NormalMode
+				e.Vim.Mode.Current = mode.Normal
 				e.CurrentBuffer.History.UpdateEntry(
 					e.Textarea.Value(),
 					e.Textarea.CursorPos(),
@@ -171,7 +171,7 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			return e, cmd
 
-		case tui.NormalMode:
+		case mode.Normal:
 			switch msg.String() {
 			case "i":
 				e.enterInsertMode()
@@ -185,7 +185,7 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				e.Textarea.CursorEnd()
 				e.enterInsertMode()
 			case "r":
-				e.Vim.Mode.Current = tui.ReplaceMode
+				e.Vim.Mode.Current = mode.Replace
 			//case "v":
 			//	e.Vim.Mode.Current = app.VisualMode
 			case "h":
@@ -257,7 +257,7 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		//case app.ReplaceMode:
 
 		// handles the double key thingy like dd, yy, gg
-		case tui.OperatorMode:
+		case mode.Operator:
 			if e.Vim.Pending.operator == "d" {
 				switch msg.String() {
 				case "d":
@@ -280,7 +280,7 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			}
 			e.Vim.Pending.ResetKeysDown()
-			e.Vim.Mode.Current = tui.NormalMode
+			e.Vim.Mode.Current = mode.Normal
 			e.Vim.Pending.operator = ""
 		}
 
@@ -318,11 +318,11 @@ func (e *Editor) build() string {
 }
 
 func (e *Editor) enterInsertMode() {
-	e.Vim.Mode.Current = tui.InsertMode
+	e.Vim.Mode.Current = mode.Insert
 	e.CurrentBuffer.History.NewEntry(e.Textarea.CursorPos())
 }
 
 func (e *Editor) operator(c string) {
-	e.Vim.Mode.Current = tui.OperatorMode
+	e.Vim.Mode.Current = mode.Operator
 	e.Vim.Pending.operator = c
 }

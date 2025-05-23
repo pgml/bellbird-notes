@@ -4,14 +4,14 @@ import (
 	"strings"
 	"time"
 
-	"bellbird-notes/tui"
 	"bellbird-notes/tui/messages"
+	"bellbird-notes/tui/mode"
 )
 
 type keyAction struct {
 	keys   string
 	action string
-	mode   tui.Mode
+	mode   mode.Mode
 }
 
 type keyMap struct {
@@ -28,7 +28,7 @@ type Input struct {
 	Ctrl  bool
 	Alt   bool
 	Shift bool
-	Mode  tui.Mode
+	Mode  mode.Mode
 
 	Functions map[string]func() messages.StatusBarMsg
 }
@@ -38,34 +38,34 @@ func New() *Input {
 		Ctrl:        false,
 		Alt:         false,
 		Shift:       false,
-		Mode:        tui.NormalMode,
+		Mode:        mode.Normal,
 		KeySequence: make(map[string]bool),
 		KeysDown:    make(map[string]bool),
 		KeyMaps: []keyAction{
-			{"ctrl+w l", "focusNextColumn", tui.NormalMode},
-			{"ctrl+w h", "focusPrevColumn", tui.NormalMode},
-			{"1", "focusDirectoryTree", tui.NormalMode},
-			{"2", "focusNotesList", tui.NormalMode},
-			{"3", "focusEditor", tui.NormalMode},
-			{"e", "focusNextColumn", tui.NormalMode},
-			{"q", "focusPrevColumn", tui.NormalMode},
-			{"j", "lineDown", tui.NormalMode},
-			{"k", "lineUp", tui.NormalMode},
-			{"l", "expand", tui.NormalMode},
-			{"h", "collapse", tui.NormalMode},
-			{"R", "rename", tui.NormalMode},
-			{"d", "createDir", tui.NormalMode},
-			{"%", "createNote", tui.NormalMode},
-			{"D", "delete", tui.NormalMode},
-			{"g", "goToTop", tui.NormalMode},
-			{"G", "goToBottom", tui.NormalMode},
-			{"esc", "cancelAction", tui.NormalMode},
-			{"esc", "cancelAction", tui.InsertMode},
-			{"esc", "cancelAction", tui.CommandMode},
-			{"enter", "confirmAction", tui.NormalMode},
-			{"enter", "confirmAction", tui.InsertMode},
-			{"enter", "confirmAction", tui.CommandMode},
-			//{"i", "enterInsertMode", tui.NormalMode},
+			{"ctrl+w l", "focusNextColumn", mode.Normal},
+			{"ctrl+w h", "focusPrevColumn", mode.Normal},
+			{"1", "focusDirectoryTree", mode.Normal},
+			{"2", "focusNotesList", mode.Normal},
+			{"3", "focusEditor", mode.Normal},
+			{"e", "focusNextColumn", mode.Normal},
+			{"q", "focusPrevColumn", mode.Normal},
+			{"j", "lineDown", mode.Normal},
+			{"k", "lineUp", mode.Normal},
+			{"l", "expand", mode.Normal},
+			{"h", "collapse", mode.Normal},
+			{"R", "rename", mode.Normal},
+			{"d", "createDir", mode.Normal},
+			{"%", "createNote", mode.Normal},
+			{"D", "delete", mode.Normal},
+			{"g", "goToTop", mode.Normal},
+			{"G", "goToBottom", mode.Normal},
+			{"esc", "cancelAction", mode.Normal},
+			{"esc", "cancelAction", mode.Insert},
+			{"esc", "cancelAction", mode.Command},
+			{"enter", "confirmAction", mode.Normal},
+			{"enter", "confirmAction", mode.Insert},
+			{"enter", "confirmAction", mode.Command},
+			//{"i", "enterInsertMode", mode.NormalMode},
 		},
 	}
 }
@@ -109,7 +109,7 @@ func (ki *Input) HandleSequences(key string) messages.StatusBarMsg {
 	//	m.executeCmdModeCommand()
 	//}
 
-	if ki.Mode != tui.CommandMode {
+	if ki.Mode != mode.Command {
 		ki.releaseKey(key)
 	}
 

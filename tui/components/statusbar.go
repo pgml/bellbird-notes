@@ -1,8 +1,8 @@
 package components
 
 import (
-	"bellbird-notes/tui"
 	"bellbird-notes/tui/messages"
+	"bellbird-notes/tui/mode"
 	"bellbird-notes/tui/theme"
 
 	"github.com/charmbracelet/bubbles/textinput"
@@ -25,7 +25,7 @@ type StatusBar struct {
 	// Indicates hether the directory tree column is focused.
 	// Used to determine if the status bar should receive keyboard shortcuts
 	Focused   bool
-	Mode      tui.Mode
+	Mode      mode.Mode
 	Sender    messages.Sender
 	SenderMsg messages.StatusBarMsg
 	DirTree   DirectoryTree
@@ -65,7 +65,7 @@ func (s *StatusBar) Init() tea.Cmd {
 
 func (s *StatusBar) Update(msg messages.StatusBarMsg, teaMsg tea.Msg) *StatusBar {
 	s.Columns[msg.Column].content = msg.Content
-	if s.Focused && s.Mode == tui.NormalMode {
+	if s.Focused && s.Mode == mode.Normal {
 		s.Type = msg.Type
 	}
 
@@ -73,11 +73,11 @@ func (s *StatusBar) Update(msg messages.StatusBarMsg, teaMsg tea.Msg) *StatusBar
 
 	switch teaMsg.(type) {
 	case tea.KeyMsg:
-		if s.Focused && s.Mode == tui.InsertMode && s.Prompt.Focused() {
+		if s.Focused && s.Mode == mode.Insert && s.Prompt.Focused() {
 			s.Prompt, _ = s.Prompt.Update(teaMsg)
 			return s
 		}
-		if s.Mode == tui.NormalMode {
+		if s.Mode == mode.Normal {
 			s.BlurPrompt()
 		}
 		//case teaMsg.WindowSizeMsg:
