@@ -4,14 +4,14 @@ import (
 	"strings"
 	"time"
 
-	"bellbird-notes/internal/app"
-	"bellbird-notes/internal/tui/messages"
+	"bellbird-notes/tui"
+	"bellbird-notes/tui/messages"
 )
 
 type keyAction struct {
 	keys   string
 	action string
-	mode   app.Mode
+	mode   tui.Mode
 }
 
 type keyMap struct {
@@ -28,7 +28,7 @@ type Input struct {
 	Ctrl  bool
 	Alt   bool
 	Shift bool
-	Mode  app.Mode
+	Mode  tui.Mode
 
 	Functions map[string]func() messages.StatusBarMsg
 }
@@ -38,34 +38,34 @@ func New() *Input {
 		Ctrl:        false,
 		Alt:         false,
 		Shift:       false,
-		Mode:        app.NormalMode,
+		Mode:        tui.NormalMode,
 		KeySequence: make(map[string]bool),
 		KeysDown:    make(map[string]bool),
 		KeyMaps: []keyAction{
-			{"ctrl+w l", "focusNextColumn", app.NormalMode},
-			{"ctrl+w h", "focusPrevColumn", app.NormalMode},
-			{"1", "focusDirectoryTree", app.NormalMode},
-			{"2", "focusNotesList", app.NormalMode},
-			{"3", "focusEditor", app.NormalMode},
-			{"e", "focusNextColumn", app.NormalMode},
-			{"q", "focusPrevColumn", app.NormalMode},
-			{"j", "lineDown", app.NormalMode},
-			{"k", "lineUp", app.NormalMode},
-			{"l", "expand", app.NormalMode},
-			{"h", "collapse", app.NormalMode},
-			{"R", "rename", app.NormalMode},
-			{"d", "createDir", app.NormalMode},
-			{"%", "createNote", app.NormalMode},
-			{"D", "delete", app.NormalMode},
-			{"g", "goToTop", app.NormalMode},
-			{"G", "goToBottom", app.NormalMode},
-			{"esc", "cancelAction", app.NormalMode},
-			{"esc", "cancelAction", app.InsertMode},
-			{"esc", "cancelAction", app.CommandMode},
-			{"enter", "confirmAction", app.NormalMode},
-			{"enter", "confirmAction", app.InsertMode},
-			{"enter", "confirmAction", app.CommandMode},
-			//{"i", "enterInsertMode", app.NormalMode},
+			{"ctrl+w l", "focusNextColumn", tui.NormalMode},
+			{"ctrl+w h", "focusPrevColumn", tui.NormalMode},
+			{"1", "focusDirectoryTree", tui.NormalMode},
+			{"2", "focusNotesList", tui.NormalMode},
+			{"3", "focusEditor", tui.NormalMode},
+			{"e", "focusNextColumn", tui.NormalMode},
+			{"q", "focusPrevColumn", tui.NormalMode},
+			{"j", "lineDown", tui.NormalMode},
+			{"k", "lineUp", tui.NormalMode},
+			{"l", "expand", tui.NormalMode},
+			{"h", "collapse", tui.NormalMode},
+			{"R", "rename", tui.NormalMode},
+			{"d", "createDir", tui.NormalMode},
+			{"%", "createNote", tui.NormalMode},
+			{"D", "delete", tui.NormalMode},
+			{"g", "goToTop", tui.NormalMode},
+			{"G", "goToBottom", tui.NormalMode},
+			{"esc", "cancelAction", tui.NormalMode},
+			{"esc", "cancelAction", tui.InsertMode},
+			{"esc", "cancelAction", tui.CommandMode},
+			{"enter", "confirmAction", tui.NormalMode},
+			{"enter", "confirmAction", tui.InsertMode},
+			{"enter", "confirmAction", tui.CommandMode},
+			//{"i", "enterInsertMode", tui.NormalMode},
 		},
 	}
 }
@@ -109,7 +109,7 @@ func (ki *Input) HandleSequences(key string) messages.StatusBarMsg {
 	//	m.executeCmdModeCommand()
 	//}
 
-	if ki.Mode != app.CommandMode {
+	if ki.Mode != tui.CommandMode {
 		ki.releaseKey(key)
 	}
 

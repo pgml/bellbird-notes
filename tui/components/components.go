@@ -1,7 +1,7 @@
 package components
 
 import (
-	"bellbird-notes/internal/app"
+	"bellbird-notes/tui"
 
 	"github.com/charmbracelet/bubbles/viewport"
 	bl "github.com/winder/bubblelayout"
@@ -13,7 +13,7 @@ type Component struct {
 
 	// The current mode the directory tree is in
 	// Possible modes are Normal, Insert, Command
-	Mode app.Mode
+	Mode tui.Mode
 
 	// Indicates hether the directory tree column is focused.
 	// Used to determine if the directory tree should receive keyboard shortcuts
@@ -24,4 +24,4 @@ type Component struct {
 	ready         bool
 }
 
-const noNerdFonts = true
+const noNerdFonts = false

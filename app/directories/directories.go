@@ -1,11 +1,12 @@
 package directories
 
 import (
-	"bellbird-notes/internal/app"
-	"bellbird-notes/internal/tui/errors"
-	"bellbird-notes/internal/utils"
 	"os"
 	"path/filepath"
+
+	"bellbird-notes/app"
+	"bellbird-notes/app/utils"
+	"bellbird-notes/tui/errors"
 )
 
 type Directory struct {

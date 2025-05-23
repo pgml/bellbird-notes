@@ -1,11 +1,12 @@
 package tui
 
 import (
-	"bellbird-notes/internal/app"
-	"bellbird-notes/internal/tui/components"
-	"bellbird-notes/internal/tui/keyinput"
-	"bellbird-notes/internal/tui/messages"
 	"strconv"
+
+	"bellbird-notes/tui"
+	"bellbird-notes/tui/components"
+	"bellbird-notes/tui/keyinput"
+	"bellbird-notes/tui/messages"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -23,7 +24,7 @@ type notesList struct {
 
 type TuiModel struct {
 	layout bl.BubbleLayout
-	mode   *app.ModeInstance
+	mode   *tui.ModeInstance
 
 	keyInput *keyinput.Input
 
@@ -39,7 +40,7 @@ func InitialModel() TuiModel {
 	m := TuiModel{
 		layout:             bl.New(),
 		currentColumnFocus: 1,
-		mode:               &app.ModeInstance{Current: app.NormalMode},
+		mode:               &tui.ModeInstance{Current: tui.NormalMode},
 		directoryTree:      components.NewDirectoryTree(),
 		notesList:          components.NewNotesList(),
 		editor:             components.NewEditor(),
@@ -129,7 +130,7 @@ func (m TuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	m.statusBar.NotesList = *m.notesList
 	m.statusBar.Editor = *m.editor
 
-	if m.editor.Vim.Mode.Current != app.NormalMode {
+	if m.editor.Vim.Mode.Current != tui.NormalMode {
 		m.statusBar.Mode = m.editor.Vim.Mode.Current
 	}
 
@@ -267,7 +268,7 @@ func (m *TuiModel) createDir() messages.StatusBarMsg {
 	dirTree := m.directoryTree
 
 	if dirTree.Focused {
-		m.mode.Current = app.InsertMode
+		m.mode.Current = tui.InsertMode
 		m.statusBar.Focused = false
 		return dirTree.Create()
 	}
@@ -279,7 +280,7 @@ func (m *TuiModel) createNote() messages.StatusBarMsg {
 	notesList := m.notesList
 
 	if notesList.Focused {
-		m.mode.Current = app.InsertMode
+		m.mode.Current = tui.InsertMode
 		m.statusBar.Focused = false
 		return notesList.Create()
 	}
@@ -291,13 +292,13 @@ func (m *TuiModel) rename() messages.StatusBarMsg {
 	notesList := m.notesList
 
 	if dirTree.Focused {
-		m.mode.Current = app.InsertMode
+		m.mode.Current = tui.InsertMode
 		m.statusBar.Focused = false
 		return dirTree.Rename(dirTree.SelectedDir().Name)
 	}
 
 	if notesList.Focused {
-		m.mode.Current = app.InsertMode
+		m.mode.Current = tui.InsertMode
 		m.statusBar.Focused = false
 		return notesList.Rename(notesList.SelectedItem(nil).Name)
 	}
@@ -309,7 +310,7 @@ func (m *TuiModel) remove() messages.StatusBarMsg {
 	notesList := m.notesList
 	// go into insert mode because we always ask for
 	// confirmation before deleting anything
-	m.mode.Current = app.InsertMode
+	m.mode.Current = tui.InsertMode
 
 	if dirTree.Focused {
 		m.statusBar.Focused = true
@@ -326,7 +327,7 @@ func (m *TuiModel) goToTop() messages.StatusBarMsg {
 	dirTree := m.directoryTree
 	notesList := m.notesList
 
-	if m.mode.Current == app.NormalMode {
+	if m.mode.Current == tui.NormalMode {
 		if dirTree.Focused {
 			return dirTree.GoToTop()
 		}
@@ -341,7 +342,7 @@ func (m *TuiModel) goToBottom() messages.StatusBarMsg {
 	dirTree := m.directoryTree
 	notesList := m.notesList
 
-	if m.mode.Current == app.NormalMode {
+	if m.mode.Current == tui.NormalMode {
 		if dirTree.Focused {
 			return dirTree.GoToBottom()
 		}
@@ -359,7 +360,7 @@ func (m *TuiModel) confirmAction() messages.StatusBarMsg {
 	statusMsg := messages.StatusBarMsg{}
 
 	if dirTree.Focused {
-		if m.mode.Current != app.NormalMode {
+		if m.mode.Current != tui.NormalMode {
 			statusMsg = dirTree.ConfirmAction()
 		} else {
 			notesList.CurrentPath = dirTree.SelectedDir().Path
@@ -368,7 +369,7 @@ func (m *TuiModel) confirmAction() messages.StatusBarMsg {
 	}
 
 	if notesList.Focused {
-		if m.mode.Current != app.NormalMode {
+		if m.mode.Current != tui.NormalMode {
 			statusMsg = notesList.ConfirmAction()
 		} else {
 			notePath := notesList.SelectedItem(nil).GetPath()
@@ -380,14 +381,14 @@ func (m *TuiModel) confirmAction() messages.StatusBarMsg {
 		statusMsg = m.statusBar.ConfirmAction(statusMsg.Sender)
 	}
 
-	m.mode.Current = app.NormalMode
+	m.mode.Current = tui.NormalMode
 	return statusMsg
 }
 
 func (m *TuiModel) cancelAction() messages.StatusBarMsg {
 	dirTree := m.directoryTree
 	notesList := m.notesList
-	m.mode.Current = app.NormalMode
+	m.mode.Current = tui.NormalMode
 	m.statusBar.Focused = false
 
 	if dirTree.Focused {
@@ -400,11 +401,11 @@ func (m *TuiModel) cancelAction() messages.StatusBarMsg {
 }
 
 //func (m *TuiModel) enterCmdMode() {
-//	m.mode.Current = app.CommandMode
+//	m.mode.Current = tui.CommandMode
 //}
 
 //func (m *TuiModel) exitCmdMode() {
-//	m.mode.Current = app.NormalMode
+//	m.mode.Current = tui.NormalMode
 //	m.keyInput.ResetKeysDown()
 //}
 

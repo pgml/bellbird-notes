@@ -6,11 +6,11 @@ import (
 	"slices"
 	"strings"
 
-	"bellbird-notes/internal/config"
-	"bellbird-notes/internal/directories"
-	"bellbird-notes/internal/tui/messages"
-	"bellbird-notes/internal/tui/theme"
-	"bellbird-notes/internal/utils"
+	"bellbird-notes/app/config"
+	"bellbird-notes/app/directories"
+	"bellbird-notes/app/utils"
+	"bellbird-notes/tui/messages"
+	"bellbird-notes/tui/theme"
 
 	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbles/viewport"

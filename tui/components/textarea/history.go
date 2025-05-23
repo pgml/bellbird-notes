@@ -1,8 +1,9 @@
 package textarea
 
 import (
-	"bellbird-notes/internal/app"
 	"fmt"
+
+	"bellbird-notes/app"
 )
 
 type History struct {

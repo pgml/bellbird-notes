@@ -1,8 +1,9 @@
 package config
 
 import (
-	"bellbird-notes/internal/app"
 	"os"
+
+	"bellbird-notes/app"
 
 	"gopkg.in/ini.v1"
 )
@@ -16,7 +17,7 @@ const (
 	BreadCrumb
 )
 
-var sections = map[Section]string {
+var sections = map[Section]string{
 	General:    "General",
 	SideBar:    "Sidebar",
 	NotesList:  "NotesList",
@@ -42,7 +43,7 @@ const (
 	Pinned
 )
 
-var options = map[Option]string {
+var options = map[Option]string{
 	DefaultNotesDirectory: "DefaultNotesDirectory",
 	UserNotesDirectory:    "UserNotesDirectory",
 	DefaultFontSize:       "DefaultFontSize",
@@ -60,10 +61,10 @@ func (o Option) String() string {
 }
 
 type Config struct {
-	filePath string
+	filePath     string
 	metaFilePath string
-	file *ini.File
-	metaFile *ini.File
+	file         *ini.File
+	metaFile     *ini.File
 }
 
 func New() *Config {
@@ -82,7 +83,7 @@ func New() *Config {
 	}
 
 	if _, err := os.Stat(filePath); err != nil {
-		createFile(filePath);
+		createFile(filePath)
 	}
 
 	conf, err := ini.Load(filePath)
@@ -92,7 +93,7 @@ func New() *Config {
 	}
 
 	if _, err := os.Stat(metaFilePath); err != nil {
-		createFile(metaFilePath);
+		createFile(metaFilePath)
 	}
 
 	metaConf, err := ini.Load(metaFilePath)

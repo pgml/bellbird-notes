@@ -1,9 +1,10 @@
 package main
 
 import (
-	"bellbird-notes/internal/tui"
 	"fmt"
 	"os"
+
+	"bellbird-notes/cmd/tui"
 
 	tea "github.com/charmbracelet/bubbletea"
 )

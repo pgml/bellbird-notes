@@ -1,7 +1,7 @@
 package components
 
 import (
-	"bellbird-notes/internal/tui/messages"
+	"bellbird-notes/tui/messages"
 
 	"github.com/charmbracelet/bubbles/textinput"
 )
