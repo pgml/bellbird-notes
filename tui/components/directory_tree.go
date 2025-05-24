@@ -10,6 +10,7 @@ import (
 	"bellbird-notes/app/directories"
 	"bellbird-notes/app/utils"
 	"bellbird-notes/tui/messages"
+	"bellbird-notes/tui/mode"
 	"bellbird-notes/tui/theme"
 
 	"github.com/charmbracelet/bubbles/textinput"
@@ -22,8 +23,10 @@ import (
 type DirectoryTree struct {
 	List[Dir]
 
-	dirsListFlat []Dir           // A flattened representation to make vertical navigation easier
-	expandedDirs map[string]bool // Stores currently expanded directories
+	// A flattened representation to make vertical navigation easier
+	dirsListFlat []Dir
+	// Stores currently expanded directories
+	expandedDirs map[string]bool
 }
 
 //type statusMsg string
@@ -37,14 +40,15 @@ type Dir struct {
 	// using DirectoryTree.dirsListFlat
 	parent   int
 	children []Dir
-
-	expanded bool // Indicates whether a directory is expanded
-
+	// Indicates whether a directory is expanded
+	expanded bool
 	// Indicates the depth of a directory
 	// Used to determine the indentation of DirectoryTree.dirsFlatList
-	level      int
-	NbrNotes   int // the amount of notes a directory contains
-	NbrFolders int // the amount of sub directories a directory has
+	level int
+	// the amount of notes a directory contains
+	NbrNotes int
+	// the amount of sub directories a directory has
+	NbrFolders int
 }
 
 func (d Dir) GetIndex() int   { return d.index }
@@ -87,16 +91,15 @@ func (d Dir) GetName() string {
 	return d.Name
 }
 
-// Init initialises the Model on program load. It partly implements the tea.Model interface.
+// Init initialises the Model on program load.
+// It partly implements the tea.Model interface.
 func (t *DirectoryTree) Init() tea.Cmd {
 	return nil
 }
 
 func (t *DirectoryTree) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	var (
-		cmd tea.Cmd
-		//cmds []tea.Cmd
-	)
+	var cmd tea.Cmd
+
 	termWidth, termHeight := theme.GetTerminalSize()
 
 	switch msg := msg.(type) {
@@ -126,7 +129,6 @@ func (t *DirectoryTree) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	t.viewport, cmd = t.viewport.Update(msg)
-	//cmds = append(cmds, cmd)
 
 	return t, cmd
 }
@@ -182,29 +184,28 @@ func NewDirectoryTree() *DirectoryTree {
 // build prepares t.dirsListFlat for rendering
 // checking directory states etc.
 func (t *DirectoryTree) build() {
-	//dirTree := list.New().
-	//	Enumerator(func(items list.Items, index int) string { return "" })
-
 	t.refreshFlatList()
 	for _, dir := range t.dirsListFlat {
 		dir.expanded = t.isExpanded(dir.Path)
-		//dirTree.Item(dir)
 	}
 
 	t.length = len(t.dirsListFlat)
 	t.lastIndex = t.dirsListFlat[len(t.dirsListFlat)-1].index
-	//t.tree = dirTree
 }
 
-func (t DirectoryTree) render() string {
+func (t *DirectoryTree) render() string {
 	var tree string
 
 	for i, dir := range t.dirsListFlat {
 		// Removes invalid directory items
-		// index and parent 0 shouldn't be possible but sometime occurs after
-		// certain user actions
+		// index and parent 0 shouldn't be possible but
+		//sometime occurs after certain user actions
 		if dir.index == 0 && dir.parent == 0 {
-			t.dirsListFlat = slices.Delete(t.dirsListFlat, i, i+1)
+			t.dirsListFlat = slices.Delete(
+				t.dirsListFlat,
+				i,
+				i+1,
+			)
 			continue
 		}
 
@@ -217,7 +218,11 @@ func (t DirectoryTree) render() string {
 			// Show input field instead of text
 			tree += indent + t.editor.View() + "\n"
 		} else {
-			tree += fmt.Sprintf("%-*s \n", t.viewport.Width, dir.String())
+			tree += fmt.Sprintf(
+				"%-*s \n",
+				t.viewport.Width,
+				dir.String(),
+			)
 		}
 	}
 
@@ -241,7 +246,10 @@ func (t DirectoryTree) isExpanded(dirPath string) bool {
 	return contains
 }
 
-func (m *DirectoryTree) createDirectoryItem(dir directories.Directory, level int) Dir {
+func (m *DirectoryTree) createDirectoryItem(
+	dir directories.Directory,
+	level int,
+) Dir {
 	style := DirTreeStyle()
 	dirItem := Dir{
 		Item: Item{
@@ -255,22 +263,18 @@ func (m *DirectoryTree) createDirectoryItem(dir directories.Directory, level int
 		children:   m.getChildren(dir.Path, level+1),
 		NbrFolders: dir.NbrFolders,
 		level:      level,
+		NbrNotes:   0,
 	}
 	return dirItem
 }
 
 // createVirtualDir creates a temporary, virtual directory `Dir`
-//
 // This directory is mainly used as a placeholder when creating a directory
 func (t *DirectoryTree) createVirtualDir() Dir {
 	selectedDir := t.SelectedDir()
 	tempFolderName := "New Folder"
 	tempFolderPath := filepath.Join(selectedDir.Path, tempFolderName)
-
-	//indent := 1
-	//if selectedDir.expanded {
 	indent := selectedDir.level + 1
-	//}
 
 	return Dir{
 		Item: Item{
@@ -286,8 +290,12 @@ func (t *DirectoryTree) createVirtualDir() Dir {
 }
 
 // Refresh updates the currently selected tree branch
-func (t *DirectoryTree) Refresh() {
+func (t *DirectoryTree) Refresh(resetSelectedIndex bool) messages.StatusBarMsg {
+	if resetSelectedIndex {
+		t.selectedIndex = 0
+	}
 	t.RefreshBranch(t.SelectedDir().parent, t.selectedIndex)
+	return messages.StatusBarMsg{}
 }
 
 // RefreshBranch refreshes a tree branch by its branch index
@@ -320,7 +328,10 @@ func (t *DirectoryTree) refreshFlatList() {
 
 // flatten converts a slice of Dir and its sub slices into a one dimensional slice
 // that we use to render the directory tree
-func (t *DirectoryTree) flatten(dirs []Dir, level int, parent int, nextIndex *int) []Dir {
+func (t *DirectoryTree) flatten(
+	dirs []Dir, level int,
+	parent int, nextIndex *int,
+) []Dir {
 	var result []Dir
 	for i, dir := range dirs {
 		dir.index = *nextIndex
@@ -337,7 +348,12 @@ func (t *DirectoryTree) flatten(dirs []Dir, level int, parent int, nextIndex *in
 		if dir.expanded {
 			result = append(
 				result,
-				t.flatten(dirs[i].children, level+1, dir.index, nextIndex)...,
+				t.flatten(
+					dirs[i].children,
+					level+1,
+					dir.index,
+					nextIndex,
+				)...,
 			)
 		}
 	}
@@ -365,6 +381,7 @@ func (t DirectoryTree) getLastChild(index int) Dir {
 		if len(dir.children) == 0 {
 			dir.children = append(dir.children, Dir{})
 		}
+
 		if len(dir.children) > 0 {
 			lastChild = dir.children[len(dir.children)-1]
 			if lastChild.Name == "" {
@@ -404,7 +421,10 @@ func (t *DirectoryTree) dirExists(dirPath string) bool {
 	parentPath := filepath.Dir(dirPath)
 	dirName := filepath.Base(dirPath)
 	//statusMsg := messages.StatusBarMsg{}
-	if _, contains := directories.ContainsDir(parentPath, dirName); contains {
+	if _, contains := directories.ContainsDir(
+		parentPath,
+		dirName,
+	); contains {
 		//statusMsg = messages.StatusBarMsg{
 		//	Content: "Directory already exists, please choose another name.",
 		//	Type:    messages.Error,
@@ -422,7 +442,10 @@ func findDirInTree(directories []Dir, path string) *Dir {
 			return &directories[i]
 		}
 		if directories[i].expanded {
-			if ok := findDirInTree(directories[i].children, path); ok != nil {
+			if ok := findDirInTree(
+				directories[i].children,
+				path,
+			); ok != nil {
 				return ok
 			}
 		}
@@ -471,20 +494,28 @@ func (t *DirectoryTree) Expand() messages.StatusBarMsg {
 // If root is selected, directory will be created at the end
 //
 // @todo: reindex directories immediately on creating temp dir
-func (t *DirectoryTree) Create() messages.StatusBarMsg {
-	t.editingState = EditCreate
-	t.refreshFlatList()
-	t.Expand()
+func (t *DirectoryTree) Create(
+	mi *mode.ModeInstance,
+	statusBar *StatusBar,
+) messages.StatusBarMsg {
+	if t.Focused {
+		mi.Current = mode.Insert
+		statusBar.Focused = false
 
-	lastChild := t.lastChildOfSelection()
-	tmpdir := t.createVirtualDir()
+		t.editingState = EditCreate
+		t.refreshFlatList()
+		t.Expand()
 
-	t.insertDirAfter(lastChild.index, tmpdir)
-	t.selectedIndex = lastChild.index + 1
+		lastChild := t.lastChildOfSelection()
+		tmpdir := t.createVirtualDir()
 
-	if t.editingIndex == nil {
-		t.editingIndex = &t.selectedIndex
-		t.editor.SetValue(t.SelectedDir().Name)
+		t.insertDirAfter(lastChild.index, tmpdir)
+		t.selectedIndex = lastChild.index + 1
+
+		if t.editingIndex == nil {
+			t.editingIndex = &t.selectedIndex
+			t.editor.SetValue(t.SelectedDir().Name)
+		}
 	}
 	return messages.StatusBarMsg{}
 }
@@ -492,7 +523,10 @@ func (t *DirectoryTree) Create() messages.StatusBarMsg {
 func (t *DirectoryTree) ConfirmRemove() messages.StatusBarMsg {
 	selectedDir := t.SelectedDir()
 	msgType := messages.PromptError
-	resultMsg := fmt.Sprintf(messages.RemovePromptContent, selectedDir.Path)
+	resultMsg := fmt.Sprintf(
+		messages.RemovePromptContent,
+		selectedDir.Path,
+	)
 
 	return messages.StatusBarMsg{
 		Content: resultMsg,
@@ -521,7 +555,10 @@ func (t *DirectoryTree) Remove() messages.StatusBarMsg {
 	}
 
 	t.RefreshBranch(dir.parent, index)
-	return messages.StatusBarMsg{Content: resultMsg, Type: msgType}
+	return messages.StatusBarMsg{
+		Content: resultMsg,
+		Type:    msgType,
+	}
 }
 
 // Confirms a user action
@@ -531,12 +568,15 @@ func (t *DirectoryTree) ConfirmAction() messages.StatusBarMsg {
 	if t.editingIndex != nil {
 		selectedDir := t.SelectedDir()
 		oldPath := selectedDir.Path
-		newPath := filepath.Join(filepath.Dir(oldPath), t.editor.Value())
+		newPath := filepath.Join(
+			filepath.Dir(oldPath),
+			t.editor.Value(),
+		)
 
 		switch t.editingState {
 		case EditRename:
 			if err := directories.Rename(oldPath, newPath); err == nil {
-				t.Refresh()
+				t.Refresh(false)
 				t.selectedIndex = t.indexByPath(newPath, t.dirsListFlat)
 			}
 
@@ -546,7 +586,7 @@ func (t *DirectoryTree) ConfirmAction() messages.StatusBarMsg {
 			}
 		}
 
-		t.CancelAction(func() { t.Refresh() })
+		t.CancelAction(func() { t.Refresh(false) })
 		return messages.StatusBarMsg{Content: "yep"}
 	}
 

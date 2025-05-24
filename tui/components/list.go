@@ -70,7 +70,7 @@ func (l *List[T]) UpdateViewportInfo() {
 	}
 }
 
-// SelectedDir returns the currently selected directory in the directory tree
+// SelectedItem returns the currently selected item in the current list
 func (l List[T]) SelectedItem(items []T) T {
 	var empty T
 

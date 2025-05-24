@@ -11,6 +11,7 @@ import (
 	"bellbird-notes/app/notes"
 	"bellbird-notes/app/utils"
 	"bellbird-notes/tui/messages"
+	"bellbird-notes/tui/mode"
 	"bellbird-notes/tui/theme"
 
 	"github.com/charmbracelet/bubbles/textinput"
@@ -257,20 +258,30 @@ func (l *NotesList) noteExists(path string) bool {
 // If root is selected, directory will be created at the end
 //
 // @todo: reindex directories immediately on creating temp dir
-func (l *NotesList) Create() messages.StatusBarMsg {
-	l.editingState = EditCreate
-	tmpNote := l.createVirtualNote()
-	lastChild := l.getLastChild()
-	if lastChild.Name == "" {
-		l.items = append(l.items, tmpNote)
-	} else {
-		l.insertDirAfter(lastChild.index, tmpNote)
-		l.selectedIndex = lastChild.index + 1
-	}
+func (l *NotesList) Create(
+	mi *mode.ModeInstance,
+	statusBar *StatusBar,
+) messages.StatusBarMsg {
+	if l.Focused {
+		mi.Current = mode.Insert
+		statusBar.Focused = false
 
-	if l.editingIndex == nil {
-		l.editingIndex = &l.selectedIndex
-		l.editor.SetValue(l.SelectedItem(nil).Name)
+		l.editingState = EditCreate
+
+		tmpNote := l.createVirtualNote()
+		lastChild := l.getLastChild()
+
+		if lastChild.Name == "" {
+			l.items = append(l.items, tmpNote)
+		} else {
+			l.insertDirAfter(lastChild.index, tmpNote)
+			l.selectedIndex = lastChild.index + 1
+		}
+
+		if l.editingIndex == nil {
+			l.editingIndex = &l.selectedIndex
+			l.editor.SetValue(l.SelectedItem(nil).Name)
+		}
 	}
 	return messages.StatusBarMsg{}
 }

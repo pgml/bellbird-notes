@@ -81,12 +81,8 @@ func (ki *Input) HandleSequences(key string) messages.StatusBarMsg {
 	}
 
 	ki.KeysDown[key] = true
-	//ki.keyComboCache[key] = true
 
 	actionString := mapToActionString(ki.KeysDown)
-	//if len(ki.keyComboCache) > 0 {
-	//	actionString = mapToActionString(ki.keyComboCache)
-	//}
 	statusMsg := ki.executeAction(actionString)
 
 	// special key actions for cmd mode

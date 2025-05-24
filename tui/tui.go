@@ -14,59 +14,55 @@ import (
 	bl "github.com/winder/bubblelayout"
 )
 
-type notesList struct {
-	id            bl.ID
-	size          bl.Size
-	isFocused     bool
-	selectedIndex int
-	content       string
+// Focusable defines behaviour for components that can receive focus
+// and respond to common navigation and confirmation actions.
+type Focusable interface {
+	LineUp() messages.StatusBarMsg
+	LineDown() messages.StatusBarMsg
+	GoToTop() messages.StatusBarMsg
+	GoToBottom() messages.StatusBarMsg
+	ConfirmRemove() messages.StatusBarMsg
+	ConfirmAction() messages.StatusBarMsg
+	CancelAction(cb func()) messages.StatusBarMsg
+	Refresh(resetSelectedIndex bool) messages.StatusBarMsg
 }
 
-type TuiModel struct {
+// Model is the Bubble Tea model for the TUI
+type Model struct {
 	layout bl.BubbleLayout
-	mode   *mode.ModeInstance
+	// Current app vim-like mode
+	mode         *mode.ModeInstance
+	keyInput     *keyinput.Input
+	currColFocus int
 
-	keyInput *keyinput.Input
-
-	currentColumnFocus int
-
-	directoryTree *components.DirectoryTree
-	notesList     *components.NotesList
-	editor        *components.Editor
-	statusBar     *components.StatusBar
+	dirTree   *components.DirectoryTree
+	notesList *components.NotesList
+	editor    *components.Editor
+	statusBar *components.StatusBar
 }
 
-func InitialModel() TuiModel {
-	m := TuiModel{
-		layout:             bl.New(),
-		currentColumnFocus: 1,
-		mode:               &mode.ModeInstance{Current: mode.Normal},
-		directoryTree:      components.NewDirectoryTree(),
-		notesList:          components.NewNotesList(),
-		editor:             components.NewEditor(),
-		statusBar:          components.NewStatusBar(),
+func InitialModel() Model {
+	layout := bl.New()
+	mode := &mode.ModeInstance{Current: mode.Normal}
+
+	m := Model{
+		layout:       layout,
+		mode:         mode,
+		currColFocus: 1,
+		keyInput:     keyinput.New(),
+		dirTree:      components.NewDirectoryTree(),
+		notesList:    components.NewNotesList(),
+		editor:       components.NewEditor(),
+		statusBar:    components.NewStatusBar(),
 	}
 
-	m.layout = bl.New()
-
-	m.currentColumnFocus = 1
-
-	m.directoryTree.Id = m.layout.Add("width 30")
-	m.directoryTree.Focused = true
-
-	m.notesList.Id = m.layout.Add("width 30")
-	m.notesList.Focused = false
-
-	m.editor.Id = m.layout.Add("grow")
-	m.editor.Focused = false
-
-	m.keyInput = keyinput.New()
 	m.keyInput.Functions = m.KeyInputFn()
+	m.componentsInit()
 
 	return m
 }
 
-func (m TuiModel) Init() tea.Cmd {
+func (m Model) Init() tea.Cmd {
 	resizeCmd := func() tea.Msg {
 		return m.layout.Resize(80, 40)
 	}
@@ -77,32 +73,32 @@ func (m TuiModel) Init() tea.Cmd {
 	return tea.Batch(resizeCmd, editorCmd, statusBarCmd)
 }
 
-func (m TuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	var (
-		cmd  tea.Cmd
-		cmds []tea.Cmd
-	)
+func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var cmds []tea.Cmd
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		if msg.String() == "ctrl+c" {
 			return m, tea.Quit
 		}
+
 		statusMsg := m.keyInput.HandleSequences(msg.String())
 		m.statusBar = m.statusBar.Update(statusMsg, msg)
+		m.keyInput.Mode = m.mode.Current
 		m.statusBar.Mode = m.mode.Current
 
 	case tea.WindowSizeMsg:
-		m.directoryTree.Update(msg)
+		m.dirTree.Update(msg)
 		m.notesList.Update(msg)
 		m.editor.Update(msg)
+
 		// Convert WindowSizeMsg to BubbleLayoutMsg.
 		return m, func() tea.Msg {
 			return m.layout.Resize(msg.Width, msg.Height)
 		}
 
 	case bl.BubbleLayoutMsg:
-		m.directoryTree.Size, _ = msg.Size(m.directoryTree.Id)
+		m.dirTree.Size, _ = msg.Size(m.dirTree.Id)
 		m.notesList.Size, _ = msg.Size(m.notesList.Id)
 		m.editor.Size, _ = msg.Size(m.editor.Id)
 
@@ -111,42 +107,18 @@ func (m TuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	m.keyInput.Mode = m.mode.Current
-	var dirTreeCmd, notesCmd, editorCmd tea.Cmd
 
-	if m.directoryTree.Focused {
-		m.directoryTree.Mode = m.mode.Current
-		_, dirTreeCmd = m.directoryTree.Update(msg)
-	}
-	if m.notesList.Focused {
-		m.notesList.Mode = m.mode.Current
-		_, notesCmd = m.notesList.Update(msg)
-	}
-	if m.editor.Focused {
-		_, editorCmd = m.editor.Update(msg)
-		m.keyInput.Mode = m.editor.Vim.Mode.Current
-	}
-
-	m.statusBar.DirTree = *m.directoryTree
-	m.statusBar.NotesList = *m.notesList
-	m.statusBar.Editor = *m.editor
-
-	if m.editor.Vim.Mode.Current != mode.Normal {
-		m.statusBar.Mode = m.editor.Vim.Mode.Current
-	}
-
-	cmds = append(cmds, cmd, notesCmd, dirTreeCmd, editorCmd)
+	cmds = m.updateComponents(msg)
+	m.updateStatusBar()
 
 	return m, tea.Batch(cmds...)
 }
 
-func (m TuiModel) GetTuiModel() TuiModel {
-	return m
-}
-
-func (m TuiModel) View() string {
+// View renders the TUI layout as a string
+func (m Model) View() string {
 	return lipgloss.JoinVertical(lipgloss.Left,
 		lipgloss.JoinHorizontal(lipgloss.Top,
-			m.directoryTree.View(),
+			m.dirTree.View(),
 			m.notesList.View(),
 			m.editor.View(),
 		),
@@ -154,226 +126,245 @@ func (m TuiModel) View() string {
 	)
 }
 
+// componentsInit registers components in the layout
+// and sets initial focus
+func (m *Model) componentsInit() {
+	m.dirTree.Id = m.layout.Add("width 30")
+	m.dirTree.Focused = true
+
+	m.notesList.Id = m.layout.Add("width 30")
+	m.notesList.Focused = false
+
+	m.editor.Id = m.layout.Add("grow")
+	m.editor.Focused = false
+}
+
+// updateComponents dispatches updates to the focused components
+// (directory tree, notes list, editor), updates the current editor mode
+func (m *Model) updateComponents(msg tea.Msg) []tea.Cmd {
+	var cmds []tea.Cmd
+
+	if m.dirTree.Focused {
+		m.dirTree.Mode = m.mode.Current
+		_, cmd := m.dirTree.Update(msg)
+		cmds = append(cmds, cmd)
+	}
+
+	if m.notesList.Focused {
+		m.notesList.Mode = m.mode.Current
+		_, cmd := m.notesList.Update(msg)
+		cmds = append(cmds, cmd)
+	}
+
+	if m.editor.Focused {
+		_, cmd := m.editor.Update(msg)
+		cmds = append(cmds, cmd)
+		m.keyInput.Mode = m.editor.Vim.Mode.Current
+	}
+
+	return cmds
+}
+
+// updateStatusBar synchronises the status bar
+// with the current component states and mode.
+func (m *Model) updateStatusBar() {
+	m.statusBar.DirTree = *m.dirTree
+	m.statusBar.NotesList = *m.notesList
+	m.statusBar.Editor = *m.editor
+
+	currMode := m.editor.Vim.Mode.Current
+	if currMode != mode.Normal {
+		m.statusBar.Mode = currMode
+	} else {
+		m.statusBar.Mode = m.mode.Current
+	}
+}
+
 ///
-/// Keyboard shortcut commands
+/// Keyboard shortcut delegations
 ///
 
 // focusColumn selects and higlights a column with index `index`
-func (m *TuiModel) focusColumn(index int) messages.StatusBarMsg {
-	dirTree := m.directoryTree
-	notesList := m.notesList
-	editor := m.editor
-
-	dirTree.Focused = false
-	notesList.Focused = false
-	editor.Focused = false
-
-	switch index {
-	case 1:
-		dirTree.Focused = true
-	case 2:
-		notesList.Focused = true
-	case 3:
-		editor.Focused = true
-		//default:
-		//	editor.ExitInsertMode()
-	}
-
-	m.currentColumnFocus = index
+// (1=dirTree, 2=notesList, 3=editor)
+func (m *Model) focusColumn(index int) messages.StatusBarMsg {
+	m.dirTree.Focused = index == 1
+	m.notesList.Focused = index == 2
+	m.editor.Focused = index == 3
+	m.currColFocus = index
 
 	return messages.StatusBarMsg{}
 }
 
-// focusDirectoryTree selects and higlights the directory tree column
-// this is simply a helper shortcut
-func (m *TuiModel) focusDirectoryTree() messages.StatusBarMsg {
-	m.focusColumn(1)
-	return messages.StatusBarMsg{}
+// focusDirectoryTree is a helper function
+// for selecting the directory tree
+func (m *Model) focusDirectoryTree() messages.StatusBarMsg {
+	return m.focusColumn(1)
 }
 
-// focusNotesList selects and higlights tht notes list column
-// this is simply a helper shortcut
-func (m *TuiModel) focusNotesList() messages.StatusBarMsg {
-	m.focusColumn(2)
-	return messages.StatusBarMsg{}
+// focusNotesList() is a helper function
+// for selecting the notes list
+func (m *Model) focusNotesList() messages.StatusBarMsg {
+	return m.focusColumn(2)
 }
 
-// focusEditor selects and higlights the editor column
-// this is simply a helper shortcut
-func (m *TuiModel) focusEditor() messages.StatusBarMsg {
-	m.focusColumn(3)
-	return messages.StatusBarMsg{}
+// focusEditor is a helper function
+// for selecting the editor
+func (m *Model) focusEditor() messages.StatusBarMsg {
+	return m.focusColumn(3)
 }
 
 // focusNextColumn selects and highlights the respectivley next of the
 // currently selected column.
 // Selects the first if the currently selected column is the last column...
-func (m *TuiModel) focusNextColumn() messages.StatusBarMsg {
-	index := min(m.currentColumnFocus+1, 3)
-	m.focusColumn(index)
-	return messages.StatusBarMsg{}
+func (m *Model) focusNextColumn() messages.StatusBarMsg {
+	index := min(m.currColFocus+1, 3)
+	return m.focusColumn(index)
 }
 
 // focusNextColumn selects and highlights the respectivley next of the
 // currently selected column.
 // Selects the first if the currently selected column is the last column...
-func (m *TuiModel) focusPrevColumn() messages.StatusBarMsg {
-	index := m.currentColumnFocus - 1
+func (m *Model) focusPrevColumn() messages.StatusBarMsg {
+	index := m.currColFocus - 1
 	if index < 0 {
 		index = 1
 	}
-	m.focusColumn(index)
-	return messages.StatusBarMsg{}
+	return m.focusColumn(index)
 }
 
-// --- I am 69% sure I can make everything below this comment better...
-// --- Just need to find out how...
+// focusedComponent returns the component that is currently focused
+func (m *Model) focusedComponent() Focusable {
+	if m.dirTree.Focused {
+		return m.dirTree
+	}
+	if m.notesList.Focused {
+		return m.notesList
+	}
+	return nil
+}
 
-// lineUp moves the cursor one line up in the currently focused columns.
-// Ignores editor since it handles it differently
-func (m *TuiModel) lineUp() messages.StatusBarMsg {
-	dirTree := m.directoryTree
-	notesList := m.notesList
+// lineUp moves the cursor one line up in the currently focused column.
+// Ignores editor since it is handled differently
+func (m *Model) lineUp() messages.StatusBarMsg {
 	statusMsg := messages.StatusBarMsg{}
 
-	if dirTree.Focused {
-		statusMsg = dirTree.LineUp()
+	if f := m.focusedComponent(); f != nil {
+		statusMsg = f.LineUp()
+		statusMsg.Content = strconv.Itoa(m.nbrFolders()) + " Folders"
 	}
-	if notesList.Focused {
-		statusMsg = notesList.LineUp()
-	}
-	statusMsg.Content = strconv.Itoa(dirTree.SelectedDir().NbrFolders) + " Folders"
+
 	return statusMsg
 }
 
-// lineUp moves the cursor one line up in the currently focused columns.
-// Ignores editor since it handles it differently
-func (m *TuiModel) lineDown() messages.StatusBarMsg {
-	dirTree := m.directoryTree
-	notesList := m.notesList
+// lineUp moves the cursor one line up in the currently focused column.
+// Ignores editor since it is handled differently
+func (m *Model) lineDown() messages.StatusBarMsg {
 	statusMsg := messages.StatusBarMsg{}
 
-	if dirTree.Focused {
-		statusMsg = dirTree.LineDown()
+	if f := m.focusedComponent(); f != nil {
+		statusMsg = f.LineDown()
+		statusMsg.Content = strconv.Itoa(m.nbrFolders()) + " Folders"
 	}
-	if notesList.Focused {
-		statusMsg = notesList.LineDown()
-	}
-	statusMsg.Content = strconv.Itoa(dirTree.SelectedDir().NbrFolders) + " Folders"
+
 	return statusMsg
 }
 
-// createDir enters insert mode and triggers directoryTree's create function
-func (m *TuiModel) createDir() messages.StatusBarMsg {
-	dirTree := m.directoryTree
+// nbrFolders returns the number of folders
+// in the currently selected directory
+func (m *Model) nbrFolders() int {
+	return m.dirTree.SelectedDir().NbrFolders
+}
 
-	if dirTree.Focused {
+// createDir enters insert mode
+// and triggers directory creation
+func (m *Model) createDir() messages.StatusBarMsg {
+	return m.dirTree.Create(m.mode, m.statusBar)
+}
+
+// createNote enters insert mode
+// and triggers notes creation
+func (m *Model) createNote() messages.StatusBarMsg {
+	return m.notesList.Create(m.mode, m.statusBar)
+}
+
+// rename enters insert mode and renames the selected item
+// in the directory or note list
+func (m *Model) rename() messages.StatusBarMsg {
+	if m.dirTree.Focused || m.notesList.Focused {
 		m.mode.Current = mode.Insert
 		m.statusBar.Focused = false
-		return dirTree.Create()
+	}
+
+	if m.dirTree.Focused {
+		return m.dirTree.Rename(
+			m.dirTree.SelectedDir().Name,
+		)
+	}
+
+	if m.notesList.Focused {
+		return m.notesList.Rename(
+			m.notesList.SelectedItem(nil).Name,
+		)
 	}
 	return messages.StatusBarMsg{}
 }
 
-// createNote enters insert mode and triggers notesList's create function
-func (m *TuiModel) createNote() messages.StatusBarMsg {
-	notesList := m.notesList
-
-	if notesList.Focused {
-		m.mode.Current = mode.Insert
-		m.statusBar.Focused = false
-		return notesList.Create()
-	}
-	return messages.StatusBarMsg{}
-}
-
-func (m *TuiModel) rename() messages.StatusBarMsg {
-	dirTree := m.directoryTree
-	notesList := m.notesList
-
-	if dirTree.Focused {
-		m.mode.Current = mode.Insert
-		m.statusBar.Focused = false
-		return dirTree.Rename(dirTree.SelectedDir().Name)
-	}
-
-	if notesList.Focused {
-		m.mode.Current = mode.Insert
-		m.statusBar.Focused = false
-		return notesList.Rename(notesList.SelectedItem(nil).Name)
-	}
-	return messages.StatusBarMsg{}
-}
-
-func (m *TuiModel) remove() messages.StatusBarMsg {
-	dirTree := m.directoryTree
-	notesList := m.notesList
+// remove enters insert mode and triggers a delete confirmation
+// for the focused component
+func (m *Model) remove() messages.StatusBarMsg {
 	// go into insert mode because we always ask for
 	// confirmation before deleting anything
 	m.mode.Current = mode.Insert
 
-	if dirTree.Focused {
+	if f := m.focusedComponent(); f != nil {
 		m.statusBar.Focused = true
-		return dirTree.ConfirmRemove()
+		return f.ConfirmRemove()
 	}
-	if notesList.Focused {
-		m.statusBar.Focused = true
-		return notesList.ConfirmRemove()
+
+	return messages.StatusBarMsg{}
+}
+
+// goToTop moves the focused list to its first item
+func (m *Model) goToTop() messages.StatusBarMsg {
+	if f := m.focusedComponent(); f != nil {
+		return f.GoToTop()
 	}
 	return messages.StatusBarMsg{}
 }
 
-func (m *TuiModel) goToTop() messages.StatusBarMsg {
-	dirTree := m.directoryTree
-	notesList := m.notesList
-
-	if m.mode.Current == mode.Normal {
-		if dirTree.Focused {
-			return dirTree.GoToTop()
-		}
-		if notesList.Focused {
-			return notesList.GoToTop()
-		}
+// goToTop moves the focused list to its last item
+func (m *Model) goToBottom() messages.StatusBarMsg {
+	if f := m.focusedComponent(); f != nil {
+		return f.GoToBottom()
 	}
 	return messages.StatusBarMsg{}
 }
 
-func (m *TuiModel) goToBottom() messages.StatusBarMsg {
-	dirTree := m.directoryTree
-	notesList := m.notesList
-
-	if m.mode.Current == mode.Normal {
-		if dirTree.Focused {
-			return dirTree.GoToBottom()
-		}
-		if notesList.Focused {
-			return notesList.GoToBottom()
-		}
-	}
-	return messages.StatusBarMsg{}
-}
-
-func (m *TuiModel) confirmAction() messages.StatusBarMsg {
-	dirTree := m.directoryTree
-	notesList := m.notesList
-	editor := m.editor
+// confirmAction performs the primary action for the focused component,
+// or loads note data into the editor if in normal mode.
+func (m *Model) confirmAction() messages.StatusBarMsg {
 	statusMsg := messages.StatusBarMsg{}
 
-	if dirTree.Focused {
-		if m.mode.Current != mode.Normal {
-			statusMsg = dirTree.ConfirmAction()
-		} else {
-			notesList.CurrentPath = dirTree.SelectedDir().Path
-			statusMsg = notesList.Refresh(true)
-		}
+	f := m.focusedComponent()
+
+	if f == nil {
+		return statusMsg
 	}
 
-	if notesList.Focused {
-		if m.mode.Current != mode.Normal {
-			statusMsg = notesList.ConfirmAction()
-		} else {
-			notePath := notesList.SelectedItem(nil).GetPath()
-			editor.NewBuffer(notePath)
+	if m.mode.Current != mode.Normal {
+		statusMsg = f.ConfirmAction()
+	} else {
+		if f == m.dirTree {
+			m.notesList.CurrentPath = m.dirTree.
+				SelectedDir().Path
+			statusMsg = m.notesList.
+				Refresh(true)
+		}
+
+		if f == m.notesList {
+			notePath := m.notesList.
+				SelectedItem(nil).GetPath()
+			m.editor.NewBuffer(notePath)
 		}
 	}
 
@@ -385,17 +376,15 @@ func (m *TuiModel) confirmAction() messages.StatusBarMsg {
 	return statusMsg
 }
 
-func (m *TuiModel) cancelAction() messages.StatusBarMsg {
-	dirTree := m.directoryTree
-	notesList := m.notesList
+// cancelAction resets mode to normal
+// and cancels pending actions in the focused component.
+func (m *Model) cancelAction() messages.StatusBarMsg {
 	m.mode.Current = mode.Normal
 	m.statusBar.Focused = false
-
-	if dirTree.Focused {
-		return dirTree.CancelAction(func() { dirTree.Refresh() })
-	}
-	if notesList.Focused {
-		return notesList.CancelAction(func() { notesList.Refresh(false) })
+	if f := m.focusedComponent(); f != nil {
+		return f.CancelAction(func() {
+			f.Refresh(false)
+		})
 	}
 	return messages.StatusBarMsg{}
 }
@@ -415,7 +404,8 @@ func (m *TuiModel) cancelAction() messages.StatusBarMsg {
 //	tea.Quit()
 //}
 
-func (m *TuiModel) KeyInputFn() map[string]func() messages.StatusBarMsg {
+// KeyInputFn maps command strings to actions for key sequence input.
+func (m *Model) KeyInputFn() map[string]func() messages.StatusBarMsg {
 	return map[string]func() messages.StatusBarMsg{
 		"focusDirectoryTree": m.focusDirectoryTree,
 		"focusNotesList":     m.focusNotesList,
@@ -424,8 +414,8 @@ func (m *TuiModel) KeyInputFn() map[string]func() messages.StatusBarMsg {
 		"focusPrevColumn":    m.focusPrevColumn,
 		"lineUp":             m.lineUp,
 		"lineDown":           m.lineDown,
-		"collapse":           m.directoryTree.Collapse,
-		"expand":             m.directoryTree.Expand,
+		"collapse":           m.dirTree.Collapse,
+		"expand":             m.dirTree.Expand,
 		"createDir":          m.createDir,
 		"createNote":         m.createNote,
 		"rename":             m.rename,
