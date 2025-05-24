@@ -345,17 +345,20 @@ func (t *DirectoryTree) flatten(
 		}
 
 		result = append(result, dir)
-		if dir.expanded {
-			result = append(
-				result,
-				t.flatten(
-					dirs[i].children,
-					level+1,
-					dir.index,
-					nextIndex,
-				)...,
-			)
+
+		if !dir.expanded {
+			continue
 		}
+
+		result = append(
+			result,
+			t.flatten(
+				dirs[i].children,
+				level+1,
+				dir.index,
+				nextIndex,
+			)...,
+		)
 	}
 	return result
 }
@@ -416,11 +419,9 @@ func (m *DirectoryTree) insertDirAfter(afterIndex int, directory Dir) {
 }
 
 func (t *DirectoryTree) dirExists(dirPath string) bool {
-	//dirName := t.editor.Value()
-	//selectedDir := t.selectedDir()
 	parentPath := filepath.Dir(dirPath)
 	dirName := filepath.Base(dirPath)
-	//statusMsg := messages.StatusBarMsg{}
+
 	if _, contains := directories.ContainsDir(
 		parentPath,
 		dirName,
@@ -498,26 +499,30 @@ func (t *DirectoryTree) Create(
 	mi *mode.ModeInstance,
 	statusBar *StatusBar,
 ) messages.StatusBarMsg {
-	if t.Focused {
-		mi.Current = mode.Insert
-		statusBar.Focused = false
+	statusMsg := messages.StatusBarMsg{}
 
-		t.editingState = EditCreate
-		t.refreshFlatList()
-		t.Expand()
-
-		lastChild := t.lastChildOfSelection()
-		tmpdir := t.createVirtualDir()
-
-		t.insertDirAfter(lastChild.index, tmpdir)
-		t.selectedIndex = lastChild.index + 1
-
-		if t.editingIndex == nil {
-			t.editingIndex = &t.selectedIndex
-			t.editor.SetValue(t.SelectedDir().Name)
-		}
+	if !t.Focused {
+		return statusMsg
 	}
-	return messages.StatusBarMsg{}
+
+	mi.Current = mode.Insert
+	statusBar.Focused = false
+
+	t.editingState = EditCreate
+	t.refreshFlatList()
+	t.Expand()
+
+	lastChild := t.lastChildOfSelection()
+	vrtDir := t.createVirtualDir()
+
+	t.insertDirAfter(lastChild.index, vrtDir)
+	t.selectedIndex = lastChild.index + 1
+
+	if t.editingIndex == nil {
+		t.editingIndex = &t.selectedIndex
+		t.editor.SetValue(t.SelectedDir().Name)
+	}
+	return statusMsg
 }
 
 func (t *DirectoryTree) ConfirmRemove() messages.StatusBarMsg {
