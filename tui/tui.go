@@ -387,9 +387,18 @@ func (m *Model) confirmAction() messages.StatusBarMsg {
 func (m *Model) cancelAction() messages.StatusBarMsg {
 	m.mode.Current = mode.Normal
 	m.statusBar.Focused = false
+
 	if f := m.focusedComponent(); f != nil {
+		resetIndex := false
+		stateCreate := components.EditCreate
+
+		if m.dirTree.EditState == stateCreate ||
+			m.notesList.EditState == stateCreate {
+			resetIndex = true
+		}
+
 		return f.CancelAction(func() {
-			f.Refresh(true)
+			f.Refresh(resetIndex)
 		})
 	}
 	return messages.StatusBarMsg{}

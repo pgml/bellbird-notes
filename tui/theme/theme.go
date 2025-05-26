@@ -9,12 +9,16 @@ import (
 )
 
 // @todo make this a theme.conf or whatever
+// colors
 var (
-	ColourBorder        = lipgloss.Color("#424B5D")
-	ColourBorderFocused = lipgloss.Color("#69c8dc")
+	ColourBorder        = lipgloss.AdaptiveColor{Dark: "#424B5D"}
+	ColourBorderFocused = lipgloss.AdaptiveColor{Dark: "#69c8dc"}
 	ColourFg            = lipgloss.NoColor{}
+	ColourBgSelected    = lipgloss.AdaptiveColor{Light: "#333", Dark: "#424B5D"}
 	BorderStyle         = lipgloss.RoundedBorder()
 )
+
+const IconInput = ""
 
 // BaseColumnLayout provides thae basic layout style for a column
 func BaseColumnLayout(size bl.Size, focused bool) lipgloss.Style {

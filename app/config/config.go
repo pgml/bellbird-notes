@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"bellbird-notes/app"
+	"bellbird-notes/app/debug"
 
 	"gopkg.in/ini.v1"
 )
@@ -72,13 +73,13 @@ func New() *Config {
 
 	filePath, err := app.ConfigFile()
 	if err != nil {
-		app.LogErr(err)
+		debug.LogErr(err)
 		return config
 	}
 
 	metaFilePath, err := app.ConfigFile()
 	if err != nil {
-		app.LogErr(err)
+		debug.LogErr(err)
 		return config
 	}
 
@@ -88,7 +89,7 @@ func New() *Config {
 
 	conf, err := ini.Load(filePath)
 	if err != nil {
-		app.LogErr("Failed to read config file:", err)
+		debug.LogErr("Failed to read config file:", err)
 		return config
 	}
 
@@ -98,7 +99,7 @@ func New() *Config {
 
 	metaConf, err := ini.Load(metaFilePath)
 	if err != nil {
-		app.LogErr("Failed to read meta infos file:", err)
+		debug.LogErr("Failed to read meta infos file:", err)
 		return config
 	}
 

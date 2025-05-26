@@ -23,5 +23,3 @@ type Component struct {
 	viewport      viewport.Model // The tree viewport that allows scrolling
 	ready         bool
 }
-
-const noNerdFonts = false

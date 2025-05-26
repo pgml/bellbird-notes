@@ -7,6 +7,7 @@ import (
 	"slices"
 	"strings"
 
+	"bellbird-notes/app"
 	"bellbird-notes/app/config"
 	"bellbird-notes/app/notes"
 	"bellbird-notes/app/utils"
@@ -35,9 +36,18 @@ type Note struct {
 	isPinned bool
 }
 
-func (n Note) GetIndex() int   { return n.index }
+// GetIndex returns the index of a Note-Item
+func (n Note) GetIndex() int { return n.index }
+
+// GetPath() returns the index of a Note-Item
 func (n Note) GetPath() string { return n.Path }
 
+// GetName() returns the index of a Note-Item
+func (n Note) GetName() string {
+	return n.Name
+}
+
+// The string representation of a Dir
 func (n Note) String() string {
 	r := n.styles.note.Render
 	name := utils.TruncateText(n.Name, 22)
@@ -46,26 +56,20 @@ func (n Note) String() string {
 		filepath.Ext(name),
 	)
 
+	// nerdfonts required
 	icon := " 󰎞"
-	if noNerdFonts {
+	if *app.NoNerdFonts {
 		icon = " "
 	}
 
 	baseStyle := lipgloss.NewStyle().Width(30)
 	if n.selected {
-		baseStyle = baseStyle.Background(
-			lipgloss.AdaptiveColor{
-				Light: "#333",
-				Dark:  "#424B5D",
-			},
-		).Bold(true)
+		baseStyle = baseStyle.
+			Background(theme.ColourBgSelected).
+			Bold(true)
 	}
-	return baseStyle.Render(icon + r(name))
-	//return baseStyle.Render(icon + r(name+" "+strconv.Itoa(n.index)))
-}
 
-func (n Note) GetName() string {
-	return n.Name
+	return baseStyle.Render(icon + r(name))
 }
 
 // Init initialises the Model on program load. It partly implements the tea.Model interface.
@@ -74,10 +78,8 @@ func (l *NotesList) Init() tea.Cmd {
 }
 
 func (l *NotesList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	var (
-		cmd tea.Cmd
-		//cmds []tea.Cmd
-	)
+	var cmd tea.Cmd
+
 	termWidth, termHeight := theme.GetTerminalSize()
 
 	switch msg := msg.(type) {
@@ -92,6 +94,7 @@ func (l *NotesList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			l.editor, cmd = l.editor.Update(msg)
 			return l, cmd
 		}
+
 	case tea.WindowSizeMsg:
 		if !l.ready {
 			l.viewport = viewport.New(
@@ -99,11 +102,8 @@ func (l *NotesList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				termHeight,
 			)
 			l.viewport.SetContent(l.build())
-
 			l.viewport.KeyMap = viewport.KeyMap{}
-			l.lastVisibleLine = l.viewport.
-				VisibleLineCount() - reservedLines
-
+			l.lastVisibleLine = l.viewport.VisibleLineCount() - reservedLines
 			l.ready = true
 		} else {
 			l.viewport.Width = termWidth
@@ -113,7 +113,6 @@ func (l *NotesList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	// Handle keyboard and mouse events in the viewport
 	l.viewport, cmd = l.viewport.Update(msg)
-	//cmds = append(cmds, cmd)
 
 	return l, cmd
 }
@@ -126,13 +125,17 @@ func (l *NotesList) View() string {
 	l.viewport.SetContent(l.build())
 	l.UpdateViewportInfo()
 
-	l.viewport.Style = theme.BaseColumnLayout(l.Size, l.Focused)
+	l.viewport.Style = theme.BaseColumnLayout(
+		l.Size,
+		l.Focused,
+	)
+
 	return l.viewport.View()
 }
 
 func NewNotesList() *NotesList {
 	ti := textinput.New()
-	ti.Prompt = "  "
+	ti.Prompt = " " + theme.IconInput + " "
 	ti.CharLimit = 100
 
 	conf := config.New()
@@ -140,13 +143,12 @@ func NewNotesList() *NotesList {
 		List: List[Note]{
 			selectedIndex:    0,
 			editIndex:        nil,
-			editState:        EditNone,
+			EditState:        EditNone,
 			editor:           ti,
 			lastVisibleLine:  0,
 			firstVisibleLine: 0,
 			items:            make([]Note, 0),
 		},
-		//notes:       make([]Note, 0, 0),
 		CurrentPath: conf.Value(config.General, config.UserNotesDirectory),
 	}
 
@@ -160,10 +162,15 @@ func (l NotesList) build() string {
 	for i, note := range l.items {
 		note.selected = (l.selectedIndex == i)
 
-		//style := lipgloss.NewStyle().Foreground(lipgloss.Color("#999"))
-		//tree += style.Render(fmt.Sprintf("%02d", dir.index)) + " "
+		if *app.Debug {
+			// prepend list item indices for debugging purposes
+			style := lipgloss.NewStyle().Foreground(lipgloss.Color("#999"))
+			list += style.Render(fmt.Sprintf("%02d", note.index)) + " "
+		}
+
 		if l.editIndex != nil && i == *l.editIndex {
-			list += l.editor.View() + "\n" // Show input field instead of text
+			// Show input field instead of text
+			list += l.editor.View() + "\n"
 		} else {
 			list += fmt.Sprintf("%-*s \n", l.viewport.Width, note.String())
 		}
@@ -174,7 +181,7 @@ func (l NotesList) build() string {
 
 func (l *NotesList) Refresh(resetSelectedIndex bool) messages.StatusBarMsg {
 	if resetSelectedIndex {
-		l.selectedIndex = 0
+		l.selectedIndex = l.items[len(l.items)-1].index - 1
 	}
 	notes, err := notes.List(l.CurrentPath)
 
@@ -195,9 +202,11 @@ func (l *NotesList) Refresh(resetSelectedIndex bool) messages.StatusBarMsg {
 
 	l.length = len(l.items)
 	l.lastIndex = 0
+
 	if l.length > 0 {
 		l.lastIndex = l.items[len(l.items)-1].index
 	}
+
 	return messages.StatusBarMsg{}
 }
 
@@ -218,10 +227,15 @@ func (l *NotesList) createNoteItem(note notes.Note) Note {
 // createVirtualNote creates a temporary, virtual note `Note`
 //
 // This note is mainly used as a placeholder when creating a note
+// and is not actually written to the file system.
 func (l *NotesList) createVirtualNote() Note {
 	selectedNote := l.SelectedItem(nil)
 	tempNoteName := "New Note"
-	tempNotePath := filepath.Join(filepath.Dir(selectedNote.Path), tempNoteName)
+
+	tempNotePath := filepath.Join(
+		filepath.Dir(selectedNote.Path),
+		tempNoteName,
+	)
 
 	return Note{
 		Item: Item{
@@ -271,28 +285,33 @@ func (l *NotesList) Create(
 	mi *mode.ModeInstance,
 	statusBar *StatusBar,
 ) messages.StatusBarMsg {
+	statusMsg := messages.StatusBarMsg{}
+
 	if l.Focused {
 		mi.Current = mode.Insert
 		statusBar.Focused = false
 
-		l.editState = EditCreate
+		l.EditState = EditCreate
 
-		tmpNote := l.createVirtualNote()
+		vrtNote := l.createVirtualNote()
 		lastChild := l.getLastChild()
 
 		if lastChild.Name == "" {
-			l.items = append(l.items, tmpNote)
+			l.items = append(l.items, vrtNote)
 		} else {
-			l.insertDirAfter(lastChild.index, tmpNote)
+			l.insertDirAfter(lastChild.index, vrtNote)
 			l.selectedIndex = lastChild.index + 1
 		}
 
 		if l.editIndex == nil {
+			selItem := l.SelectedItem(nil)
 			l.editIndex = &l.selectedIndex
-			l.editor.SetValue(l.SelectedItem(nil).Name)
+			l.editor.SetValue(selItem.Name)
+			l.editor.CursorEnd()
 		}
 	}
-	return messages.StatusBarMsg{}
+
+	return statusMsg
 }
 
 func (l *NotesList) ConfirmRemove() messages.StatusBarMsg {
@@ -324,7 +343,7 @@ func (l *NotesList) Remove() messages.StatusBarMsg {
 	}
 
 	l.Refresh(false)
-	//l.buildList()
+
 	return messages.StatusBarMsg{Content: resultMsg, Type: msgType}
 }
 
@@ -336,14 +355,15 @@ func (l *NotesList) ConfirmAction() messages.StatusBarMsg {
 		selectedNote := l.SelectedItem(nil)
 		newPath := filepath.Join(l.CurrentPath, l.editor.Value())
 
-		switch l.editState {
+		switch l.EditState {
 		case EditRename:
 			oldPath := selectedNote.Path
 			if err := notes.Rename(oldPath, newPath); err == nil {
 				selectedNote.Name = filepath.Base(newPath)
 				selectedNote.Path = newPath
 
-				// These next three lines are a bit ugly but that's what they know me for
+				// These next three lines are a bit ugly but
+				// that's what they know me for
 				// @todo Refresh() and build() shouldn't be necessary.
 				// Find a way without those two
 				l.Refresh(false)

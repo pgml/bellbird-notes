@@ -4,7 +4,7 @@ import (
 	"os"
 	"strings"
 
-	"bellbird-notes/app"
+	"bellbird-notes/app/debug"
 	"bellbird-notes/tui/components/textarea"
 	"bellbird-notes/tui/keyinput"
 	"bellbird-notes/tui/messages"
@@ -97,7 +97,7 @@ func (e *Editor) NewBuffer(path string) messages.StatusBarMsg {
 	note, err := os.ReadFile(path)
 
 	if err != nil {
-		app.LogErr(err)
+		debug.LogErr(err)
 		return messages.StatusBarMsg{Content: err.Error()}
 	}
 
@@ -127,7 +127,8 @@ func (e *Editor) NewBuffer(path string) messages.StatusBarMsg {
 	return messages.StatusBarMsg{}
 }
 
-// Init initialises the Model on program load. It partly implements the tea.Model interface.
+// Init initialises the Model on program load.
+// It partially implements the tea.Model interface.
 func (e *Editor) Init() tea.Cmd {
 	return textarea.Blink
 }
@@ -147,10 +148,12 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			e.Vim.Pending.Ctrl = true
 			e.Vim.Pending.key = strings.Split(key, "+")[1]
 		}
+
 		if strings.Contains(key, "alt+") {
 			e.Vim.Pending.Alt = true
 			e.Vim.Pending.key = strings.Split(key, "+")[1]
 		}
+
 		if strings.Contains(key, "shift+") {
 			e.Vim.Pending.Shift = true
 			e.Vim.Pending.key = strings.Split(key, "+")[1]
@@ -175,76 +178,100 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			switch msg.String() {
 			case "i":
 				e.enterInsertMode()
+
 			case "I":
 				e.Textarea.CursorInputStart()
 				e.enterInsertMode()
+
 			case "a":
 				e.Textarea.CharacterRight()
 				e.enterInsertMode()
+
 			case "A":
 				e.Textarea.CursorEnd()
 				e.enterInsertMode()
+
 			case "r":
 				e.Vim.Mode.Current = mode.Replace
 			//case "v":
 			//	e.Vim.Mode.Current = app.VisualMode
 			case "h":
 				e.Textarea.CharacterLeft(false)
+
 			case "l":
 				e.Textarea.CharacterRight()
+
 			case "j":
 				e.Textarea.CursorDown()
 				e.Textarea.RepositionView()
+
 			case "k":
 				e.Textarea.CursorUp()
 				e.Textarea.RepositionView()
+
 			case "u":
 				val, cursorPos := e.CurrentBuffer.History.Undo()
 				e.Textarea.SetValue(val)
 				e.Textarea.MoveCursor(cursorPos.Row, cursorPos.ColumnOffset)
+
 			case "ctrl+r":
 				val, cursorPos := e.CurrentBuffer.History.Redo()
 				e.Textarea.SetValue(val)
 				defer e.Textarea.MoveCursor(cursorPos.Row, cursorPos.ColumnOffset)
+
 			case "w":
 				e.Textarea.WordRight()
 				e.Textarea.CharacterRight()
+
 			case "e":
 				e.Textarea.CharacterRight()
 				e.Textarea.WordRight()
 				e.Textarea.CharacterLeft(false)
+
 			case "b":
 				e.Textarea.WordLeft()
+
 			case "^", "_":
 				e.Textarea.CursorInputStart()
+
 			case "0":
 				e.Textarea.CursorStart()
+
 			case "$":
 				e.Textarea.CursorEnd()
+
 			case "o":
 				e.Textarea.CursorEnd()
 				e.Textarea.InsertRune('\n')
 				e.Textarea.RepositionView()
 				e.enterInsertMode()
+
 			case "O":
 				e.Textarea.CursorUp()
 				e.Textarea.CursorEnd()
 				e.Textarea.InsertRune('\n')
 				e.Textarea.RepositionView()
 				e.enterInsertMode()
+
 			case "d":
 				e.operator("d")
+
 			case "D":
 				e.Textarea.DeleteAfterCursor()
+
 			case "g":
 				e.operator("g")
+
 			case "G":
 				e.Textarea.MoveToEnd()
 				e.Textarea.RepositionView()
+
 			case "ctrl+d":
 				e.Textarea.DownHalfPage()
+
 			case "ctrl+u":
 				e.Textarea.UpHalfPage()
+
 			}
 			e.Vim.Pending.ResetKeysDown()
 			//app.LogDebug(
@@ -262,10 +289,13 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				switch msg.String() {
 				case "d":
 					e.Textarea.DeleteLine()
+
 				case "j":
 					e.Textarea.DeleteLines(2, false)
+
 				case "k":
 					e.Textarea.DeleteLines(2, true)
+
 				case "w":
 					e.Textarea.DeleteWordRight()
 				}

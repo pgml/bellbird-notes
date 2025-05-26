@@ -8,7 +8,6 @@ import (
 
 	"bellbird-notes/app"
 	"bellbird-notes/app/config"
-	"bellbird-notes/app/debug"
 	"bellbird-notes/app/directories"
 	"bellbird-notes/app/utils"
 	"bellbird-notes/tui/messages"
@@ -81,12 +80,13 @@ func (d *Dir) String() string {
 	)
 	name := utils.TruncateText(d.Name, 22)
 
+	// nerdfonts required
 	toggle := map[string]string{
 		"open":  "",
 		"close": "󰉋",
 	}
 
-	if noNerdFonts {
+	if *app.NoNerdFonts {
 		toggle = map[string]string{
 			"open":  "▼",
 			"close": "▶",
@@ -96,7 +96,7 @@ func (d *Dir) String() string {
 	baseStyle := lipgloss.NewStyle().Width(30)
 	if d.selected {
 		baseStyle = baseStyle.
-			Background(lipgloss.Color("#424B5D")).
+			Background(theme.ColourBgSelected).
 			Bold(true)
 	}
 
@@ -172,14 +172,14 @@ func (t *DirectoryTree) View() string {
 // New creates a new model with default settings.
 func NewDirectoryTree() *DirectoryTree {
 	ti := textinput.New()
-	ti.Prompt = " "
+	ti.Prompt = theme.IconInput + " "
 	ti.CharLimit = 100
 
 	tree := &DirectoryTree{
 		List: List[Dir]{
 			selectedIndex: 0,
 			editIndex:     nil,
-			editState:     EditNone,
+			EditState:     EditNone,
 			editor:        ti,
 			items:         make([]Dir, 0),
 		},
@@ -242,7 +242,7 @@ func (t *DirectoryTree) render() string {
 
 		dir.selected = (t.selectedIndex == i)
 
-		if *debug.Enabled {
+		if *app.Debug {
 			// prepend tree item indices for debugging purposes
 			style := lipgloss.NewStyle().Foreground(lipgloss.Color("#999"))
 			tree += style.Render(fmt.Sprintf("%02d", dir.index)) + " "
@@ -308,7 +308,9 @@ func (m *DirectoryTree) createDirectoryItem(
 }
 
 // createVirtualDir creates a temporary, virtual directory `Dir`
+//
 // This directory is mainly used as a placeholder when creating a directory
+// and is not actually written to the file system.
 func (t *DirectoryTree) createVirtualDir() Dir {
 	selectedDir := t.SelectedDir()
 	tempFolderName := "New Folder"
@@ -337,6 +339,10 @@ func (t *DirectoryTree) createVirtualDir() Dir {
 // which means the selected directory's parent
 func (t *DirectoryTree) Refresh(resetIndex bool) messages.StatusBarMsg {
 	statusMsg := messages.StatusBarMsg{}
+
+	if t.EditState == EditCreate {
+		resetIndex = true
+	}
 
 	if sel := t.SelectedDir(); sel != nil {
 		selectAfter := t.selectedIndex
@@ -582,7 +588,7 @@ func (t *DirectoryTree) Create(
 		mi.Current = mode.Insert
 		statusBar.Focused = false
 
-		t.editState = EditCreate
+		t.EditState = EditCreate
 		// get a fresh version of the tree to work with
 		t.refreshFlatList()
 		// expand the selected directory for a live preview
@@ -608,6 +614,7 @@ func (t *DirectoryTree) Create(
 		if t.editIndex == nil {
 			t.editIndex = &t.selectedIndex
 			t.editor.SetValue(vrtDir.Name)
+			t.editor.CursorEnd()
 		}
 	}
 
@@ -676,7 +683,7 @@ func (t *DirectoryTree) ConfirmAction() messages.StatusBarMsg {
 			t.editor.Value(),
 		)
 
-		switch t.editState {
+		switch t.EditState {
 		case EditRename:
 			if err := directories.Rename(oldPath, newPath); err == nil {
 				t.Refresh(false)

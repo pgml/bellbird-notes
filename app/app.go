@@ -1,11 +1,17 @@
 package app
 
 import (
+	"flag"
 	"os"
 	"path/filepath"
 
+	"bellbird-notes/app/debug"
+
 	"golang.org/x/mod/modfile"
 )
+
+var NoNerdFonts = flag.Bool("no-nerd-fonts", false, "Nerd fonts disabled")
+var Debug = flag.Bool("debug", false, "Debug mode")
 
 func IsSnapshot() bool {
 	return os.Getenv("CHANNEL") == "snapshot"
@@ -24,13 +30,13 @@ func Name() string {
 func ModuleName() (string, error) {
 	data, err := os.ReadFile("go.mod")
 	if err != nil {
-		LogErr(err)
+		debug.LogErr(err)
 		return "", err
 	}
 
 	mod, err := modfile.Parse("go.mod", data, nil)
 	if err != nil {
-		LogErr(err)
+		debug.LogErr(err)
 		return "", err
 	}
 
@@ -45,7 +51,7 @@ func ModuleName() (string, error) {
 func NotesRootDir() (string, error) {
 	Home, err := os.UserHomeDir()
 	if err != nil {
-		LogErr(err)
+		debug.LogErr(err)
 		return "", err
 	}
 
@@ -63,7 +69,7 @@ func ConfigDir() (string, error) {
 	ConfigDir, err := os.UserConfigDir()
 	if err != nil {
 		msg := "Could not get config directory in config.go/ConfigDir()"
-		LogErr(msg, err)
+		debug.LogErr(msg, err)
 		return "", err
 	}
 
@@ -75,7 +81,7 @@ func ConfigDir() (string, error) {
 	appName, err := ModuleName()
 	if err != nil {
 		msg := "Could not get config file in config.go/ConfigFile()"
-		LogErr(msg, err)
+		debug.LogErr(msg, err)
 		return "", err
 	}
 
@@ -92,14 +98,14 @@ func ConfigFile() (string, error) {
 	appName, err := ModuleName()
 	if err != nil {
 		msg := "Could not get config file in config.go/ConfigFile()"
-		LogErr(msg, err)
+		debug.LogErr(msg, err)
 		return "", err
 	}
 
 	configDir, err := ConfigDir()
 	if err != nil {
 		msg := "Could not get config dir in config.go/ConfigFile"
-		LogErr(msg, err)
+		debug.LogErr(msg, err)
 		return "", err
 	}
 

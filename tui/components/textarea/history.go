@@ -3,7 +3,7 @@ package textarea
 import (
 	"fmt"
 
-	"bellbird-notes/app"
+	"bellbird-notes/app/debug"
 )
 
 type History struct {
@@ -50,7 +50,7 @@ func (h *History) NewEntry(cursorPos CursorPos) {
 
 func (h *History) UpdateEntry(s string, cursorPos CursorPos) error {
 	if len(h.entries) < h.entryIndex {
-		app.LogErr("History entry index not found:", h.entryIndex)
+		debug.LogErr("History entry index not found:", h.entryIndex)
 		return fmt.Errorf("History entry index %d not found", h.entryIndex)
 	}
 

@@ -4,7 +4,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"bellbird-notes/app"
+	"bellbird-notes/app/debug"
 	"bellbird-notes/app/utils"
 	"bellbird-notes/tui/errors"
 )
@@ -26,7 +26,7 @@ func List(dirPath string) ([]Directory, error) {
 
 	dirs, err := os.ReadDir(dirPath)
 	if err != nil {
-		app.LogErr(err)
+		debug.LogErr(err)
 		return nil, err
 	}
 
@@ -68,7 +68,7 @@ func ContainsDir(path string, dirName string) (error, bool) {
 
 func Create(path string) error {
 	if err := os.Mkdir(path, 0755); err != nil {
-		app.LogErr(err)
+		debug.LogErr(err)
 		return err
 	}
 	return nil
@@ -76,7 +76,7 @@ func Create(path string) error {
 
 func Rename(oldPath string, newPath string) error {
 	if err := os.Rename(oldPath, newPath); err != nil {
-		app.LogErr(err)
+		debug.LogErr(err)
 		return err
 	}
 	return nil
@@ -84,18 +84,18 @@ func Rename(oldPath string, newPath string) error {
 
 func Delete(path string, deleteContent bool) error {
 	if _, err := os.Stat(path); err != nil {
-		app.LogErr(err)
+		debug.LogErr(err)
 		return err
 	}
 
 	if !deleteContent {
 		if err := os.Remove(path); err != nil {
-			app.LogErr(err)
+			debug.LogErr(err)
 			return &errors.PromptError{Arg: path, Message: err.Error()}
 		}
 	} else {
 		if err := os.RemoveAll(path); err != nil {
-			app.LogErr(err)
+			debug.LogErr(err)
 			return err
 		}
 	}

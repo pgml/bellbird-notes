@@ -80,6 +80,7 @@ func (s *StatusBar) Update(msg messages.StatusBarMsg, teaMsg tea.Msg) *StatusBar
 		if s.Mode == mode.Normal {
 			s.BlurPrompt()
 		}
+
 		//case teaMsg.WindowSizeMsg:
 		//	// Convert WindowSizeMsg to BubbleLayoutMsg.
 		//	return s, func() teaMsg.(type) {
@@ -108,9 +109,11 @@ func (s *StatusBar) View() string {
 
 	width, _ := theme.GetTerminalSize()
 	c1width := 10
+
 	if s.Prompt.Focused() {
 		c1width = 0
 	}
+
 	c3width := 15
 	c4width := 15
 	c2width := max(width-(c1width+c3width+c4width), 1)
@@ -137,7 +140,9 @@ func (s StatusBar) ModeView() string {
 	return style.Render(mode)
 }
 
-func (s *StatusBar) ConfirmAction(sender messages.Sender) messages.StatusBarMsg {
+func (s *StatusBar) ConfirmAction(
+	sender messages.Sender,
+) messages.StatusBarMsg {
 	if s.Prompt.Focused() {
 		switch s.Prompt.Value() {
 		case ResponseYES:
@@ -148,6 +153,7 @@ func (s *StatusBar) ConfirmAction(sender messages.Sender) messages.StatusBarMsg 
 			if sender == messages.SenderNotesList {
 				return s.NotesList.Remove()
 			}
+
 		case ResponseNO:
 			s.BlurPrompt()
 			s.Columns[1].content = ""

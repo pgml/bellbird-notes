@@ -36,7 +36,7 @@ type List[T ListItem] struct {
 	// The index of the currently edited directory row
 	editIndex *int
 	// States if directory is being created or renamed
-	editState EditState
+	EditState EditState
 
 	// Stores the list items
 	items []T
@@ -172,7 +172,7 @@ func RefreshList[T interface{ Refresh() }](a T) {
 // returns a message that is displayed in the status bar
 func (l *List[T]) Rename(origName string) messages.StatusBarMsg {
 	if l.editIndex == nil {
-		l.editState = EditRename
+		l.EditState = EditRename
 		l.editIndex = &l.selectedIndex
 		l.editor.SetValue(origName)
 		// set cursor to last position
@@ -183,9 +183,9 @@ func (l *List[T]) Rename(origName string) messages.StatusBarMsg {
 
 // Cancel the current action and blurs the editor
 func (l *List[T]) CancelAction(cb func()) messages.StatusBarMsg {
-	if l.editState != EditNone {
+	if l.EditState != EditNone {
 		l.editIndex = nil
-		l.editState = EditNone
+		l.EditState = EditNone
 		l.editor.Blur()
 	}
 	cb()
