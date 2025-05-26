@@ -6,7 +6,7 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 )
 
-// EditState is the state in which the DirectoryTree.editor is
+// EditState is the state in which the DirectoryTree.editor is in
 // when the Insert mode is active
 type EditState int
 
@@ -29,24 +29,29 @@ type ListItem interface {
 type List[T ListItem] struct {
 	Component
 
-	selectedIndex int // The currently selector directory row
+	// The currently selector directory row
+	selectedIndex int
+	// The text input that is used for renaming or creating directories
+	editor textinput.Model
+	// The index of the currently edited directory row
+	editIndex *int
+	// States if directory is being created or renamed
+	editState EditState
 
-	editor       textinput.Model // The text input that is used for renaming or creating directories
-	editingIndex *int            // The index of the currently edited directory row
-	editingState EditState       // States if directory is being created or renamed
-
-	items []T // Stores the list items
+	// Stores the list items
+	items []T
 
 	// We set the length manually because len(items) won't be possible
-	// for the directories since the multidimensial []items doesn't reflect
-	// the actual displayed list items when T is Dir
-	// In this case the real length would come from `DirectoryTree.dirsListFlat`
+	// for the directories since the multidimensial []items
+	// doesn't reflect the actual displayed list items when T is Dir
+	// In this case the real length would come from `
+	// DirectoryTree.dirsListFlat`
 	length    int
 	lastIndex int
 
 	firstVisibleLine int
 	lastVisibleLine  int
-	visibleLineCount int
+	visibleLines     int
 }
 
 type Item struct {
@@ -63,36 +68,45 @@ type Item struct {
 
 type statusMsg string
 
+const reservedLines = 3
+
+// UpdateViewportInfo synchronises the list's internal visible line count
+// with the actual height of the viewport, subtracting `reservedLines`
+// because I couldn't figure out why `VisibleLineCount()` seem to be more
+// that it should be
+//
+// This ensures scrolling and item selection logic remain accurate after
+// layout changes or terminal resizes.
 func (l *List[T]) UpdateViewportInfo() {
-	if l.visibleLineCount != l.viewport.VisibleLineCount() {
-		l.visibleLineCount = l.viewport.VisibleLineCount() - 3
-		l.lastVisibleLine = l.visibleLineCount
+	if l.visibleLines != l.viewport.VisibleLineCount() {
+		l.visibleLines = l.viewport.VisibleLineCount() - reservedLines
+		l.lastVisibleLine = l.visibleLines
 	}
 }
 
-// SelectedItem returns the currently selected item in the current list
-func (l List[T]) SelectedItem(items []T) T {
-	var empty T
-
+// SelectedItem returns the currently selected item of the list
+func (l *List[T]) SelectedItem(items []T) *T {
 	if l.length == 0 {
-		return empty
+		return nil
 	}
 
 	if items == nil {
 		items = l.items
 	}
 
-	if l.selectedIndex >= 0 && l.selectedIndex < l.length {
-		return items[l.selectedIndex]
+	if l.selectedIndex >= 0 && l.selectedIndex <= l.length {
+		return &items[l.selectedIndex]
 	}
-	return empty
+
+	return nil
 }
 
-func (l List[T]) indexByPath(path string, items []T) int {
+// indexByPath returns the interal list index by the given path
+func (l List[T]) indexByPath(path string, items *[]T) int {
 	if items == nil {
-		items = l.items
+		items = &l.items
 	}
-	for _, item := range items {
+	for _, item := range *items {
 		if item.GetPath() == path {
 			return item.GetIndex()
 		}
@@ -113,7 +127,7 @@ func (l *List[T]) LineUp() messages.StatusBarMsg {
 	// scroll up
 	if l.selectedIndex < l.firstVisibleLine {
 		l.firstVisibleLine = l.selectedIndex
-		l.lastVisibleLine = l.visibleLineCount + l.firstVisibleLine
+		l.lastVisibleLine = l.visibleLines + l.firstVisibleLine
 		l.viewport.LineUp(1)
 	}
 
@@ -127,8 +141,8 @@ func (l *List[T]) LineDown() messages.StatusBarMsg {
 	}
 
 	// scroll down
-	if l.selectedIndex > l.visibleLineCount {
-		l.firstVisibleLine = l.selectedIndex - l.visibleLineCount
+	if l.selectedIndex > l.visibleLines {
+		l.firstVisibleLine = l.selectedIndex - l.visibleLines
 		l.lastVisibleLine = l.selectedIndex
 		l.viewport.LineDown(1)
 	}
@@ -157,9 +171,9 @@ func RefreshList[T interface{ Refresh() }](a T) {
 // Rename renames the currently selected directory and
 // returns a message that is displayed in the status bar
 func (l *List[T]) Rename(origName string) messages.StatusBarMsg {
-	if l.editingIndex == nil {
-		l.editingState = EditRename
-		l.editingIndex = &l.selectedIndex
+	if l.editIndex == nil {
+		l.editState = EditRename
+		l.editIndex = &l.selectedIndex
 		l.editor.SetValue(origName)
 		// set cursor to last position
 		l.editor.CursorEnd()
@@ -169,9 +183,9 @@ func (l *List[T]) Rename(origName string) messages.StatusBarMsg {
 
 // Cancel the current action and blurs the editor
 func (l *List[T]) CancelAction(cb func()) messages.StatusBarMsg {
-	if l.editingState != EditNone {
-		l.editingIndex = nil
-		l.editingState = EditNone
+	if l.editState != EditNone {
+		l.editIndex = nil
+		l.editState = EditNone
 		l.editor.Blur()
 	}
 	cb()

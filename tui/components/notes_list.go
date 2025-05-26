@@ -41,7 +41,10 @@ func (n Note) GetPath() string { return n.Path }
 func (n Note) String() string {
 	r := n.styles.note.Render
 	name := utils.TruncateText(n.Name, 22)
-	name = strings.TrimSuffix(name, filepath.Ext(name))
+	name = strings.TrimSuffix(
+		name,
+		filepath.Ext(name),
+	)
 
 	icon := " 󰎞"
 	if noNerdFonts {
@@ -79,7 +82,7 @@ func (l *NotesList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		if l.editingIndex != nil && !l.editor.Focused() {
+		if l.editIndex != nil && !l.editor.Focused() {
 			l.editor.Focus()
 			return l, nil
 		}
@@ -91,14 +94,20 @@ func (l *NotesList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	case tea.WindowSizeMsg:
 		if !l.ready {
-			l.viewport = viewport.New(termWidth, termHeight-1)
+			l.viewport = viewport.New(
+				termWidth,
+				termHeight,
+			)
 			l.viewport.SetContent(l.build())
+
 			l.viewport.KeyMap = viewport.KeyMap{}
-			l.lastVisibleLine = l.viewport.VisibleLineCount() - 3
+			l.lastVisibleLine = l.viewport.
+				VisibleLineCount() - reservedLines
+
 			l.ready = true
 		} else {
 			l.viewport.Width = termWidth
-			l.viewport.Height = termHeight - 1
+			l.viewport.Height = termHeight
 		}
 	}
 
@@ -130,8 +139,8 @@ func NewNotesList() *NotesList {
 	list := &NotesList{
 		List: List[Note]{
 			selectedIndex:    0,
-			editingIndex:     nil,
-			editingState:     EditNone,
+			editIndex:        nil,
+			editState:        EditNone,
 			editor:           ti,
 			lastVisibleLine:  0,
 			firstVisibleLine: 0,
@@ -153,7 +162,7 @@ func (l NotesList) build() string {
 
 		//style := lipgloss.NewStyle().Foreground(lipgloss.Color("#999"))
 		//tree += style.Render(fmt.Sprintf("%02d", dir.index)) + " "
-		if l.editingIndex != nil && i == *l.editingIndex {
+		if l.editIndex != nil && i == *l.editIndex {
 			list += l.editor.View() + "\n" // Show input field instead of text
 		} else {
 			list += fmt.Sprintf("%-*s \n", l.viewport.Width, note.String())
@@ -266,7 +275,7 @@ func (l *NotesList) Create(
 		mi.Current = mode.Insert
 		statusBar.Focused = false
 
-		l.editingState = EditCreate
+		l.editState = EditCreate
 
 		tmpNote := l.createVirtualNote()
 		lastChild := l.getLastChild()
@@ -278,8 +287,8 @@ func (l *NotesList) Create(
 			l.selectedIndex = lastChild.index + 1
 		}
 
-		if l.editingIndex == nil {
-			l.editingIndex = &l.selectedIndex
+		if l.editIndex == nil {
+			l.editIndex = &l.selectedIndex
 			l.editor.SetValue(l.SelectedItem(nil).Name)
 		}
 	}
@@ -323,11 +332,11 @@ func (l *NotesList) Remove() messages.StatusBarMsg {
 func (l *NotesList) ConfirmAction() messages.StatusBarMsg {
 	// if editingindex is set it most likely means that we are
 	// renaming or creating a directory
-	if l.editingIndex != nil {
+	if l.editIndex != nil {
 		selectedNote := l.SelectedItem(nil)
 		newPath := filepath.Join(l.CurrentPath, l.editor.Value())
 
-		switch l.editingState {
+		switch l.editState {
 		case EditRename:
 			oldPath := selectedNote.Path
 			if err := notes.Rename(oldPath, newPath); err == nil {
@@ -348,7 +357,9 @@ func (l *NotesList) ConfirmAction() messages.StatusBarMsg {
 			}
 		}
 
-		l.CancelAction(func() { l.Refresh(false) })
+		l.CancelAction(func() {
+			l.Refresh(false)
+		})
 		return messages.StatusBarMsg{Content: "yep", Sender: messages.SenderNotesList}
 	}
 

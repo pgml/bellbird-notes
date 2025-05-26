@@ -152,10 +152,14 @@ func (s *StatusBar) ConfirmAction(sender messages.Sender) messages.StatusBarMsg 
 			s.BlurPrompt()
 			s.Columns[1].content = ""
 			if sender == messages.SenderDirTree {
-				return s.DirTree.CancelAction(func() { s.DirTree.Refresh(false) })
+				return s.DirTree.CancelAction(func() {
+					s.DirTree.Refresh(false)
+				})
 			}
 			if sender == messages.SenderNotesList {
-				return s.NotesList.CancelAction(func() { s.DirTree.Refresh(false) })
+				return s.NotesList.CancelAction(func() {
+					s.DirTree.Refresh(false)
+				})
 			}
 		}
 	}

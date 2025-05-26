@@ -43,7 +43,10 @@ type Model struct {
 
 func InitialModel() Model {
 	layout := bl.New()
-	mode := &mode.ModeInstance{Current: mode.Normal}
+
+	mode := &mode.ModeInstance{
+		Current: mode.Normal,
+	}
 
 	m := Model{
 		layout:       layout,
@@ -94,7 +97,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		// Convert WindowSizeMsg to BubbleLayoutMsg.
 		return m, func() tea.Msg {
-			return m.layout.Resize(msg.Width, msg.Height)
+			return m.layout.Resize(
+				msg.Width,
+				msg.Height,
+			)
 		}
 
 	case bl.BubbleLayoutMsg:
@@ -383,7 +389,7 @@ func (m *Model) cancelAction() messages.StatusBarMsg {
 	m.statusBar.Focused = false
 	if f := m.focusedComponent(); f != nil {
 		return f.CancelAction(func() {
-			f.Refresh(false)
+			f.Refresh(true)
 		})
 	}
 	return messages.StatusBarMsg{}

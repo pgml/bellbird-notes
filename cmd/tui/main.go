@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
 
@@ -10,6 +11,9 @@ import (
 )
 
 func main() {
+	// parse flags for stuff like --debug etc.
+	flag.Parse()
+
 	p := tea.NewProgram(tui.InitialModel(), tea.WithAltScreen())
 
 	if _, err := p.Run(); err != nil {

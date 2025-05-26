@@ -59,7 +59,7 @@ func New() *Input {
 			{"D", "delete", mode.Normal},
 			{"g", "goToTop", mode.Normal},
 			{"G", "goToBottom", mode.Normal},
-			{"esc", "cancelAction", mode.Normal},
+			//{"esc", "cancelAction", mode.Normal},
 			{"esc", "cancelAction", mode.Insert},
 			{"esc", "cancelAction", mode.Command},
 			{"enter", "confirmAction", mode.Normal},

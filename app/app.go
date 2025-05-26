@@ -11,6 +11,16 @@ func IsSnapshot() bool {
 	return os.Getenv("CHANNEL") == "snapshot"
 }
 
+func Name() string {
+	name := "Bellbird Notes"
+
+	//if IsSnapshot() {
+	//	name += " Snapshot"
+	//}
+
+	return name
+}
+
 func ModuleName() (string, error) {
 	data, err := os.ReadFile("go.mod")
 	if err != nil {
