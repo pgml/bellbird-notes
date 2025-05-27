@@ -22,7 +22,7 @@ import (
 )
 
 type NotesList struct {
-	List[Note]
+	List[NoteItem]
 
 	// The directory path of the currently displayed notes.
 	// This path might not match the directory that is selected in the
@@ -31,24 +31,24 @@ type NotesList struct {
 	CurrentPath string
 }
 
-type Note struct {
+type NoteItem struct {
 	Item
 	isPinned bool
 }
 
 // GetIndex returns the index of a Note-Item
-func (n Note) GetIndex() int { return n.index }
+func (n NoteItem) GetIndex() int { return n.index }
 
 // GetPath() returns the index of a Note-Item
-func (n Note) GetPath() string { return n.Path }
+func (n NoteItem) GetPath() string { return n.Path }
 
 // GetName() returns the index of a Note-Item
-func (n Note) GetName() string {
+func (n NoteItem) GetName() string {
 	return n.Name
 }
 
 // The string representation of a Dir
-func (n Note) String() string {
+func (n NoteItem) String() string {
 	r := n.styles.note.Render
 	name := utils.TruncateText(n.Name, 22)
 	name = strings.TrimSuffix(
@@ -72,7 +72,8 @@ func (n Note) String() string {
 	return baseStyle.Render(icon + r(name))
 }
 
-// Init initialises the Model on program load. It partly implements the tea.Model interface.
+// Init initialises the Model on program load.
+// It partly implements the tea.Model interface.
 func (l *NotesList) Init() tea.Cmd {
 	return nil
 }
@@ -133,6 +134,7 @@ func (l *NotesList) View() string {
 	return l.viewport.View()
 }
 
+// NewNotesList creates a new model with default settings.
 func NewNotesList() *NotesList {
 	ti := textinput.New()
 	ti.Prompt = " " + theme.IconInput + " "
@@ -140,14 +142,14 @@ func NewNotesList() *NotesList {
 
 	conf := config.New()
 	list := &NotesList{
-		List: List[Note]{
+		List: List[NoteItem]{
 			selectedIndex:    0,
 			editIndex:        nil,
 			EditState:        EditNone,
 			editor:           ti,
 			lastVisibleLine:  0,
 			firstVisibleLine: 0,
-			items:            make([]Note, 0),
+			items:            make([]NoteItem, 0),
 		},
 		CurrentPath: conf.Value(config.General, config.UserNotesDirectory),
 	}
@@ -156,6 +158,7 @@ func NewNotesList() *NotesList {
 	return list
 }
 
+// build prepares the notes list as a string
 func (l NotesList) build() string {
 	var list string
 
@@ -179,9 +182,13 @@ func (l NotesList) build() string {
 	return list
 }
 
+// Refresh updates the notes list
+//
+// If `resetIndex` is set to true, 'l.selectedIndex' will be set to 0
+// which representns the first note
 func (l *NotesList) Refresh(resetSelectedIndex bool) messages.StatusBarMsg {
 	if resetSelectedIndex {
-		l.selectedIndex = l.items[len(l.items)-1].index - 1
+		l.selectedIndex = 0
 	}
 	notes, err := notes.List(l.CurrentPath)
 
@@ -192,7 +199,7 @@ func (l *NotesList) Refresh(resetSelectedIndex bool) messages.StatusBarMsg {
 		}
 	}
 
-	l.items = make([]Note, 0, len(notes))
+	l.items = make([]NoteItem, 0, len(notes))
 
 	for i, note := range notes {
 		noteItem := l.createNoteItem(note)
@@ -210,9 +217,10 @@ func (l *NotesList) Refresh(resetSelectedIndex bool) messages.StatusBarMsg {
 	return messages.StatusBarMsg{}
 }
 
-func (l *NotesList) createNoteItem(note notes.Note) Note {
+// createNoteItem creates populated NoteItem
+func (l *NotesList) createNoteItem(note notes.Note) NoteItem {
 	style := NotesListStyle()
-	childItem := Note{
+	childItem := NoteItem{
 		Item: Item{
 			index:  0,
 			Name:   note.Name,
@@ -228,7 +236,7 @@ func (l *NotesList) createNoteItem(note notes.Note) Note {
 //
 // This note is mainly used as a placeholder when creating a note
 // and is not actually written to the file system.
-func (l *NotesList) createVirtualNote() Note {
+func (l *NotesList) createVirtualNote() NoteItem {
 	selectedNote := l.SelectedItem(nil)
 	tempNoteName := "New Note"
 
@@ -237,7 +245,7 @@ func (l *NotesList) createVirtualNote() Note {
 		tempNoteName,
 	)
 
-	return Note{
+	return NoteItem{
 		Item: Item{
 			index: len(l.items),
 			Name:  tempNoteName,
@@ -246,9 +254,9 @@ func (l *NotesList) createVirtualNote() Note {
 	}
 }
 
-func (l NotesList) getLastChild() Note {
+func (l NotesList) getLastChild() NoteItem {
 	if len(l.items) <= 0 {
-		return Note{}
+		return NoteItem{}
 	}
 	return l.items[len(l.items)-1]
 }
@@ -258,12 +266,12 @@ func (l NotesList) getLastChild() Note {
 // Note: this is only a virtual insertion into to the flat copy
 // of the directories.
 // To make it persistent write it to the file system
-func (l *NotesList) insertDirAfter(afterIndex int, note Note) {
+func (l *NotesList) insertDirAfter(afterIndex int, note NoteItem) {
 	for i, dir := range l.items {
 		if dir.index == afterIndex {
 			l.items = append(
 				l.items[:i+1],
-				append([]Note{note}, l.items[i+1:]...)...,
+				append([]NoteItem{note}, l.items[i+1:]...)...,
 			)
 			break
 		}
@@ -380,7 +388,11 @@ func (l *NotesList) ConfirmAction() messages.StatusBarMsg {
 		l.CancelAction(func() {
 			l.Refresh(false)
 		})
-		return messages.StatusBarMsg{Content: "yep", Sender: messages.SenderNotesList}
+
+		return messages.StatusBarMsg{
+			Content: "yep",
+			Sender:  messages.SenderNotesList,
+		}
 	}
 
 	return messages.StatusBarMsg{Sender: messages.SenderNotesList}

@@ -22,23 +22,23 @@ import (
 
 // DirectoryTree represents the bubbletea model.
 type DirectoryTree struct {
-	List[Dir]
+	List[TreeItem]
 
 	// A flattened representation to make vertical navigation easier
-	dirsListFlat []Dir
+	dirsListFlat []TreeItem
 	// Stores currently expanded directories
 	expandedDirs map[string]bool
 }
 
-// Dir represents a single directory tree row
-type Dir struct {
+// TreeItem represents a single directory tree row
+type TreeItem struct {
 	Item
 
 	// The parent index of the directory.
 	// Used to make expanding and collapsing a directory possible
 	// using DirectoryTree.dirsListFlat
 	parent   int
-	children []Dir
+	children []TreeItem
 	// Indicates whether a directory is expanded
 	expanded bool
 	// Indicates the depth of a directory
@@ -51,16 +51,16 @@ type Dir struct {
 }
 
 // GetIndex returns the index of a Dir-Item
-func (d Dir) GetIndex() int { return d.index }
+func (d TreeItem) GetIndex() int { return d.index }
 
 // GetPath returns the path of a Dir-Item
-func (d Dir) GetPath() string { return d.Path }
+func (d TreeItem) GetPath() string { return d.Path }
 
 // GetName returns the name of a Dir-Item
-func (d Dir) GetName() string { return d.Name }
+func (d TreeItem) GetName() string { return d.Name }
 
 // GetIndent returns the path of a Dir-Item
-func (d Dir) GetIndent(indentLines bool) string {
+func (d TreeItem) GetIndent(indentLines bool) string {
 	if indentLines {
 		return "│ "
 	} else {
@@ -69,7 +69,7 @@ func (d Dir) GetIndent(indentLines bool) string {
 }
 
 // The string representation of a Dir
-func (d *Dir) String() string {
+func (d *TreeItem) String() string {
 	t := d.styles.toggle.Render
 	n := d.styles.dir.Render
 	e := d.styles.enumerator.Render
@@ -169,19 +169,19 @@ func (t *DirectoryTree) View() string {
 	return t.viewport.View()
 }
 
-// New creates a new model with default settings.
+// NewDirectoryTree creates a new model with default settings.
 func NewDirectoryTree() *DirectoryTree {
 	ti := textinput.New()
 	ti.Prompt = theme.IconInput + " "
 	ti.CharLimit = 100
 
 	tree := &DirectoryTree{
-		List: List[Dir]{
+		List: List[TreeItem]{
 			selectedIndex: 0,
 			editIndex:     nil,
 			EditState:     EditNone,
 			editor:        ti,
-			items:         make([]Dir, 0),
+			items:         make([]TreeItem, 0),
 		},
 		expandedDirs: make(map[string]bool),
 	}
@@ -193,7 +193,7 @@ func NewDirectoryTree() *DirectoryTree {
 	)
 
 	// append root directory
-	tree.items = append(tree.items, Dir{
+	tree.items = append(tree.items, TreeItem{
 		Item: Item{
 			index:  0,
 			Name:   app.Name(),
@@ -215,9 +215,9 @@ func NewDirectoryTree() *DirectoryTree {
 func (t *DirectoryTree) build() {
 	t.refreshFlatList()
 
-	for _, dir := range t.dirsListFlat {
-		dir.expanded = t.isExpanded(dir.Path)
-	}
+	//for _, dir := range t.dirsListFlat {
+	//	dir.expanded = t.isExpanded(dir.Path)
+	//}
 
 	t.length = len(t.dirsListFlat)
 	t.lastIndex = t.dirsListFlat[len(t.dirsListFlat)-1].index
@@ -264,8 +264,8 @@ func (t *DirectoryTree) render() string {
 }
 
 // getChildren reads a directory and returns a slice of a directory Dir
-func (t *DirectoryTree) getChildren(path string, level int) []Dir {
-	var dirs []Dir
+func (t *DirectoryTree) getChildren(path string, level int) []TreeItem {
+	var dirs []TreeItem
 	childDir, _ := directories.List(path)
 
 	for _, dir := range childDir {
@@ -286,10 +286,10 @@ func (t DirectoryTree) isExpanded(dirPath string) bool {
 func (m *DirectoryTree) createDirectoryItem(
 	dir directories.Directory,
 	level int,
-) Dir {
+) TreeItem {
 	style := DirTreeStyle()
 
-	dirItem := Dir{
+	dirItem := TreeItem{
 		Item: Item{
 			index:  0,
 			Name:   dir.Name,
@@ -311,7 +311,7 @@ func (m *DirectoryTree) createDirectoryItem(
 //
 // This directory is mainly used as a placeholder when creating a directory
 // and is not actually written to the file system.
-func (t *DirectoryTree) createVirtualDir() Dir {
+func (t *DirectoryTree) createVirtualDir() TreeItem {
 	selectedDir := t.SelectedDir()
 	tempFolderName := "New Folder"
 	tempFolderPath := filepath.Join(
@@ -320,7 +320,7 @@ func (t *DirectoryTree) createVirtualDir() Dir {
 	)
 	indent := selectedDir.level + 1
 
-	return Dir{
+	return TreeItem{
 		Item: Item{
 			index: len(t.dirsListFlat),
 			Name:  tempFolderName,
@@ -387,7 +387,7 @@ func (t *DirectoryTree) RefreshBranch(index int, selectAfter int) {
 }
 
 // SelectedDir returns the currently selected directory in the directory tree
-func (t *DirectoryTree) SelectedDir() *Dir {
+func (t *DirectoryTree) SelectedDir() *TreeItem {
 	return t.SelectedItem(t.dirsListFlat)
 }
 
@@ -400,12 +400,12 @@ func (t *DirectoryTree) refreshFlatList() {
 // flatten converts a slice of Dir and its sub slices into
 // a one dimensional slice that we use to render the directory tree
 func (t *DirectoryTree) flatten(
-	dirs []Dir,
+	dirs []TreeItem,
 	level int,
 	parent int,
 	nextIndex *int,
-) []Dir {
-	var result []Dir
+) []TreeItem {
+	var result []TreeItem
 	for i, dir := range dirs {
 		dir.index = *nextIndex
 		dir.parent = parent
@@ -434,7 +434,7 @@ func (t *DirectoryTree) flatten(
 
 // lastChildOfSelection returns the corresponding last child
 // of the selected directory.
-func (t *DirectoryTree) lastChildOfSelection() *Dir {
+func (t *DirectoryTree) lastChildOfSelection() *TreeItem {
 	selectedDir := t.SelectedDir()
 	lastChild := t.getLastChild(selectedDir.index)
 
@@ -448,7 +448,7 @@ func (t *DirectoryTree) lastChildOfSelection() *Dir {
 //
 // if `createEmpty` is set to true, we attempt to create an empty
 // Dir{}
-func (t *DirectoryTree) getLastChild(index int) *Dir {
+func (t *DirectoryTree) getLastChild(index int) *TreeItem {
 	lastChild := t.dirsListFlat[len(t.dirsListFlat)-1]
 	dir := t.dirsListFlat[index]
 
@@ -478,12 +478,12 @@ func (t *DirectoryTree) getLastChild(index int) *Dir {
 // Note: this is only a virtual insertion into to the flat copy
 // of the directories.
 // To make it persistent write it to the file system
-func (m *DirectoryTree) insertDirAfter(afterIndex int, directory Dir) {
+func (m *DirectoryTree) insertDirAfter(afterIndex int, directory TreeItem) {
 	for i, dir := range m.dirsListFlat {
 		if dir.index == afterIndex {
 			m.dirsListFlat = append(
 				m.dirsListFlat[:i+1],
-				append([]Dir{directory}, m.dirsListFlat[i+1:]...)...,
+				append([]TreeItem{directory}, m.dirsListFlat[i+1:]...)...,
 			)
 			break
 		}
@@ -509,7 +509,7 @@ func (t *DirectoryTree) dirExists(dirPath string) bool {
 }
 
 // findDirInTree recursively searches for a directory by its path
-func findDirInTree(directories []Dir, path string) *Dir {
+func findDirInTree(directories []TreeItem, path string) *TreeItem {
 	for i := range directories {
 		if directories[i].Path == path {
 			return &directories[i]
@@ -601,7 +601,7 @@ func (t *DirectoryTree) Create(
 		// if the selected directory has no children yet
 		// we append and empty Dir so that we get a correct result
 		if selDir.index != 0 && len(selDir.children) == 0 {
-			selDir.children = append(selDir.children, Dir{})
+			selDir.children = append(selDir.children, TreeItem{})
 		}
 
 		lastChild := t.lastChildOfSelection()
