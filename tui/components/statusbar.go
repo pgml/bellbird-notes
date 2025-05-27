@@ -63,8 +63,12 @@ func (s *StatusBar) Init() tea.Cmd {
 	return nil
 }
 
-func (s *StatusBar) Update(msg messages.StatusBarMsg, teaMsg tea.Msg) *StatusBar {
+func (s *StatusBar) Update(
+	msg messages.StatusBarMsg,
+	teaMsg tea.Msg,
+) *StatusBar {
 	s.Columns[msg.Column].content = msg.Content
+
 	if s.Focused && s.Mode == mode.Normal {
 		s.Type = msg.Type
 	}
@@ -126,7 +130,7 @@ func (s *StatusBar) View() string {
 	)
 }
 
-func (s StatusBar) ModeView() string {
+func (s *StatusBar) ModeView() string {
 	style := lipgloss.NewStyle().
 		Foreground(s.Mode.Colour()).
 		PaddingLeft(1).

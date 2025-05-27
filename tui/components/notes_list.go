@@ -232,26 +232,28 @@ func (l *NotesList) createNoteItem(note notes.Note) NoteItem {
 	return childItem
 }
 
-// createVirtualNote creates a temporary, virtual note `Note`
+// createVirtualNote creates a virtual note `Note`
+// with dummy data
 //
 // This note is mainly used as a placeholder when creating a note
 // and is not actually written to the file system.
 func (l *NotesList) createVirtualNote() NoteItem {
 	selectedNote := l.SelectedItem(nil)
-	tempNoteName := "New Note"
-
-	tempNotePath := filepath.Join(
+	name := "New Note"
+	path := filepath.Join(
 		filepath.Dir(selectedNote.Path),
-		tempNoteName,
+		name,
 	)
 
-	return NoteItem{
-		Item: Item{
-			index: len(l.items),
-			Name:  tempNoteName,
-			Path:  tempNotePath,
-		},
+	item := notes.Note{
+		Name: name,
+		Path: path,
 	}
+
+	noteItem := l.createNoteItem(item)
+	noteItem.index = len(l.items)
+
+	return noteItem
 }
 
 func (l NotesList) getLastChild() NoteItem {

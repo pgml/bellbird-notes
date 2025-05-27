@@ -8,7 +8,7 @@ func TestDirectoryTree_getChildren(t *testing.T) {
 		// Named input parameters for target function.
 		path  string
 		level int
-		want  []Dir
+		want  []TreeItem
 	}{
 		// TODO: Add test cases.
 	}
