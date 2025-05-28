@@ -62,7 +62,7 @@ func (n NoteItem) String() string {
 		icon = " "
 	}
 
-	baseStyle := lipgloss.NewStyle().Width(30)
+	baseStyle := lipgloss.NewStyle().Width(28)
 	if n.selected {
 		baseStyle = baseStyle.
 			Background(theme.ColourBgSelected).

@@ -93,7 +93,7 @@ func (d *TreeItem) String() string {
 		}
 	}
 
-	baseStyle := lipgloss.NewStyle().Width(30)
+	baseStyle := lipgloss.NewStyle().Width(28)
 	if d.selected {
 		baseStyle = baseStyle.
 			Background(theme.ColourBgSelected).
