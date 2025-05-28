@@ -4,10 +4,6 @@
 
 package textarea
 
-import (
-	"slices"
-)
-
 type CursorPos struct {
 	Row          int
 	ColumnOffset int
@@ -100,7 +96,11 @@ func (m Model) CursorPos() CursorPos {
 
 // DeleteLine deletes current line
 func (m *Model) DeleteLine() {
-	m.value = slices.Delete(m.value, m.row, m.row+1)
+	currCursorPos := m.LineInfo().ColumnOffset
+	m.CursorStart()
+	m.deleteAfterCursor()
+	m.mergeLineBelow(m.row)
+	m.SetCursor(currCursorPos)
 }
 
 // DeleteLines deletes l lines
@@ -111,7 +111,8 @@ func (m *Model) DeleteLines(l int, up bool) {
 		m.CursorUp()
 	}
 	for range l {
-		m.value = slices.Delete(m.value, row, row+1)
+		m.SetCursor(l)
+		m.DeleteLine()
 	}
 }
 
@@ -129,7 +130,7 @@ func (m *Model) DownHalfPage() {
 	max := min + m.viewport.Height - 1
 
 	if row := m.cursorLineNumber(); row > max {
-		m.viewport.LineDown(m.viewport.Height / 2)
+		m.viewport.ScrollDown(m.viewport.Height / 2)
 	}
 }
 
@@ -142,6 +143,6 @@ func (m *Model) UpHalfPage() {
 	min := m.viewport.YOffset
 
 	if row := m.cursorLineNumber(); row < min {
-		m.viewport.LineUp(min - row)
+		m.viewport.ScrollUp(min - row)
 	}
 }
