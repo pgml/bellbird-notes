@@ -134,8 +134,10 @@ func (e *Editor) Init() tea.Cmd {
 }
 
 func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	var cmds []tea.Cmd
-	var cmd tea.Cmd
+	var (
+		cmds []tea.Cmd
+		cmd  tea.Cmd
+	)
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
@@ -302,6 +304,7 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 				e.CurrentBuffer.History.NewEntry(e.Textarea.CursorPos())
 			}
+
 			if e.Vim.Pending.operator == "g" {
 				switch msg.String() {
 				case "g":
@@ -309,6 +312,7 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					e.Textarea.RepositionView()
 				}
 			}
+
 			e.Vim.Pending.ResetKeysDown()
 			e.Vim.Mode.Current = mode.Normal
 			e.Vim.Pending.operator = ""
