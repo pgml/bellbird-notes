@@ -59,8 +59,8 @@ type Item struct {
 	// of a directory.
 	index int
 
-	Name     string
-	Path     string
+	name     string
+	path     string
 	selected bool
 
 	styles styles
@@ -128,7 +128,7 @@ func (l *List[T]) LineUp() messages.StatusBarMsg {
 	if l.selectedIndex < l.firstVisibleLine {
 		l.firstVisibleLine = l.selectedIndex
 		l.lastVisibleLine = l.visibleLines + l.firstVisibleLine
-		l.viewport.LineUp(1)
+		l.viewport.ScrollUp(1)
 	}
 
 	return messages.StatusBarMsg{Column: 2}
@@ -144,7 +144,7 @@ func (l *List[T]) LineDown() messages.StatusBarMsg {
 	if l.selectedIndex > l.visibleLines {
 		l.firstVisibleLine = l.selectedIndex - l.visibleLines
 		l.lastVisibleLine = l.selectedIndex
-		l.viewport.LineDown(1)
+		l.viewport.ScrollDown(1)
 	}
 
 	return messages.StatusBarMsg{Column: 2}

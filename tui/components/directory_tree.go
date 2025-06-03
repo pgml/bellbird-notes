@@ -54,10 +54,10 @@ type TreeItem struct {
 func (d TreeItem) GetIndex() int { return d.index }
 
 // GetPath returns the path of a Dir-Item
-func (d TreeItem) GetPath() string { return d.Path }
+func (d TreeItem) GetPath() string { return d.path }
 
 // GetName returns the name of a Dir-Item
-func (d TreeItem) GetName() string { return d.Name }
+func (d TreeItem) GetName() string { return d.name }
 
 // GetIndent returns the path of a Dir-Item
 func (d TreeItem) GetIndent(indentLines bool) string {
@@ -78,7 +78,7 @@ func (d *TreeItem) String() string {
 		d.GetIndent(false), // @todo make this a config option
 		d.level,
 	)
-	name := utils.TruncateText(d.Name, 22)
+	name := utils.TruncateText(d.GetName(), 22)
 
 	// nerdfonts required
 	toggle := map[string]string{
@@ -196,8 +196,8 @@ func NewDirectoryTree() *DirectoryTree {
 	tree.items = append(tree.items, TreeItem{
 		Item: Item{
 			index:  0,
-			Name:   app.Name(),
-			Path:   notesDir,
+			name:   app.Name(),
+			path:   notesDir,
 			styles: DirTreeStyle(),
 		},
 		expanded: true,
@@ -292,8 +292,8 @@ func (m *DirectoryTree) createDirectoryItem(
 	dirItem := TreeItem{
 		Item: Item{
 			index:  0,
-			Name:   dir.Name,
-			Path:   dir.Path,
+			name:   dir.Name,
+			path:   dir.Path,
 			styles: style,
 		},
 		expanded:   dir.IsExpanded,
@@ -315,7 +315,7 @@ func (t *DirectoryTree) createVirtualDir() TreeItem {
 	selectedDir := t.SelectedDir()
 	tempFolderName := "New Folder"
 	tempFolderPath := filepath.Join(
-		selectedDir.Path,
+		selectedDir.GetPath(),
 		tempFolderName,
 	)
 	indent := selectedDir.level + 1
@@ -323,8 +323,8 @@ func (t *DirectoryTree) createVirtualDir() TreeItem {
 	return TreeItem{
 		Item: Item{
 			index: len(t.dirsListFlat),
-			Name:  tempFolderName,
-			Path:  tempFolderPath,
+			name:  tempFolderName,
+			path:  tempFolderPath,
 		},
 		expanded: false,
 		children: nil,
@@ -372,10 +372,10 @@ func (t *DirectoryTree) Refresh(resetIndex bool) messages.StatusBarMsg {
 // If `selectAfter` is -1 the branch's parent is selected
 func (t *DirectoryTree) RefreshBranch(index int, selectAfter int) {
 	t.selectedIndex = index
-	path := t.SelectedDir().Path
+	path := t.SelectedDir().path
 
 	if dir := findDirInTree(t.items, path); dir != nil {
-		dir.children = t.getChildren(dir.Path, dir.level+1)
+		dir.children = t.getChildren(dir.path, dir.level+1)
 	}
 
 	if selectAfter == -1 {
@@ -413,7 +413,7 @@ func (t *DirectoryTree) flatten(
 
 		*nextIndex++
 
-		if _, contains := t.expandedDirs[dir.Path]; contains {
+		if _, contains := t.expandedDirs[dir.path]; contains {
 			dir.expanded = true
 		}
 
@@ -460,11 +460,11 @@ func (t *DirectoryTree) getLastChild(index int) *TreeItem {
 
 	if len(dir.children) > 0 {
 		lastChild = dir.children[len(dir.children)-1]
-		if lastChild.Name == "" {
+		if lastChild.name == "" {
 			lastChild = dir
 		}
 		for _, dir := range t.dirsListFlat {
-			if lastChild.Name == dir.Name {
+			if lastChild.name == dir.name {
 				lastChild = dir
 			}
 		}
@@ -511,7 +511,7 @@ func (t *DirectoryTree) dirExists(dirPath string) bool {
 // findDirInTree recursively searches for a directory by its path
 func findDirInTree(directories []TreeItem, path string) *TreeItem {
 	for i := range directories {
-		if directories[i].Path == path {
+		if directories[i].path == path {
 			return &directories[i]
 		}
 
@@ -539,11 +539,11 @@ func (t *DirectoryTree) Collapse() messages.StatusBarMsg {
 	}
 
 	items := t.items
-	path := t.SelectedDir().Path
+	path := t.SelectedDir().path
 
 	if dir := findDirInTree(items, path); dir != nil {
 		if dir.expanded {
-			delete(t.expandedDirs, dir.Path)
+			delete(t.expandedDirs, dir.path)
 			dir.expanded = false
 			t.build()
 		}
@@ -560,12 +560,12 @@ func (t *DirectoryTree) Expand() messages.StatusBarMsg {
 	}
 
 	items := t.items
-	path := t.SelectedDir().Path
+	path := t.SelectedDir().path
 
 	if dir := findDirInTree(items, path); dir != nil {
 		if !dir.expanded {
-			t.expandedDirs[dir.Path] = true
-			dir.children = t.getChildren(dir.Path, dir.level+1)
+			t.expandedDirs[dir.path] = true
+			dir.children = t.getChildren(dir.path, dir.level+1)
 			dir.expanded = true
 			t.build()
 		}
@@ -613,7 +613,7 @@ func (t *DirectoryTree) Create(
 
 		if t.editIndex == nil {
 			t.editIndex = &t.selectedIndex
-			t.editor.SetValue(vrtDir.Name)
+			t.editor.SetValue(vrtDir.name)
 			t.editor.CursorEnd()
 		}
 	}
@@ -627,7 +627,7 @@ func (t *DirectoryTree) ConfirmRemove() messages.StatusBarMsg {
 
 	resultMsg := fmt.Sprintf(
 		messages.RemovePromptContent,
-		selectedDir.Path,
+		selectedDir.path,
 	)
 
 	return messages.StatusBarMsg{
@@ -646,12 +646,12 @@ func (t *DirectoryTree) Remove() messages.StatusBarMsg {
 
 	resultMsg := fmt.Sprintln(
 		messages.SuccessRemove,
-		dir.Path,
+		dir.path,
 	)
 
 	msgType := messages.Success
 
-	if err := directories.Delete(dir.Path, false); err == nil {
+	if err := directories.Delete(dir.path, false); err == nil {
 		t.dirsListFlat = slices.Delete(
 			t.dirsListFlat,
 			index,
@@ -676,7 +676,7 @@ func (t *DirectoryTree) ConfirmAction() messages.StatusBarMsg {
 	// renaming or creating a directory
 	if t.editIndex != nil {
 		selDir := t.SelectedDir()
-		oldPath := selDir.Path
+		oldPath := selDir.path
 
 		newPath := filepath.Join(
 			filepath.Dir(oldPath),

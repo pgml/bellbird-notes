@@ -303,13 +303,13 @@ func (m *Model) rename() messages.StatusBarMsg {
 
 	if m.dirTree.Focused {
 		return m.dirTree.Rename(
-			m.dirTree.SelectedDir().Name,
+			m.dirTree.SelectedDir().GetName(),
 		)
 	}
 
 	if m.notesList.Focused {
 		return m.notesList.Rename(
-			m.notesList.SelectedItem(nil).Name,
+			m.notesList.SelectedItem(nil).GetName(),
 		)
 	}
 	return messages.StatusBarMsg{}
@@ -353,23 +353,16 @@ func (m *Model) confirmAction() messages.StatusBarMsg {
 
 	f := m.focusedComponent()
 
-	if f == nil {
-		return statusMsg
-	}
-
 	if m.mode.Current != mode.Normal {
 		statusMsg = f.ConfirmAction()
 	} else {
 		if f == m.dirTree {
-			m.notesList.CurrentPath = m.dirTree.
-				SelectedDir().Path
-			statusMsg = m.notesList.
-				Refresh(true)
+			m.notesList.CurrentPath = m.dirTree.SelectedDir().GetPath()
+			statusMsg = m.notesList.Refresh(true)
 		}
 
 		if f == m.notesList {
-			notePath := m.notesList.
-				SelectedItem(nil).GetPath()
+			notePath := m.notesList.SelectedItem(nil).GetPath()
 			m.editor.NewBuffer(notePath)
 		}
 	}

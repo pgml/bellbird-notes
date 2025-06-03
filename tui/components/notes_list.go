@@ -40,17 +40,15 @@ type NoteItem struct {
 func (n NoteItem) GetIndex() int { return n.index }
 
 // GetPath() returns the index of a Note-Item
-func (n NoteItem) GetPath() string { return n.Path }
+func (n NoteItem) GetPath() string { return n.path }
 
 // GetName() returns the index of a Note-Item
-func (n NoteItem) GetName() string {
-	return n.Name
-}
+func (n NoteItem) GetName() string { return n.name }
 
 // The string representation of a Dir
 func (n NoteItem) String() string {
 	r := n.styles.note.Render
-	name := utils.TruncateText(n.Name, 22)
+	name := utils.TruncateText(n.GetName(), 22)
 	name = strings.TrimSuffix(
 		name,
 		filepath.Ext(name),
@@ -190,6 +188,7 @@ func (l *NotesList) Refresh(resetSelectedIndex bool) messages.StatusBarMsg {
 	if resetSelectedIndex {
 		l.selectedIndex = 0
 	}
+
 	notes, err := notes.List(l.CurrentPath)
 
 	if err != nil {
@@ -223,8 +222,8 @@ func (l *NotesList) createNoteItem(note notes.Note) NoteItem {
 	childItem := NoteItem{
 		Item: Item{
 			index:  0,
-			Name:   note.Name,
-			Path:   note.Path,
+			name:   note.Name,
+			path:   note.Path,
 			styles: style,
 		},
 		isPinned: note.IsPinned,
@@ -241,7 +240,7 @@ func (l *NotesList) createVirtualNote() NoteItem {
 	selectedNote := l.SelectedItem(nil)
 	name := "New Note"
 	path := filepath.Join(
-		filepath.Dir(selectedNote.Path),
+		filepath.Dir(selectedNote.path),
 		name,
 	)
 
@@ -306,7 +305,7 @@ func (l *NotesList) Create(
 		vrtNote := l.createVirtualNote()
 		lastChild := l.getLastChild()
 
-		if lastChild.Name == "" {
+		if lastChild.name == "" {
 			l.items = append(l.items, vrtNote)
 		} else {
 			l.insertDirAfter(lastChild.index, vrtNote)
@@ -316,7 +315,7 @@ func (l *NotesList) Create(
 		if l.editIndex == nil {
 			selItem := l.SelectedItem(nil)
 			l.editIndex = &l.selectedIndex
-			l.editor.SetValue(selItem.Name)
+			l.editor.SetValue(selItem.name)
 			l.editor.CursorEnd()
 		}
 	}
@@ -327,7 +326,7 @@ func (l *NotesList) Create(
 func (l *NotesList) ConfirmRemove() messages.StatusBarMsg {
 	selectedNote := l.SelectedItem(nil)
 	msgType := messages.PromptError
-	resultMsg := fmt.Sprintf(messages.RemovePrompt, selectedNote.Path)
+	resultMsg := fmt.Sprintf(messages.RemovePrompt, selectedNote.path)
 
 	return messages.StatusBarMsg{
 		Content: resultMsg,
@@ -337,15 +336,14 @@ func (l *NotesList) ConfirmRemove() messages.StatusBarMsg {
 	}
 }
 
-// Renames the currently selected directory
-// Returns a message to be displayed in the status bar
+// Remove deletes the selected note from the file system
 func (l *NotesList) Remove() messages.StatusBarMsg {
 	note := l.SelectedItem(nil)
 	index := l.selectedIndex
-	resultMsg := fmt.Sprintln(messages.SuccessRemove, note.Path)
+	resultMsg := fmt.Sprintln(messages.SuccessRemove, note.path)
 	msgType := messages.Success
 
-	if err := notes.Delete(note.Path); err == nil {
+	if err := notes.Delete(note.path); err == nil {
 		l.items = slices.Delete(l.items, index, index+1)
 	} else {
 		msgType = messages.Error
@@ -367,10 +365,10 @@ func (l *NotesList) ConfirmAction() messages.StatusBarMsg {
 
 		switch l.EditState {
 		case EditRename:
-			oldPath := selectedNote.Path
+			oldPath := selectedNote.path
 			if err := notes.Rename(oldPath, newPath); err == nil {
-				selectedNote.Name = filepath.Base(newPath)
-				selectedNote.Path = newPath
+				selectedNote.name = filepath.Base(newPath)
+				selectedNote.path = newPath
 
 				// These next three lines are a bit ugly but
 				// that's what they know me for
