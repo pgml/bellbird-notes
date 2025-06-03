@@ -4,6 +4,7 @@ const (
 	SuccessRemove       string = "Directory successfully removed"
 	RemovePromptContent string = "Delete `%s` and all of its content? [y(es),n(o)]:"
 	RemovePrompt        string = "Delete `%s`? [y(es),n(o)]:"
+	NoteExists          string = "Note already exists"
 )
 
 //var msgColours = map[MsgType]lipgloss.TerminalColor{

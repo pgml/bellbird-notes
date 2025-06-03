@@ -1,4 +1,4 @@
-package errors
+package bb_errors
 
 import "fmt"
 

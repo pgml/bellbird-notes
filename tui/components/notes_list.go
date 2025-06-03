@@ -2,7 +2,6 @@ package components
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -265,9 +264,8 @@ func (l NotesList) getLastChild() NoteItem {
 // Inserts an item after `afterIndex`
 //
 // Note: this is only a virtual insertion into to the flat copy
-// of the directories.
-// To make it persistent write it to the file system
-func (l *NotesList) insertDirAfter(afterIndex int, note NoteItem) {
+// l.items. To make it persistent write it to the file system
+func (l *NotesList) insertNoteAfter(afterIndex int, note NoteItem) {
 	for i, dir := range l.items {
 		if dir.index == afterIndex {
 			l.items = append(
@@ -279,17 +277,7 @@ func (l *NotesList) insertDirAfter(afterIndex int, note NoteItem) {
 	}
 }
 
-func (l *NotesList) noteExists(path string) bool {
-	if _, err := os.Stat(path); err != nil {
-		return false
-	}
-	return true
-}
-
-// Create creates a directory after the last child of the currently selected directory
-// If root is selected, directory will be created at the end
-//
-// @todo: reindex directories immediately on creating temp dir
+// Create creates a note after the last child
 func (l *NotesList) Create(
 	mi *mode.ModeInstance,
 	statusBar *StatusBar,
@@ -308,7 +296,7 @@ func (l *NotesList) Create(
 		if lastChild.name == "" {
 			l.items = append(l.items, vrtNote)
 		} else {
-			l.insertDirAfter(lastChild.index, vrtNote)
+			l.insertNoteAfter(lastChild.index, vrtNote)
 			l.selectedIndex = lastChild.index + 1
 		}
 
@@ -333,7 +321,7 @@ func (l *NotesList) ConfirmRemove() messages.StatusBarMsg {
 		Content: resultMsg,
 		Type:    msgType,
 		Sender:  messages.SenderNotesList,
-		Column:  1,
+		Column:  ColumnMessage,
 	}
 }
 
@@ -356,7 +344,7 @@ func (l *NotesList) Remove() messages.StatusBarMsg {
 	return messages.StatusBarMsg{
 		Content: resultMsg,
 		Type:    msgType,
-		Column:  1,
+		Column:  ColumnMessage,
 	}
 }
 
@@ -367,6 +355,7 @@ func (l *NotesList) ConfirmAction() messages.StatusBarMsg {
 	if l.editIndex != nil {
 		selectedNote := l.SelectedItem(nil)
 		newPath := filepath.Join(l.CurrentPath, l.editor.Value())
+		resultMsg := ""
 
 		switch l.EditState {
 		case EditRename:
@@ -385,8 +374,9 @@ func (l *NotesList) ConfirmAction() messages.StatusBarMsg {
 			}
 
 		case EditCreate:
-			if !l.noteExists(newPath) {
-				notes.Create(newPath)
+			if err := notes.Create(newPath); err != nil {
+				resultMsg = err.Error()
+				l.Refresh(true)
 			}
 		}
 
@@ -395,8 +385,9 @@ func (l *NotesList) ConfirmAction() messages.StatusBarMsg {
 		})
 
 		return messages.StatusBarMsg{
-			Content: "yep",
+			Content: resultMsg,
 			Sender:  messages.SenderNotesList,
+			Column:  ColumnMessage,
 		}
 	}
 

@@ -12,12 +12,21 @@ import (
 )
 
 type Focusable = interfaces.Focusable
+
 type StatusBarMode int
 
 const (
 	Normal StatusBarMode = iota
 	Insert
 	Command
+)
+
+//type Column int
+
+const (
+	ColumnMode int = iota
+	ColumnMessage
+	ColumnInfo
 )
 
 type StatusBar struct {

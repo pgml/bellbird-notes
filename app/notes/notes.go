@@ -1,12 +1,14 @@
 package notes
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 
 	"bellbird-notes/app/debug"
 	"bellbird-notes/app/utils"
-	"bellbird-notes/tui/errors"
+	"bellbird-notes/tui/bb_errors"
+	"bellbird-notes/tui/messages"
 )
 
 type Note struct {
@@ -48,10 +50,15 @@ func List(notePath string) ([]Note, error) {
 }
 
 func Create(path string) error {
+	if Exists(path) {
+		return errors.New(messages.NoteExists)
+	}
+
 	if _, err := os.Create(path); err != nil {
 		debug.LogErr(err)
 		return err
 	}
+
 	return nil
 }
 
@@ -71,10 +78,17 @@ func Delete(path string) error {
 
 	if err := os.Remove(path); err != nil {
 		debug.LogErr(err)
-		return &errors.PromptError{Arg: path, Message: err.Error()}
+		return &bb_errors.PromptError{Arg: path, Message: err.Error()}
 	}
 
 	return nil
+}
+
+func Exists(path string) bool {
+	if _, err := os.Stat(path); errors.Is(err, os.ErrNotExist) {
+		return false
+	}
+	return true
 }
 
 func isHidden(path string) bool {

@@ -6,7 +6,7 @@ import (
 
 	"bellbird-notes/app/debug"
 	"bellbird-notes/app/utils"
-	"bellbird-notes/tui/errors"
+	"bellbird-notes/tui/bb_errors"
 )
 
 type Directory struct {
@@ -91,7 +91,7 @@ func Delete(path string, deleteContent bool) error {
 	if !deleteContent {
 		if err := os.Remove(path); err != nil {
 			debug.LogErr(err)
-			return &errors.PromptError{Arg: path, Message: err.Error()}
+			return &bb_errors.PromptError{Arg: path, Message: err.Error()}
 		}
 	} else {
 		if err := os.RemoveAll(path); err != nil {
