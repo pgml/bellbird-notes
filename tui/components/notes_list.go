@@ -327,6 +327,7 @@ func (l *NotesList) ConfirmRemove() messages.StatusBarMsg {
 	selectedNote := l.SelectedItem(nil)
 	msgType := messages.PromptError
 	resultMsg := fmt.Sprintf(messages.RemovePrompt, selectedNote.path)
+	l.EditState = EditDelete
 
 	return messages.StatusBarMsg{
 		Content: resultMsg,
@@ -340,7 +341,7 @@ func (l *NotesList) ConfirmRemove() messages.StatusBarMsg {
 func (l *NotesList) Remove() messages.StatusBarMsg {
 	note := l.SelectedItem(nil)
 	index := l.selectedIndex
-	resultMsg := fmt.Sprintln(messages.SuccessRemove, note.path)
+	resultMsg := ""
 	msgType := messages.Success
 
 	if err := notes.Delete(note.path); err == nil {
@@ -352,7 +353,11 @@ func (l *NotesList) Remove() messages.StatusBarMsg {
 
 	l.Refresh(false)
 
-	return messages.StatusBarMsg{Content: resultMsg, Type: msgType}
+	return messages.StatusBarMsg{
+		Content: resultMsg,
+		Type:    msgType,
+		Column:  1,
+	}
 }
 
 // Confirms a user action

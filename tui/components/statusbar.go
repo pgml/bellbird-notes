@@ -83,9 +83,9 @@ func (s *StatusBar) Update(
 			s.Prompt, _ = s.Prompt.Update(teaMsg)
 			return s
 		}
-		if s.Mode == mode.Normal {
-			s.BlurPrompt()
-		}
+		//if s.Mode == mode.Normal {
+		//	s.BlurPrompt()
+		//}
 
 		//case teaMsg.WindowSizeMsg:
 		//	// Convert WindowSizeMsg to BubbleLayoutMsg.
@@ -159,13 +159,14 @@ func (s *StatusBar) ConfirmAction(
 	if s.Prompt.Focused() {
 		switch s.Prompt.Value() {
 		case ResponseYES:
-			s.BlurPrompt()
-			return c.Remove()
+			if s.DirTree.EditState == EditDelete ||
+				s.NotesList.EditState == EditDelete {
+				statusMsg = c.Remove()
+			}
 
 		case ResponseNO:
-			s.BlurPrompt()
 			s.Columns[1].content = ""
-			return c.CancelAction(func() {
+			statusMsg = c.CancelAction(func() {
 				c.Refresh(false)
 			})
 		}
@@ -177,6 +178,7 @@ func (s *StatusBar) ConfirmAction(
 func (s *StatusBar) BlurPrompt() {
 	s.Prompt.SetValue("")
 	s.Prompt.Blur()
+	s.Mode = mode.Normal
 }
 
 func style() lipgloss.Style {

@@ -624,6 +624,7 @@ func (t *DirectoryTree) Create(
 func (t *DirectoryTree) ConfirmRemove() messages.StatusBarMsg {
 	selectedDir := t.SelectedDir()
 	msgType := messages.PromptError
+	t.EditState = EditDelete
 
 	resultMsg := fmt.Sprintf(
 		messages.RemovePromptContent,
@@ -643,12 +644,7 @@ func (t *DirectoryTree) ConfirmRemove() messages.StatusBarMsg {
 func (t *DirectoryTree) Remove() messages.StatusBarMsg {
 	dir := t.SelectedDir()
 	index := t.selectedIndex
-
-	resultMsg := fmt.Sprintln(
-		messages.SuccessRemove,
-		dir.path,
-	)
-
+	resultMsg := ""
 	msgType := messages.Success
 
 	if err := directories.Delete(dir.path, false); err == nil {
@@ -667,6 +663,7 @@ func (t *DirectoryTree) Remove() messages.StatusBarMsg {
 	return messages.StatusBarMsg{
 		Content: resultMsg,
 		Type:    msgType,
+		Column:  1,
 	}
 }
 

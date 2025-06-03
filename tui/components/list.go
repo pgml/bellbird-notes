@@ -14,6 +14,7 @@ const (
 	EditNone EditState = iota
 	EditCreate
 	EditRename
+	EditDelete
 )
 
 type ListActions interface {
@@ -183,11 +184,15 @@ func (l *List[T]) Rename(origName string) messages.StatusBarMsg {
 
 // Cancel the current action and blurs the editor
 func (l *List[T]) CancelAction(cb func()) messages.StatusBarMsg {
+	l.resetEditor()
+	cb()
+	return messages.StatusBarMsg{}
+}
+
+func (l *List[T]) resetEditor() {
 	if l.EditState != EditNone {
 		l.editIndex = nil
 		l.EditState = EditNone
 		l.editor.Blur()
 	}
-	cb()
-	return messages.StatusBarMsg{}
 }
