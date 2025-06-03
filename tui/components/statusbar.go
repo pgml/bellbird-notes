@@ -1,6 +1,7 @@
 package components
 
 import (
+	"bellbird-notes/internal/interfaces"
 	"bellbird-notes/tui/messages"
 	"bellbird-notes/tui/mode"
 	"bellbird-notes/tui/theme"
@@ -10,6 +11,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+type Focusable = interfaces.Focusable
 type StatusBarMode int
 
 const (
@@ -146,29 +148,24 @@ func (s *StatusBar) ModeView() string {
 
 func (s *StatusBar) ConfirmAction(
 	sender messages.Sender,
+	c interfaces.Focusable,
 ) messages.StatusBarMsg {
 	if s.Prompt.Focused() {
 		switch s.Prompt.Value() {
 		case ResponseYES:
 			s.BlurPrompt()
-			if sender == messages.SenderDirTree {
-				return s.DirTree.Remove()
-			}
-			if sender == messages.SenderNotesList {
-				return s.NotesList.Remove()
+
+			if c != nil {
+				return c.Remove()
 			}
 
 		case ResponseNO:
 			s.BlurPrompt()
 			s.Columns[1].content = ""
-			if sender == messages.SenderDirTree {
-				return s.DirTree.CancelAction(func() {
-					s.DirTree.Refresh(false)
-				})
-			}
-			if sender == messages.SenderNotesList {
-				return s.NotesList.CancelAction(func() {
-					s.DirTree.Refresh(false)
+
+			if c != nil {
+				return c.CancelAction(func() {
+					c.Refresh(false)
 				})
 			}
 		}

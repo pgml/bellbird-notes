@@ -3,6 +3,7 @@ package tui
 import (
 	"strconv"
 
+	"bellbird-notes/internal/interfaces"
 	"bellbird-notes/tui/components"
 	"bellbird-notes/tui/keyinput"
 	"bellbird-notes/tui/messages"
@@ -14,18 +15,7 @@ import (
 	bl "github.com/winder/bubblelayout"
 )
 
-// Focusable defines behaviour for components that can receive focus
-// and respond to common navigation and confirmation actions.
-type Focusable interface {
-	LineUp() messages.StatusBarMsg
-	LineDown() messages.StatusBarMsg
-	GoToTop() messages.StatusBarMsg
-	GoToBottom() messages.StatusBarMsg
-	ConfirmRemove() messages.StatusBarMsg
-	ConfirmAction() messages.StatusBarMsg
-	CancelAction(cb func()) messages.StatusBarMsg
-	Refresh(resetSelectedIndex bool) messages.StatusBarMsg
-}
+type Focusable = interfaces.Focusable
 
 // Model is the Bubble Tea model for the TUI
 type Model struct {
@@ -368,7 +358,7 @@ func (m *Model) confirmAction() messages.StatusBarMsg {
 	}
 
 	if m.statusBar.Focused {
-		statusMsg = m.statusBar.ConfirmAction(statusMsg.Sender)
+		statusMsg = m.statusBar.ConfirmAction(statusMsg.Sender, f)
 	}
 
 	m.mode.Current = mode.Normal
