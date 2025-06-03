@@ -150,28 +150,28 @@ func (s *StatusBar) ConfirmAction(
 	sender messages.Sender,
 	c interfaces.Focusable,
 ) messages.StatusBarMsg {
+	statusMsg := messages.StatusBarMsg{}
+
+	if c == nil {
+		return statusMsg
+	}
+
 	if s.Prompt.Focused() {
 		switch s.Prompt.Value() {
 		case ResponseYES:
 			s.BlurPrompt()
-
-			if c != nil {
-				return c.Remove()
-			}
+			return c.Remove()
 
 		case ResponseNO:
 			s.BlurPrompt()
 			s.Columns[1].content = ""
-
-			if c != nil {
-				return c.CancelAction(func() {
-					c.Refresh(false)
-				})
-			}
+			return c.CancelAction(func() {
+				c.Refresh(false)
+			})
 		}
 	}
 	s.BlurPrompt()
-	return messages.StatusBarMsg{}
+	return statusMsg
 }
 
 func (s *StatusBar) BlurPrompt() {
