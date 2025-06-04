@@ -373,7 +373,7 @@ func (m *Model) cancelAction() messages.StatusBarMsg {
 
 	if f := m.focusedComponent(); f != nil {
 		resetIndex := false
-		stateCreate := components.EditCreate
+		stateCreate := components.EditStates.Create
 
 		if m.dirTree.EditState == stateCreate ||
 			m.notesList.EditState == stateCreate {

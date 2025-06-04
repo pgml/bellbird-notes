@@ -179,7 +179,7 @@ func NewDirectoryTree() *DirectoryTree {
 		List: List[TreeItem]{
 			selectedIndex: 0,
 			editIndex:     nil,
-			EditState:     EditNone,
+			EditState:     EditStates.None,
 			editor:        ti,
 			items:         make([]TreeItem, 0),
 		},
@@ -340,7 +340,7 @@ func (t *DirectoryTree) createVirtualDir() TreeItem {
 func (t *DirectoryTree) Refresh(resetIndex bool) messages.StatusBarMsg {
 	statusMsg := messages.StatusBarMsg{}
 
-	if t.EditState == EditCreate {
+	if t.EditState == EditStates.Create {
 		resetIndex = true
 	}
 
@@ -588,7 +588,7 @@ func (t *DirectoryTree) Create(
 		mi.Current = mode.Insert
 		statusBar.Focused = false
 
-		t.EditState = EditCreate
+		t.EditState = EditStates.Create
 		// get a fresh version of the tree to work with
 		t.refreshFlatList()
 		// expand the selected directory for a live preview
@@ -624,7 +624,7 @@ func (t *DirectoryTree) Create(
 func (t *DirectoryTree) ConfirmRemove() messages.StatusBarMsg {
 	selectedDir := t.SelectedDir()
 	msgType := messages.PromptError
-	t.EditState = EditDelete
+	t.EditState = EditStates.Delete
 
 	resultMsg := fmt.Sprintf(
 		messages.RemovePromptContent,
@@ -681,7 +681,7 @@ func (t *DirectoryTree) ConfirmAction() messages.StatusBarMsg {
 		)
 
 		switch t.EditState {
-		case EditRename:
+		case EditStates.Rename:
 			if err := directories.Rename(oldPath, newPath); err == nil {
 				t.Refresh(false)
 				t.selectedIndex = t.indexByPath(
@@ -690,7 +690,7 @@ func (t *DirectoryTree) ConfirmAction() messages.StatusBarMsg {
 				)
 			}
 
-		case EditCreate:
+		case EditStates.Create:
 			if !t.dirExists(newPath) {
 				directories.Create(newPath)
 			}

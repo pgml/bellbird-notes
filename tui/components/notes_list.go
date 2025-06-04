@@ -142,7 +142,7 @@ func NewNotesList() *NotesList {
 		List: List[NoteItem]{
 			selectedIndex:    0,
 			editIndex:        nil,
-			EditState:        EditNone,
+			EditState:        EditStates.None,
 			editor:           ti,
 			lastVisibleLine:  0,
 			firstVisibleLine: 0,
@@ -288,7 +288,7 @@ func (l *NotesList) Create(
 		mi.Current = mode.Insert
 		statusBar.Focused = false
 
-		l.EditState = EditCreate
+		l.EditState = EditStates.Create
 
 		vrtNote := l.createVirtualNote()
 		lastChild := l.getLastChild()
@@ -315,7 +315,7 @@ func (l *NotesList) ConfirmRemove() messages.StatusBarMsg {
 	selectedNote := l.SelectedItem(nil)
 	msgType := messages.PromptError
 	resultMsg := fmt.Sprintf(messages.RemovePrompt, selectedNote.path)
-	l.EditState = EditDelete
+	l.EditState = EditStates.Delete
 
 	return messages.StatusBarMsg{
 		Content: resultMsg,
@@ -358,7 +358,7 @@ func (l *NotesList) ConfirmAction() messages.StatusBarMsg {
 		resultMsg := ""
 
 		switch l.EditState {
-		case EditRename:
+		case EditStates.Rename:
 			oldPath := selectedNote.path
 			if err := notes.Rename(oldPath, newPath); err == nil {
 				selectedNote.name = filepath.Base(newPath)
@@ -373,7 +373,7 @@ func (l *NotesList) ConfirmAction() messages.StatusBarMsg {
 				l.build()
 			}
 
-		case EditCreate:
+		case EditStates.Create:
 			if err := notes.Create(newPath); err != nil {
 				resultMsg = err.Error()
 				l.Refresh(true)

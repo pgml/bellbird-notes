@@ -160,8 +160,8 @@ func (s *StatusBar) ConfirmAction(
 	if s.Prompt.Focused() {
 		switch s.Prompt.Value() {
 		case ResponseYES:
-			if s.DirTree.EditState == EditDelete ||
-				s.NotesList.EditState == EditDelete {
+			if s.DirTree.EditState == EditStates.Delete ||
+				s.NotesList.EditState == EditStates.Delete {
 				statusMsg = c.Remove()
 			}
 

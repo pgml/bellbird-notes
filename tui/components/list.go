@@ -11,11 +11,20 @@ import (
 type EditState int
 
 const (
-	EditNone EditState = iota
-	EditCreate
-	EditRename
-	EditDelete
+	EditStateNone EditState = iota
+	EditStateCreate
+	EditStateRename
+	EditStateDelete
 )
+
+var EditStates = struct {
+	None, Create, Rename, Delete EditState
+}{
+	None:   EditStateNone,
+	Create: EditStateCreate,
+	Rename: EditStateRename,
+	Delete: EditStateDelete,
+}
 
 type ListActions interface {
 	Refresh()
@@ -173,7 +182,7 @@ func RefreshList[T interface{ Refresh() }](a T) {
 // returns a message that is displayed in the status bar
 func (l *List[T]) Rename(origName string) messages.StatusBarMsg {
 	if l.editIndex == nil {
-		l.EditState = EditRename
+		l.EditState = EditStates.Rename
 		l.editIndex = &l.selectedIndex
 		l.editor.SetValue(origName)
 		// set cursor to last position
@@ -190,9 +199,9 @@ func (l *List[T]) CancelAction(cb func()) messages.StatusBarMsg {
 }
 
 func (l *List[T]) resetEditor() {
-	if l.EditState != EditNone {
+	if l.EditState != EditStates.None {
 		l.editIndex = nil
-		l.EditState = EditNone
+		l.EditState = EditStates.None
 		l.editor.Blur()
 	}
 }
