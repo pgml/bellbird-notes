@@ -13,22 +13,6 @@ import (
 
 type Focusable = interfaces.Focusable
 
-type StatusBarMode int
-
-const (
-	Normal StatusBarMode = iota
-	Insert
-	Command
-)
-
-//type Column int
-
-const (
-	ColumnMode int = iota
-	ColumnMessage
-	ColumnInfo
-)
-
 type StatusBar struct {
 	Content string
 	Type    messages.MsgType
@@ -43,7 +27,7 @@ type StatusBar struct {
 	NotesList NotesList
 	Editor    Editor
 
-	Columns []StatusBarColumn
+	Columns []Column
 }
 
 const (
@@ -51,7 +35,15 @@ const (
 	ResponseNO  = "n"
 )
 
-type StatusBarColumn struct {
+var StatusBarColumn = struct {
+	Mode, Message, Info int
+}{
+	Mode:    0,
+	Message: 1,
+	Info:    2,
+}
+
+type Column struct {
 	content string
 }
 
@@ -64,7 +56,7 @@ func NewStatusBar() *StatusBar {
 		Prompt: ti,
 	}
 
-	statusBar.Columns = []StatusBarColumn{{}, {}, {}, {}}
+	statusBar.Columns = []Column{{}, {}, {}, {}}
 
 	return statusBar
 }
@@ -157,7 +149,7 @@ func (s *StatusBar) ModeView() string {
 
 func (s *StatusBar) ConfirmAction(
 	sender messages.Sender,
-	c interfaces.Focusable,
+	c Focusable,
 ) messages.StatusBarMsg {
 	statusMsg := messages.StatusBarMsg{}
 

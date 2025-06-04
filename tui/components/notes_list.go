@@ -321,7 +321,7 @@ func (l *NotesList) ConfirmRemove() messages.StatusBarMsg {
 		Content: resultMsg,
 		Type:    msgType,
 		Sender:  messages.SenderNotesList,
-		Column:  ColumnMessage,
+		Column:  StatusBarColumn.Message,
 	}
 }
 
@@ -344,7 +344,7 @@ func (l *NotesList) Remove() messages.StatusBarMsg {
 	return messages.StatusBarMsg{
 		Content: resultMsg,
 		Type:    msgType,
-		Column:  ColumnMessage,
+		Column:  StatusBarColumn.Message,
 	}
 }
 
@@ -387,7 +387,7 @@ func (l *NotesList) ConfirmAction() messages.StatusBarMsg {
 		return messages.StatusBarMsg{
 			Content: resultMsg,
 			Sender:  messages.SenderNotesList,
-			Column:  ColumnMessage,
+			Column:  StatusBarColumn.Message,
 		}
 	}
 

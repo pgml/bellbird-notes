@@ -635,7 +635,7 @@ func (t *DirectoryTree) ConfirmRemove() messages.StatusBarMsg {
 		Content: resultMsg,
 		Type:    msgType,
 		Sender:  messages.SenderDirTree,
-		Column:  1,
+		Column:  StatusBarColumn.Message,
 	}
 }
 
@@ -663,7 +663,7 @@ func (t *DirectoryTree) Remove() messages.StatusBarMsg {
 	return messages.StatusBarMsg{
 		Content: resultMsg,
 		Type:    msgType,
-		Column:  1,
+		Column:  StatusBarColumn.Message,
 	}
 }
 
