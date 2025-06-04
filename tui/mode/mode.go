@@ -63,7 +63,3 @@ func (m Mode) Colour() lipgloss.TerminalColor {
 type ModeInstance struct {
 	Current Mode
 }
-
-func (m ModeInstance) GetCurrent() Mode {
-	return m.Current
-}

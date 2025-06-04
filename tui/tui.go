@@ -6,7 +6,7 @@ import (
 	"bellbird-notes/internal/interfaces"
 	"bellbird-notes/tui/components"
 	"bellbird-notes/tui/keyinput"
-	"bellbird-notes/tui/messages"
+	"bellbird-notes/tui/message"
 	"bellbird-notes/tui/mode"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -98,7 +98,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.notesList.Size, _ = msg.Size(m.notesList.Id)
 		m.editor.Size, _ = msg.Size(m.editor.Id)
 
-	case messages.StatusBarMsg:
+	case message.StatusBarMsg:
 		m.statusBar = m.statusBar.Update(msg, msg)
 	}
 
@@ -182,37 +182,37 @@ func (m *Model) updateStatusBar() {
 
 // focusColumn selects and higlights a column with index `index`
 // (1=dirTree, 2=notesList, 3=editor)
-func (m *Model) focusColumn(index int) messages.StatusBarMsg {
+func (m *Model) focusColumn(index int) message.StatusBarMsg {
 	m.dirTree.Focused = index == 1
 	m.notesList.Focused = index == 2
 	m.editor.Focused = index == 3
 	m.currColFocus = index
 
-	return messages.StatusBarMsg{}
+	return message.StatusBarMsg{}
 }
 
 // focusDirectoryTree is a helper function
 // for selecting the directory tree
-func (m *Model) focusDirectoryTree() messages.StatusBarMsg {
+func (m *Model) focusDirectoryTree() message.StatusBarMsg {
 	return m.focusColumn(1)
 }
 
 // focusNotesList() is a helper function
 // for selecting the notes list
-func (m *Model) focusNotesList() messages.StatusBarMsg {
+func (m *Model) focusNotesList() message.StatusBarMsg {
 	return m.focusColumn(2)
 }
 
 // focusEditor is a helper function
 // for selecting the editor
-func (m *Model) focusEditor() messages.StatusBarMsg {
+func (m *Model) focusEditor() message.StatusBarMsg {
 	return m.focusColumn(3)
 }
 
 // focusNextColumn selects and highlights the respectivley next of the
 // currently selected column.
 // Selects the first if the currently selected column is the last column...
-func (m *Model) focusNextColumn() messages.StatusBarMsg {
+func (m *Model) focusNextColumn() message.StatusBarMsg {
 	index := min(m.currColFocus+1, 3)
 	return m.focusColumn(index)
 }
@@ -220,7 +220,7 @@ func (m *Model) focusNextColumn() messages.StatusBarMsg {
 // focusNextColumn selects and highlights the respectivley next of the
 // currently selected column.
 // Selects the first if the currently selected column is the last column...
-func (m *Model) focusPrevColumn() messages.StatusBarMsg {
+func (m *Model) focusPrevColumn() message.StatusBarMsg {
 	index := m.currColFocus - 1
 	if index < 0 {
 		index = 1
@@ -241,8 +241,8 @@ func (m *Model) focusedComponent() Focusable {
 
 // lineUp moves the cursor one line up in the currently focused column.
 // Ignores editor since it is handled differently
-func (m *Model) lineUp() messages.StatusBarMsg {
-	statusMsg := messages.StatusBarMsg{}
+func (m *Model) lineUp() message.StatusBarMsg {
+	statusMsg := message.StatusBarMsg{}
 
 	if f := m.focusedComponent(); f != nil {
 		statusMsg = f.LineUp()
@@ -254,8 +254,8 @@ func (m *Model) lineUp() messages.StatusBarMsg {
 
 // lineUp moves the cursor one line up in the currently focused column.
 // Ignores editor since it is handled differently
-func (m *Model) lineDown() messages.StatusBarMsg {
-	statusMsg := messages.StatusBarMsg{}
+func (m *Model) lineDown() message.StatusBarMsg {
+	statusMsg := message.StatusBarMsg{}
 
 	if f := m.focusedComponent(); f != nil {
 		statusMsg = f.LineDown()
@@ -273,19 +273,19 @@ func (m *Model) nbrFolders() int {
 
 // createDir enters insert mode
 // and triggers directory creation
-func (m *Model) createDir() messages.StatusBarMsg {
+func (m *Model) createDir() message.StatusBarMsg {
 	return m.dirTree.Create(m.mode, m.statusBar)
 }
 
 // createNote enters insert mode
 // and triggers notes creation
-func (m *Model) createNote() messages.StatusBarMsg {
+func (m *Model) createNote() message.StatusBarMsg {
 	return m.notesList.Create(m.mode, m.statusBar)
 }
 
 // rename enters insert mode and renames the selected item
 // in the directory or note list
-func (m *Model) rename() messages.StatusBarMsg {
+func (m *Model) rename() message.StatusBarMsg {
 	if m.dirTree.Focused || m.notesList.Focused {
 		m.mode.Current = mode.Insert
 		m.statusBar.Focused = false
@@ -302,12 +302,12 @@ func (m *Model) rename() messages.StatusBarMsg {
 			m.notesList.SelectedItem(nil).Name(),
 		)
 	}
-	return messages.StatusBarMsg{}
+	return message.StatusBarMsg{}
 }
 
 // remove enters insert mode and triggers a delete confirmation
 // for the focused component
-func (m *Model) remove() messages.StatusBarMsg {
+func (m *Model) remove() message.StatusBarMsg {
 	// go into insert mode because we always ask for
 	// confirmation before deleting anything
 	m.mode.Current = mode.Insert
@@ -316,30 +316,29 @@ func (m *Model) remove() messages.StatusBarMsg {
 		m.statusBar.Focused = true
 		return f.ConfirmRemove()
 	}
-
-	return messages.StatusBarMsg{}
+	return message.StatusBarMsg{}
 }
 
 // goToTop moves the focused list to its first item
-func (m *Model) goToTop() messages.StatusBarMsg {
+func (m *Model) goToTop() message.StatusBarMsg {
 	if f := m.focusedComponent(); f != nil {
 		return f.GoToTop()
 	}
-	return messages.StatusBarMsg{}
+	return message.StatusBarMsg{}
 }
 
 // goToTop moves the focused list to its last item
-func (m *Model) goToBottom() messages.StatusBarMsg {
+func (m *Model) goToBottom() message.StatusBarMsg {
 	if f := m.focusedComponent(); f != nil {
 		return f.GoToBottom()
 	}
-	return messages.StatusBarMsg{}
+	return message.StatusBarMsg{}
 }
 
 // confirmAction performs the primary action for the focused component,
 // or loads note data into the editor if in normal mode.
-func (m *Model) confirmAction() messages.StatusBarMsg {
-	statusMsg := messages.StatusBarMsg{}
+func (m *Model) confirmAction() message.StatusBarMsg {
+	statusMsg := message.StatusBarMsg{}
 
 	f := m.focusedComponent()
 
@@ -367,7 +366,7 @@ func (m *Model) confirmAction() messages.StatusBarMsg {
 
 // cancelAction resets mode to normal
 // and cancels pending actions in the focused component.
-func (m *Model) cancelAction() messages.StatusBarMsg {
+func (m *Model) cancelAction() message.StatusBarMsg {
 	m.mode.Current = mode.Normal
 	m.statusBar.Focused = false
 
@@ -384,7 +383,8 @@ func (m *Model) cancelAction() messages.StatusBarMsg {
 			f.Refresh(resetIndex)
 		})
 	}
-	return messages.StatusBarMsg{}
+
+	return message.StatusBarMsg{}
 }
 
 //func (m *TuiModel) enterCmdMode() {
@@ -403,8 +403,8 @@ func (m *Model) cancelAction() messages.StatusBarMsg {
 //}
 
 // KeyInputFn maps command strings to actions for key sequence input.
-func (m *Model) KeyInputFn() map[string]func() messages.StatusBarMsg {
-	return map[string]func() messages.StatusBarMsg{
+func (m *Model) KeyInputFn() map[string]func() message.StatusBarMsg {
+	return map[string]func() message.StatusBarMsg{
 		"focusDirectoryTree": m.focusDirectoryTree,
 		"focusNotesList":     m.focusNotesList,
 		"focusEditor":        m.focusEditor,

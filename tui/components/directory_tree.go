@@ -10,9 +10,10 @@ import (
 	"bellbird-notes/app/config"
 	"bellbird-notes/app/directories"
 	"bellbird-notes/app/utils"
-	"bellbird-notes/tui/messages"
+	"bellbird-notes/tui/message"
 	"bellbird-notes/tui/mode"
 	"bellbird-notes/tui/theme"
+	statusbarcolumn "bellbird-notes/tui/types/statusbar_column"
 
 	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbles/viewport"
@@ -53,13 +54,13 @@ type TreeItem struct {
 // Index returns the index of a Dir-Item
 func (d TreeItem) Index() int { return d.index }
 
-// GetPath returns the path of a Dir-Item
+// Path returns the path of a Dir-Item
 func (d TreeItem) Path() string { return d.path }
 
-// GetName returns the name of a Dir-Item
+// Name returns the name of a Dir-Item
 func (d TreeItem) Name() string { return d.name }
 
-// GetIndent returns the path of a Dir-Item
+// Indent returns the path of a Dir-Item
 func (d TreeItem) Indent(indentLines bool) string {
 	if indentLines {
 		return "│ "
@@ -337,8 +338,8 @@ func (t *DirectoryTree) createVirtualDir() TreeItem {
 //
 // If `resetIndex` is set to true, 't.selectedIndex' will be set to -1
 // which means the selected directory's parent
-func (t *DirectoryTree) Refresh(resetIndex bool) messages.StatusBarMsg {
-	statusMsg := messages.StatusBarMsg{}
+func (t *DirectoryTree) Refresh(resetIndex bool) message.StatusBarMsg {
+	statusMsg := message.StatusBarMsg{}
 
 	if t.EditState == EditStates.Create {
 		resetIndex = true
@@ -498,10 +499,10 @@ func (t *DirectoryTree) dirExists(dirPath string) bool {
 		parentPath,
 		dirName,
 	); contains {
-		//statusMsg = messages.StatusBarMsg{
+		//statusMsg = message.StatusBarMsg{
 		//	Content: "Directory already exists, please choose another name.",
-		//	Type:    messages.Error,
-		//	Sender:  messages.SenderDirTree,
+		//	Type:    message.Error,
+		//	Sender:  message.SenderDirTree,
 		//}
 		return true
 	}
@@ -532,8 +533,8 @@ func findDirInTree(directories []TreeItem, path string) *TreeItem {
 ///
 
 // Collapses the currently selected directory
-func (t *DirectoryTree) Collapse() messages.StatusBarMsg {
-	statusMsg := messages.StatusBarMsg{}
+func (t *DirectoryTree) Collapse() message.StatusBarMsg {
+	statusMsg := message.StatusBarMsg{}
 	if t.selectedIndex >= len(t.dirsListFlat) || !t.Focused {
 		return statusMsg
 	}
@@ -553,8 +554,8 @@ func (t *DirectoryTree) Collapse() messages.StatusBarMsg {
 }
 
 // Expands the currently selected directory
-func (t *DirectoryTree) Expand() messages.StatusBarMsg {
-	statusMsg := messages.StatusBarMsg{}
+func (t *DirectoryTree) Expand() message.StatusBarMsg {
+	statusMsg := message.StatusBarMsg{}
 	if t.selectedIndex >= len(t.dirsListFlat) || !t.Focused {
 		return statusMsg
 	}
@@ -581,8 +582,8 @@ func (t *DirectoryTree) Expand() messages.StatusBarMsg {
 func (t *DirectoryTree) Create(
 	mi *mode.ModeInstance,
 	statusBar *StatusBar,
-) messages.StatusBarMsg {
-	statusMsg := messages.StatusBarMsg{}
+) message.StatusBarMsg {
+	statusMsg := message.StatusBarMsg{}
 
 	if t.Focused {
 		mi.Current = mode.Insert
@@ -621,31 +622,31 @@ func (t *DirectoryTree) Create(
 	return statusMsg
 }
 
-func (t *DirectoryTree) ConfirmRemove() messages.StatusBarMsg {
+func (t *DirectoryTree) ConfirmRemove() message.StatusBarMsg {
 	selectedDir := t.SelectedDir()
-	msgType := messages.PromptError
+	msgType := message.PromptError
 	t.EditState = EditStates.Delete
 
 	resultMsg := fmt.Sprintf(
-		messages.RemovePromptContent,
+		message.RemovePromptContent,
 		selectedDir.path,
 	)
 
-	return messages.StatusBarMsg{
+	return message.StatusBarMsg{
 		Content: resultMsg,
 		Type:    msgType,
-		Sender:  messages.SenderDirTree,
-		Column:  StatusBarColumn.Message,
+		Sender:  message.SenderDirTree,
+		Column:  statusbarcolumn.General,
 	}
 }
 
 // Renames the currently selected directory
 // Returns a message to be displayed in the status bar
-func (t *DirectoryTree) Remove() messages.StatusBarMsg {
+func (t *DirectoryTree) Remove() message.StatusBarMsg {
 	dir := t.SelectedDir()
 	index := t.selectedIndex
 	resultMsg := ""
-	msgType := messages.Success
+	msgType := message.Success
 
 	if err := directories.Delete(dir.path, false); err == nil {
 		t.dirsListFlat = slices.Delete(
@@ -654,21 +655,21 @@ func (t *DirectoryTree) Remove() messages.StatusBarMsg {
 			index+1,
 		)
 	} else {
-		msgType = messages.Error
+		msgType = message.Error
 		resultMsg = err.Error()
 	}
 
 	t.RefreshBranch(dir.parent, index)
 
-	return messages.StatusBarMsg{
+	return message.StatusBarMsg{
 		Content: resultMsg,
 		Type:    msgType,
-		Column:  StatusBarColumn.Message,
+		Column:  statusbarcolumn.General,
 	}
 }
 
 // Confirms a user action
-func (t *DirectoryTree) ConfirmAction() messages.StatusBarMsg {
+func (t *DirectoryTree) ConfirmAction() message.StatusBarMsg {
 	// if editingindex is set it most likely means that we are
 	// renaming or creating a directory
 	if t.editIndex != nil {
@@ -700,8 +701,8 @@ func (t *DirectoryTree) ConfirmAction() messages.StatusBarMsg {
 			t.Refresh(false)
 		})
 
-		return messages.StatusBarMsg{Content: "yep"}
+		return message.StatusBarMsg{Content: "yep"}
 	}
 
-	return messages.StatusBarMsg{}
+	return message.StatusBarMsg{}
 }

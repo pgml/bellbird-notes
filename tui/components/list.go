@@ -1,7 +1,8 @@
 package components
 
 import (
-	"bellbird-notes/tui/messages"
+	"bellbird-notes/tui/message"
+	statusbarcolumn "bellbird-notes/tui/types/statusbar_column"
 
 	"github.com/charmbracelet/bubbles/textinput"
 )
@@ -129,7 +130,7 @@ func (l List[T]) indexByPath(path string, items *[]T) int {
 ///
 
 // Decrements `m.selectedIndex`
-func (l *List[T]) LineUp() messages.StatusBarMsg {
+func (l *List[T]) LineUp() message.StatusBarMsg {
 	if l.selectedIndex > 0 {
 		l.selectedIndex--
 	}
@@ -141,11 +142,11 @@ func (l *List[T]) LineUp() messages.StatusBarMsg {
 		l.viewport.ScrollUp(1)
 	}
 
-	return messages.StatusBarMsg{Column: StatusBarColumn.Info}
+	return message.StatusBarMsg{Column: statusbarcolumn.Info}
 }
 
 // Increments `m.selectedIndex`
-func (l *List[T]) LineDown() messages.StatusBarMsg {
+func (l *List[T]) LineDown() message.StatusBarMsg {
 	if l.selectedIndex < l.length-1 {
 		l.selectedIndex++
 	}
@@ -157,21 +158,21 @@ func (l *List[T]) LineDown() messages.StatusBarMsg {
 		l.viewport.ScrollDown(1)
 	}
 
-	return messages.StatusBarMsg{Column: StatusBarColumn.Info}
+	return message.StatusBarMsg{Column: statusbarcolumn.Info}
 }
 
 // GoToTop moves the selection and viewport to the top of the tree
-func (l *List[T]) GoToTop() messages.StatusBarMsg {
+func (l *List[T]) GoToTop() message.StatusBarMsg {
 	l.selectedIndex = 0
 	l.viewport.GotoTop()
-	return messages.StatusBarMsg{}
+	return message.StatusBarMsg{}
 }
 
 // GoToBottom moves the selection and viewport to the bottom of the tree
-func (l *List[T]) GoToBottom() messages.StatusBarMsg {
+func (l *List[T]) GoToBottom() message.StatusBarMsg {
 	l.selectedIndex = l.lastIndex
 	l.viewport.GotoBottom()
-	return messages.StatusBarMsg{}
+	return message.StatusBarMsg{}
 }
 
 func RefreshList[T interface{ Refresh() }](a T) {
@@ -180,7 +181,7 @@ func RefreshList[T interface{ Refresh() }](a T) {
 
 // Rename renames the currently selected directory and
 // returns a message that is displayed in the status bar
-func (l *List[T]) Rename(origName string) messages.StatusBarMsg {
+func (l *List[T]) Rename(origName string) message.StatusBarMsg {
 	if l.editIndex == nil {
 		l.EditState = EditStates.Rename
 		l.editIndex = &l.selectedIndex
@@ -188,14 +189,14 @@ func (l *List[T]) Rename(origName string) messages.StatusBarMsg {
 		// set cursor to last position
 		l.editor.CursorEnd()
 	}
-	return messages.StatusBarMsg{}
+	return message.StatusBarMsg{}
 }
 
 // Cancel the current action and blurs the editor
-func (l *List[T]) CancelAction(cb func()) messages.StatusBarMsg {
+func (l *List[T]) CancelAction(cb func()) message.StatusBarMsg {
 	l.resetEditor()
 	cb()
-	return messages.StatusBarMsg{}
+	return message.StatusBarMsg{}
 }
 
 func (l *List[T]) resetEditor() {

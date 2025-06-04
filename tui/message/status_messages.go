@@ -1,4 +1,4 @@
-package messages
+package message
 
 const (
 	SuccessRemove       string = "Directory successfully removed"

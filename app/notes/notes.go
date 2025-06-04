@@ -8,7 +8,7 @@ import (
 	"bellbird-notes/app/debug"
 	"bellbird-notes/app/utils"
 	"bellbird-notes/tui/bb_errors"
-	"bellbird-notes/tui/messages"
+	"bellbird-notes/tui/message"
 )
 
 type Note struct {
@@ -51,7 +51,7 @@ func List(notePath string) ([]Note, error) {
 
 func Create(path string) error {
 	if Exists(path) {
-		return errors.New(messages.NoteExists)
+		return errors.New(message.NoteExists)
 	}
 
 	if _, err := os.Create(path); err != nil {

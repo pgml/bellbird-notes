@@ -10,9 +10,10 @@ import (
 	"bellbird-notes/app/config"
 	"bellbird-notes/app/notes"
 	"bellbird-notes/app/utils"
-	"bellbird-notes/tui/messages"
+	"bellbird-notes/tui/message"
 	"bellbird-notes/tui/mode"
 	"bellbird-notes/tui/theme"
+	statusbarcolumn "bellbird-notes/tui/types/statusbar_column"
 
 	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbles/viewport"
@@ -35,13 +36,13 @@ type NoteItem struct {
 	isPinned bool
 }
 
-// GetIndex returns the index of a Note-Item
+// Index returns the index of a Note-Item
 func (n NoteItem) Index() int { return n.index }
 
-// GetPath() returns the index of a Note-Item
+// Path() returns the index of a Note-Item
 func (n NoteItem) Path() string { return n.path }
 
-// GetName() returns the index of a Note-Item
+// Name() returns the index of a Note-Item
 func (n NoteItem) Name() string { return n.name }
 
 // The string representation of a Dir
@@ -183,7 +184,7 @@ func (l NotesList) build() string {
 //
 // If `resetIndex` is set to true, 'l.selectedIndex' will be set to 0
 // which representns the first note
-func (l *NotesList) Refresh(resetSelectedIndex bool) messages.StatusBarMsg {
+func (l *NotesList) Refresh(resetSelectedIndex bool) message.StatusBarMsg {
 	if resetSelectedIndex {
 		l.selectedIndex = 0
 	}
@@ -191,9 +192,9 @@ func (l *NotesList) Refresh(resetSelectedIndex bool) messages.StatusBarMsg {
 	notes, err := notes.List(l.CurrentPath)
 
 	if err != nil {
-		return messages.StatusBarMsg{
+		return message.StatusBarMsg{
 			Content: "Failed to load notes",
-			Type:    messages.Error,
+			Type:    message.Error,
 		}
 	}
 
@@ -212,7 +213,7 @@ func (l *NotesList) Refresh(resetSelectedIndex bool) messages.StatusBarMsg {
 		l.lastIndex = l.items[len(l.items)-1].index
 	}
 
-	return messages.StatusBarMsg{}
+	return message.StatusBarMsg{}
 }
 
 // createNoteItem creates populated NoteItem
@@ -281,8 +282,8 @@ func (l *NotesList) insertNoteAfter(afterIndex int, note NoteItem) {
 func (l *NotesList) Create(
 	mi *mode.ModeInstance,
 	statusBar *StatusBar,
-) messages.StatusBarMsg {
-	statusMsg := messages.StatusBarMsg{}
+) message.StatusBarMsg {
+	statusMsg := message.StatusBarMsg{}
 
 	if l.Focused {
 		mi.Current = mode.Insert
@@ -311,45 +312,45 @@ func (l *NotesList) Create(
 	return statusMsg
 }
 
-func (l *NotesList) ConfirmRemove() messages.StatusBarMsg {
+func (l *NotesList) ConfirmRemove() message.StatusBarMsg {
 	selectedNote := l.SelectedItem(nil)
-	msgType := messages.PromptError
-	resultMsg := fmt.Sprintf(messages.RemovePrompt, selectedNote.path)
+	msgType := message.PromptError
+	resultMsg := fmt.Sprintf(message.RemovePrompt, selectedNote.path)
 	l.EditState = EditStates.Delete
 
-	return messages.StatusBarMsg{
+	return message.StatusBarMsg{
 		Content: resultMsg,
 		Type:    msgType,
-		Sender:  messages.SenderNotesList,
-		Column:  StatusBarColumn.Message,
+		Sender:  message.SenderNotesList,
+		Column:  statusbarcolumn.General,
 	}
 }
 
 // Remove deletes the selected note from the file system
-func (l *NotesList) Remove() messages.StatusBarMsg {
+func (l *NotesList) Remove() message.StatusBarMsg {
 	note := l.SelectedItem(nil)
 	index := l.selectedIndex
 	resultMsg := ""
-	msgType := messages.Success
+	msgType := message.Success
 
 	if err := notes.Delete(note.path); err == nil {
 		l.items = slices.Delete(l.items, index, index+1)
 	} else {
-		msgType = messages.Error
+		msgType = message.Error
 		resultMsg = err.Error()
 	}
 
 	l.Refresh(false)
 
-	return messages.StatusBarMsg{
+	return message.StatusBarMsg{
 		Content: resultMsg,
 		Type:    msgType,
-		Column:  StatusBarColumn.Message,
+		Column:  statusbarcolumn.General,
 	}
 }
 
 // Confirms a user action
-func (l *NotesList) ConfirmAction() messages.StatusBarMsg {
+func (l *NotesList) ConfirmAction() message.StatusBarMsg {
 	// if editingindex is set it most likely means that we are
 	// renaming or creating a directory
 	if l.editIndex != nil {
@@ -384,12 +385,12 @@ func (l *NotesList) ConfirmAction() messages.StatusBarMsg {
 			l.Refresh(false)
 		})
 
-		return messages.StatusBarMsg{
+		return message.StatusBarMsg{
 			Content: resultMsg,
-			Sender:  messages.SenderNotesList,
-			Column:  StatusBarColumn.Message,
+			Sender:  message.SenderNotesList,
+			Column:  statusbarcolumn.General,
 		}
 	}
 
-	return messages.StatusBarMsg{Sender: messages.SenderNotesList}
+	return message.StatusBarMsg{Sender: message.SenderNotesList}
 }

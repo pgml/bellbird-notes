@@ -1,24 +1,28 @@
-package messages
+package message
 
-import "github.com/charmbracelet/lipgloss"
+import (
+	"github.com/charmbracelet/lipgloss"
 
-type MsgType int
+	statusbarcolumn "bellbird-notes/tui/types/statusbar_column"
+)
+
+type Type int
 
 const (
-	Success MsgType = iota
+	Success Type = iota
 	Error
 	Prompt
 	PromptError
 )
 
-var msgColours = map[MsgType]lipgloss.TerminalColor{
+var msgColours = map[Type]lipgloss.TerminalColor{
 	Success:     lipgloss.NoColor{},
 	Error:       lipgloss.Color("#d75a7d"),
 	Prompt:      lipgloss.NoColor{},
 	PromptError: lipgloss.Color("#d75a7d"),
 }
 
-func (m MsgType) Colour() lipgloss.TerminalColor {
+func (m Type) Colour() lipgloss.TerminalColor {
 	return msgColours[m]
 }
 
@@ -31,8 +35,8 @@ const (
 
 type StatusBarMsg struct {
 	Content string
-	Type    MsgType
+	Type    Type
 	Sender  Sender
 	Arg     any
-	Column  int
+	Column  statusbarcolumn.Column
 }

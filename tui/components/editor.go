@@ -7,7 +7,7 @@ import (
 	"bellbird-notes/app/debug"
 	"bellbird-notes/tui/components/textarea"
 	"bellbird-notes/tui/keyinput"
-	"bellbird-notes/tui/messages"
+	"bellbird-notes/tui/message"
 	"bellbird-notes/tui/mode"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -93,12 +93,12 @@ func NewEditor() *Editor {
 	return editor
 }
 
-func (e *Editor) NewBuffer(path string) messages.StatusBarMsg {
+func (e *Editor) NewBuffer(path string) message.StatusBarMsg {
 	note, err := os.ReadFile(path)
 
 	if err != nil {
 		debug.LogErr(err)
-		return messages.StatusBarMsg{Content: err.Error()}
+		return message.StatusBarMsg{Content: err.Error()}
 	}
 
 	buffer := Buffer{
@@ -124,7 +124,7 @@ func (e *Editor) NewBuffer(path string) messages.StatusBarMsg {
 	e.Textarea.SetWidth(e.Size.Width)
 	e.Textarea.SetHeight(e.Size.Height - 3)
 
-	return messages.StatusBarMsg{}
+	return message.StatusBarMsg{}
 }
 
 // Init initialises the Model on program load.

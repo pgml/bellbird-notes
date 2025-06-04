@@ -2,9 +2,10 @@ package components
 
 import (
 	"bellbird-notes/internal/interfaces"
-	"bellbird-notes/tui/messages"
+	"bellbird-notes/tui/message"
 	"bellbird-notes/tui/mode"
 	"bellbird-notes/tui/theme"
+	sbc "bellbird-notes/tui/types/statusbar_column"
 
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
@@ -15,19 +16,19 @@ type Focusable = interfaces.Focusable
 
 type StatusBar struct {
 	Content string
-	Type    messages.MsgType
+	Type    message.Type
 	Prompt  textinput.Model
 	// Indicates hether the directory tree column is focused.
 	// Used to determine if the status bar should receive keyboard shortcuts
 	Focused   bool
 	Mode      mode.Mode
-	Sender    messages.Sender
-	SenderMsg messages.StatusBarMsg
+	Sender    message.Sender
+	SenderMsg message.StatusBarMsg
 	DirTree   DirectoryTree
 	NotesList NotesList
 	Editor    Editor
 
-	Columns []Column
+	Columns [4]string
 }
 
 const (
@@ -43,10 +44,6 @@ var StatusBarColumn = struct {
 	Info:    2,
 }
 
-type Column struct {
-	content string
-}
-
 func NewStatusBar() *StatusBar {
 	ti := textinput.New()
 	ti.Prompt = " "
@@ -55,8 +52,6 @@ func NewStatusBar() *StatusBar {
 	statusBar := &StatusBar{
 		Prompt: ti,
 	}
-
-	statusBar.Columns = []Column{{}, {}, {}, {}}
 
 	return statusBar
 }
@@ -67,10 +62,10 @@ func (s *StatusBar) Init() tea.Cmd {
 }
 
 func (s *StatusBar) Update(
-	msg messages.StatusBarMsg,
+	msg message.StatusBarMsg,
 	teaMsg tea.Msg,
 ) *StatusBar {
-	s.Columns[msg.Column].content = msg.Content
+	s.SetColContent(msg.Column, msg.Content)
 
 	if s.Focused && s.Mode == mode.Normal {
 		s.Type = msg.Type
@@ -104,32 +99,49 @@ func (s *StatusBar) View() string {
 	style := style()
 	//output := s.Content
 
-	c1 := s.ModeView()
-	c2 := style.Render(s.Columns[1].content)
-	c3 := s.Columns[2].content
-	c4 := s.Columns[3].content
+	colGeneral := s.ColContent(sbc.General)
+	colInfo := style.Render(s.ColContent(sbc.Info))
+	colCursorPos := s.ColContent(sbc.CursorPos)
+	colProgress := s.ColContent(sbc.Progress)
 
-	if s.Type == messages.PromptError {
+	//if s.Mode != mode.Normal &&
+	//	s.Type == message.PromptError {
+	if s.Mode != mode.Normal && s.Type != message.PromptError {
+		colGeneral = s.ModeView()
+	}
+
+	if s.Type == message.PromptError {
 		s.Prompt.Focus()
-		c2 += s.Prompt.View() + ""
+		colGeneral += s.Prompt.View()
 	}
 
 	width, _ := theme.GetTerminalSize()
-	c1width := 10
 
-	if s.Prompt.Focused() {
-		c1width = 0
-	}
-
-	c3width := 15
-	c4width := 15
-	c2width := max(width-(c1width+c3width+c4width), 1)
+	wColInfo := 15
+	wColCursorPos := 15
+	wColProgress := 15
+	wColGeneral := max(width-(wColInfo+wColCursorPos+wColProgress), 1)
 
 	return lipgloss.JoinHorizontal(lipgloss.Right,
-		style.Width(c1width).Render(c1),
-		style.Width(c2width).Foreground(s.Type.Colour()).Render(c2),
-		style.Width(c3width).Align(lipgloss.Right).Render(c3),
-		style.Width(c4width).Align(lipgloss.Right).Render(c4),
+		style.
+			Width(wColGeneral).
+			Foreground(s.Type.Colour()).
+			Render(colGeneral),
+
+		style.
+			Width(wColInfo).
+			Align(lipgloss.Right).
+			Render(colInfo),
+
+		style.
+			Width(wColCursorPos).
+			Align(lipgloss.Right).
+			Render(colCursorPos),
+
+		style.
+			Width(wColProgress).
+			Align(lipgloss.Right).
+			Render(colProgress),
 	)
 }
 
@@ -148,10 +160,10 @@ func (s *StatusBar) ModeView() string {
 }
 
 func (s *StatusBar) ConfirmAction(
-	sender messages.Sender,
+	sender message.Sender,
 	c Focusable,
-) messages.StatusBarMsg {
-	statusMsg := messages.StatusBarMsg{}
+) message.StatusBarMsg {
+	statusMsg := message.StatusBarMsg{}
 
 	if c == nil {
 		return statusMsg
@@ -166,7 +178,7 @@ func (s *StatusBar) ConfirmAction(
 			}
 
 		case ResponseNO:
-			s.Columns[1].content = ""
+			s.Columns[1] = ""
 			statusMsg = c.CancelAction(func() {
 				c.Refresh(false)
 			})
@@ -174,6 +186,14 @@ func (s *StatusBar) ConfirmAction(
 	}
 	s.BlurPrompt()
 	return statusMsg
+}
+
+func (s *StatusBar) ColContent(col sbc.Column) string {
+	return s.Columns[col]
+}
+
+func (s *StatusBar) SetColContent(col sbc.Column, cnt string) {
+	s.Columns[col] = cnt
 }
 
 func (s *StatusBar) BlurPrompt() {

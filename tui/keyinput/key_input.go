@@ -4,7 +4,7 @@ import (
 	"strings"
 	"time"
 
-	"bellbird-notes/tui/messages"
+	"bellbird-notes/tui/message"
 	"bellbird-notes/tui/mode"
 )
 
@@ -30,7 +30,7 @@ type Input struct {
 	Shift bool
 	Mode  mode.Mode
 
-	Functions map[string]func() messages.StatusBarMsg
+	Functions map[string]func() message.StatusBarMsg
 }
 
 func New() *Input {
@@ -70,7 +70,7 @@ func New() *Input {
 	}
 }
 
-func (ki *Input) HandleSequences(key string) messages.StatusBarMsg {
+func (ki *Input) HandleSequences(key string) message.StatusBarMsg {
 	if key == "ctrl+w" {
 		ki.Ctrl = true
 	}
@@ -112,7 +112,7 @@ func (ki *Input) HandleSequences(key string) messages.StatusBarMsg {
 	return statusMsg
 }
 
-func (ki *Input) executeAction(keys string) messages.StatusBarMsg {
+func (ki *Input) executeAction(keys string) message.StatusBarMsg {
 	for _, keyMap := range ki.KeyMaps {
 		if keyMap.keys == keys && ki.Mode == keyMap.mode {
 			if fn, exists := ki.Functions[keyMap.action]; exists {
@@ -122,7 +122,7 @@ func (ki *Input) executeAction(keys string) messages.StatusBarMsg {
 			}
 		}
 	}
-	return messages.StatusBarMsg{}
+	return message.StatusBarMsg{}
 }
 
 func (ki *Input) ResetKeysDown() {
