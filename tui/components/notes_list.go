@@ -315,7 +315,11 @@ func (l *NotesList) Create(
 func (l *NotesList) ConfirmRemove() message.StatusBarMsg {
 	selectedNote := l.SelectedItem(nil)
 	msgType := message.PromptError
-	resultMsg := fmt.Sprintf(message.RemovePrompt, selectedNote.path)
+
+	rootDir, _ := app.NotesRootDir()
+	path := strings.ReplaceAll(selectedNote.path, rootDir, ".")
+	resultMsg := fmt.Sprintf(message.RemovePrompt, path)
+
 	l.EditState = EditStates.Delete
 
 	return message.StatusBarMsg{
