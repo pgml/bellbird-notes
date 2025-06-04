@@ -36,18 +36,18 @@ type NoteItem struct {
 }
 
 // GetIndex returns the index of a Note-Item
-func (n NoteItem) GetIndex() int { return n.index }
+func (n NoteItem) Index() int { return n.index }
 
 // GetPath() returns the index of a Note-Item
-func (n NoteItem) GetPath() string { return n.path }
+func (n NoteItem) Path() string { return n.path }
 
 // GetName() returns the index of a Note-Item
-func (n NoteItem) GetName() string { return n.name }
+func (n NoteItem) Name() string { return n.name }
 
 // The string representation of a Dir
 func (n NoteItem) String() string {
 	r := n.styles.note.Render
-	name := utils.TruncateText(n.GetName(), 22)
+	name := utils.TruncateText(n.Name(), 22)
 	name = strings.TrimSuffix(
 		name,
 		filepath.Ext(name),

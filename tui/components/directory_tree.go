@@ -50,17 +50,17 @@ type TreeItem struct {
 	NbrFolders int
 }
 
-// GetIndex returns the index of a Dir-Item
-func (d TreeItem) GetIndex() int { return d.index }
+// Index returns the index of a Dir-Item
+func (d TreeItem) Index() int { return d.index }
 
 // GetPath returns the path of a Dir-Item
-func (d TreeItem) GetPath() string { return d.path }
+func (d TreeItem) Path() string { return d.path }
 
 // GetName returns the name of a Dir-Item
-func (d TreeItem) GetName() string { return d.name }
+func (d TreeItem) Name() string { return d.name }
 
 // GetIndent returns the path of a Dir-Item
-func (d TreeItem) GetIndent(indentLines bool) string {
+func (d TreeItem) Indent(indentLines bool) string {
 	if indentLines {
 		return "│ "
 	} else {
@@ -75,10 +75,10 @@ func (d *TreeItem) String() string {
 	e := d.styles.enumerator.Render
 
 	indent := strings.Repeat(
-		d.GetIndent(false), // @todo make this a config option
+		d.Indent(false), // @todo make this a config option
 		d.level,
 	)
-	name := utils.TruncateText(d.GetName(), 22)
+	name := utils.TruncateText(d.Name(), 22)
 
 	// nerdfonts required
 	toggle := map[string]string{
@@ -236,7 +236,7 @@ func (t *DirectoryTree) render() string {
 		}
 
 		indent := strings.Repeat(
-			dir.GetIndent(false),
+			dir.Indent(false),
 			dir.level,
 		)
 
@@ -315,7 +315,7 @@ func (t *DirectoryTree) createVirtualDir() TreeItem {
 	selectedDir := t.SelectedDir()
 	tempFolderName := "New Folder"
 	tempFolderPath := filepath.Join(
-		selectedDir.GetPath(),
+		selectedDir.Path(),
 		tempFolderName,
 	)
 	indent := selectedDir.level + 1

@@ -22,8 +22,8 @@ type ListActions interface {
 }
 
 type ListItem interface {
-	GetIndex() int
-	GetPath() string
+	Index() int
+	Path() string
 }
 
 // List represents a bubbletea model
@@ -108,8 +108,8 @@ func (l List[T]) indexByPath(path string, items *[]T) int {
 		items = &l.items
 	}
 	for _, item := range *items {
-		if item.GetPath() == path {
-			return item.GetIndex()
+		if item.Path() == path {
+			return item.Index()
 		}
 	}
 	return 0
