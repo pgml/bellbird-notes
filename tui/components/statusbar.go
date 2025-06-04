@@ -188,6 +188,12 @@ func (s *StatusBar) ConfirmAction(
 	return statusMsg
 }
 
+func (s *StatusBar) CancelAction(cb func()) message.StatusBarMsg {
+	s.Type = message.Error
+	s.BlurPrompt()
+	return message.StatusBarMsg{}
+}
+
 func (s *StatusBar) ColContent(col sbc.Column) string {
 	return s.Columns[col]
 }
