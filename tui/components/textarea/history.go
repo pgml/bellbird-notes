@@ -1,6 +1,7 @@
 package textarea
 
 import (
+	"errors"
 	"fmt"
 
 	"bellbird-notes/app/debug"
@@ -49,6 +50,10 @@ func (h *History) NewEntry(cursorPos CursorPos) {
 }
 
 func (h *History) UpdateEntry(s string, cursorPos CursorPos) error {
+	if len(h.entries) <= 0 {
+		return errors.New("nope")
+	}
+
 	if len(h.entries) < h.entryIndex {
 		debug.LogErr("History entry index not found:", h.entryIndex)
 		return fmt.Errorf("History entry index %d not found", h.entryIndex)

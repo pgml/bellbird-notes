@@ -353,7 +353,11 @@ func (m *Model) confirmAction() message.StatusBarMsg {
 
 	f := m.focusedComponent()
 
-	if m.mode.Current != mode.Normal {
+	if m.statusBar.Focused {
+		statusMsg = m.statusBar.ConfirmAction(statusMsg.Sender, f)
+	}
+
+	if m.mode.Current != mode.Normal && !m.statusBar.Focused {
 		statusMsg = f.ConfirmAction()
 	} else {
 		if f == m.dirTree {
@@ -365,10 +369,6 @@ func (m *Model) confirmAction() message.StatusBarMsg {
 			notePath := m.notesList.SelectedItem(nil).Path()
 			m.editor.NewBuffer(notePath)
 		}
-	}
-
-	if m.statusBar.Focused {
-		statusMsg = m.statusBar.ConfirmAction(statusMsg.Sender, f)
 	}
 
 	m.mode.Current = mode.Normal

@@ -292,7 +292,8 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		// -- COMMAND --
 		case mode.Command:
-			if msg.String() == "esc" {
+			switch msg.String() {
+			case "esc", "enter":
 				e.enterNormalMode()
 				return e, nil
 			}

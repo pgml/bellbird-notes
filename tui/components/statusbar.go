@@ -171,7 +171,8 @@ func (s *StatusBar) ConfirmAction(
 ) message.StatusBarMsg {
 	statusMsg := message.StatusBarMsg{}
 
-	if c == nil || !s.Prompt.Focused() {
+	if !s.Prompt.Focused() {
+		s.Focused = false
 		return statusMsg
 	}
 
