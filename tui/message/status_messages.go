@@ -7,11 +7,16 @@ var Response = struct {
 	No:  "n",
 }
 
-const (
-	RemovePromptContent string = "Delete `%s` and all of its content? [y(es),n(o)]:"
-	RemovePrompt        string = "Delete `%s`? [y(es),n(o)]:"
-	NoteExists          string = "Note already exists"
-)
+var StatusBar = struct {
+	CmdPrompt, RemovePromptDirContent, RemovePrompt, NoteExists,
+	CtrlCExitNote string
+}{
+	CmdPrompt:              ":",
+	RemovePromptDirContent: "Delete `%s` and all of its content? [y(es),n(o)]:",
+	RemovePrompt:           "Delete `%s`? [y(es),n(o)]:",
+	NoteExists:             "Note already exists",
+	CtrlCExitNote:          "Type :q and press <Enter> to quit",
+}
 
 //var msgColours = map[MsgType]lipgloss.TerminalColor{
 //	Success:     lipgloss.NoColor{},

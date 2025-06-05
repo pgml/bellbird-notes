@@ -624,16 +624,15 @@ func (t *DirectoryTree) Create(
 
 func (t *DirectoryTree) ConfirmRemove() message.StatusBarMsg {
 	selectedDir := t.SelectedDir()
-	msgType := message.PromptError
 	t.EditState = EditStates.Delete
 
 	rootDir, _ := app.NotesRootDir()
 	path := strings.ReplaceAll(selectedDir.path, rootDir, ".")
-	resultMsg := fmt.Sprintf(message.RemovePromptContent, path)
+	resultMsg := fmt.Sprintf(message.StatusBar.RemovePromptDirContent, path)
 
 	return message.StatusBarMsg{
 		Content: resultMsg,
-		Type:    msgType,
+		Type:    message.PromptError,
 		Sender:  message.SenderDirTree,
 		Column:  statusbarcolumn.General,
 	}

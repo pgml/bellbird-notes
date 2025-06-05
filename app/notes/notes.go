@@ -51,7 +51,7 @@ func List(notePath string) ([]Note, error) {
 
 func Create(path string) error {
 	if Exists(path) {
-		return errors.New(message.NoteExists)
+		return errors.New(message.StatusBar.NoteExists)
 	}
 
 	if _, err := os.Create(path); err != nil {
