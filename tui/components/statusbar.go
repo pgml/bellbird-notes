@@ -31,11 +31,6 @@ type StatusBar struct {
 	Columns [4]string
 }
 
-const (
-	ResponseYES = "y"
-	ResponseNO  = "n"
-)
-
 var StatusBarColumn = struct {
 	Mode, Message, Info int
 }{
@@ -56,7 +51,8 @@ func NewStatusBar() *StatusBar {
 	return statusBar
 }
 
-// Init initialises the Model on program load. It partly implements the tea.Model interface.
+// Init initialises the Model on program load.
+// It partly implements the tea.Model interface.
 func (s *StatusBar) Init() tea.Cmd {
 	return nil
 }
@@ -65,7 +61,12 @@ func (s *StatusBar) Update(
 	msg message.StatusBarMsg,
 	teaMsg tea.Msg,
 ) *StatusBar {
-	s.SetColContent(msg.Column, msg.Content)
+	// only update content if we are in normal mode and there is
+	// no kind of input focused since we don't want to overwrite
+	// the original message of the prompt
+	if s.Type != message.PromptError && s.Mode == mode.Normal {
+		s.SetColContent(msg.Column, msg.Content)
+	}
 
 	if s.Focused && s.Mode == mode.Normal {
 		s.Type = msg.Type
@@ -97,19 +98,21 @@ func (s *StatusBar) Update(
 
 func (s *StatusBar) View() string {
 	style := style()
-	//output := s.Content
 
+	// get the content of each column
 	colGeneral := s.ColContent(sbc.General)
 	colInfo := style.Render(s.ColContent(sbc.Info))
 	colCursorPos := s.ColContent(sbc.CursorPos)
 	colProgress := s.ColContent(sbc.Progress)
 
-	//if s.Mode != mode.Normal &&
-	//	s.Type == message.PromptError {
+	// display current mode only if there's is no prompt focused
+	// and we are not in normal mode
 	if s.Mode != mode.Normal && s.Type != message.PromptError {
 		colGeneral = s.ModeView()
 	}
 
+	// append the prompt to the prompt message
+	// and focus for allow quick input
 	if s.Type == message.PromptError {
 		s.Prompt.Focus()
 		colGeneral += s.Prompt.View()
@@ -123,23 +126,19 @@ func (s *StatusBar) View() string {
 	wColGeneral := max(width-(wColInfo+wColCursorPos+wColProgress), 1)
 
 	return lipgloss.JoinHorizontal(lipgloss.Right,
-		style.
-			Width(wColGeneral).
+		style.Width(wColGeneral).
 			Foreground(s.Type.Colour()).
 			Render(colGeneral),
 
-		style.
-			Width(wColInfo).
+		style.Width(wColInfo).
 			Align(lipgloss.Right).
 			Render(colInfo),
 
-		style.
-			Width(wColCursorPos).
+		style.Width(wColCursorPos).
 			Align(lipgloss.Right).
 			Render(colCursorPos),
 
-		style.
-			Width(wColProgress).
+		style.Width(wColProgress).
 			Align(lipgloss.Right).
 			Render(colProgress),
 	)
@@ -151,9 +150,10 @@ func (s *StatusBar) ModeView() string {
 		PaddingLeft(1).
 		PaddingRight(1)
 
-	mode := s.Mode.FullString()
-	if s.Prompt.Focused() {
-		mode = ""
+	mode := ""
+
+	if !s.Prompt.Focused() {
+		mode = s.Mode.FullString()
 	}
 
 	return style.Render(mode)
@@ -165,25 +165,24 @@ func (s *StatusBar) ConfirmAction(
 ) message.StatusBarMsg {
 	statusMsg := message.StatusBarMsg{}
 
-	if c == nil {
+	if c == nil || !s.Prompt.Focused() {
 		return statusMsg
 	}
 
-	if s.Prompt.Focused() {
-		switch s.Prompt.Value() {
-		case ResponseYES:
-			if s.DirTree.EditState == EditStates.Delete ||
-				s.NotesList.EditState == EditStates.Delete {
-				statusMsg = c.Remove()
-			}
-
-		case ResponseNO:
-			s.Columns[1] = ""
-			statusMsg = c.CancelAction(func() {
-				c.Refresh(false)
-			})
+	switch s.Prompt.Value() {
+	case message.Response.Yes:
+		if s.DirTree.EditState == EditStates.Delete ||
+			s.NotesList.EditState == EditStates.Delete {
+			statusMsg = c.Remove()
 		}
+
+	case message.Response.No:
+		statusMsg = c.CancelAction(func() {
+			c.Refresh(false)
+		})
 	}
+
+	s.SetColContent(statusMsg.Column, statusMsg.Content)
 	s.BlurPrompt()
 	return statusMsg
 }
