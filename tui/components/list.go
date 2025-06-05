@@ -79,7 +79,7 @@ type Item struct {
 
 type statusMsg string
 
-const reservedLines = 3
+const reservedLines = 1
 
 // UpdateViewportInfo synchronises the list's internal visible line count
 // with the actual height of the viewport, subtracting `reservedLines`
@@ -138,7 +138,6 @@ func (l *List[T]) LineUp() message.StatusBarMsg {
 	// scroll up
 	if l.selectedIndex < l.firstVisibleLine {
 		l.firstVisibleLine = l.selectedIndex
-		l.lastVisibleLine = l.visibleLines + l.firstVisibleLine
 		l.viewport.ScrollUp(1)
 	}
 
@@ -151,10 +150,11 @@ func (l *List[T]) LineDown() message.StatusBarMsg {
 		l.selectedIndex++
 	}
 
+	l.lastVisibleLine = l.visibleLines + l.firstVisibleLine
+
 	// scroll down
-	if l.selectedIndex > l.visibleLines {
+	if l.selectedIndex > l.lastVisibleLine {
 		l.firstVisibleLine = l.selectedIndex - l.visibleLines
-		l.lastVisibleLine = l.selectedIndex
 		l.viewport.ScrollDown(1)
 	}
 
@@ -164,6 +164,7 @@ func (l *List[T]) LineDown() message.StatusBarMsg {
 // GoToTop moves the selection and viewport to the top of the tree
 func (l *List[T]) GoToTop() message.StatusBarMsg {
 	l.selectedIndex = 0
+	l.firstVisibleLine = 0
 	l.viewport.GotoTop()
 	return message.StatusBarMsg{}
 }
@@ -171,6 +172,7 @@ func (l *List[T]) GoToTop() message.StatusBarMsg {
 // GoToBottom moves the selection and viewport to the bottom of the tree
 func (l *List[T]) GoToBottom() message.StatusBarMsg {
 	l.selectedIndex = l.lastIndex
+	l.firstVisibleLine = l.length - l.visibleLines
 	l.viewport.GotoBottom()
 	return message.StatusBarMsg{}
 }
