@@ -8,6 +8,7 @@ import (
 	"bellbird-notes/tui/keyinput"
 	"bellbird-notes/tui/message"
 	"bellbird-notes/tui/mode"
+	sbc "bellbird-notes/tui/types/statusbar_column"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -71,11 +72,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
+		statusMsg := m.keyInput.HandleSequences(msg.String())
+
 		if msg.String() == "ctrl+c" {
-			return m, tea.Quit
+			statusMsg = message.StatusBarMsg{
+				Content: message.StatusBar.CtrlCExitNote,
+				Type:    message.Success,
+				Column:  sbc.General,
+			}
 		}
 
-		statusMsg := m.keyInput.HandleSequences(msg.String())
 		m.statusBar = m.statusBar.Update(statusMsg, msg)
 		m.keyInput.Mode = m.mode.Current
 		m.statusBar.Mode = m.mode.Current
@@ -106,6 +112,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	cmds = m.updateComponents(msg)
 	m.updateStatusBar()
+
+	// exit programme when `:q` is entered in command prompt
+	if m.statusBar.ShouldQuit {
+		return m, tea.Quit
+	}
 
 	return m, tea.Batch(cmds...)
 }
@@ -391,9 +402,22 @@ func (m *Model) cancelAction() message.StatusBarMsg {
 	return message.StatusBarMsg{}
 }
 
-//func (m *TuiModel) enterCmdMode() {
-//	m.mode.Current = mode.CommandMode
-//}
+func (m *Model) enterCmdMode() message.StatusBarMsg {
+	if m.mode.Current != mode.Normal {
+		return message.StatusBarMsg{}
+	}
+
+	m.mode.Current = mode.Command
+	m.statusBar.Focused = true
+	m.statusBar.Type = message.Prompt
+	statusMsg := message.StatusBar.CmdPrompt
+
+	return message.StatusBarMsg{
+		Content: statusMsg,
+		Type:    message.Prompt,
+		Column:  sbc.General,
+	}
+}
 
 //func (m *TuiModel) exitCmdMode() {
 //	m.mode.Current = mode.NormalMode
@@ -426,5 +450,6 @@ func (m *Model) KeyInputFn() map[string]func() message.StatusBarMsg {
 		"goToBottom":         m.goToBottom,
 		"cancelAction":       m.cancelAction,
 		"confirmAction":      m.confirmAction,
+		"enterCmdMode":       m.enterCmdMode,
 	}
 }

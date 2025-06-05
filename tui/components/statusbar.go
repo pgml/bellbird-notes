@@ -1,6 +1,9 @@
 package components
 
 import (
+	"fmt"
+	"strings"
+
 	"bellbird-notes/internal/interfaces"
 	"bellbird-notes/tui/message"
 	"bellbird-notes/tui/mode"
@@ -29,6 +32,8 @@ type StatusBar struct {
 	Editor    Editor
 
 	Columns [4]string
+
+	ShouldQuit bool
 }
 
 var StatusBarColumn = struct {
@@ -76,7 +81,7 @@ func (s *StatusBar) Update(
 
 	switch teaMsg.(type) {
 	case tea.KeyMsg:
-		if s.Focused && s.Mode == mode.Insert && s.Prompt.Focused() {
+		if s.Focused && s.canType() && s.Prompt.Focused() {
 			s.Prompt, _ = s.Prompt.Update(teaMsg)
 			return s
 		}
@@ -107,15 +112,16 @@ func (s *StatusBar) View() string {
 
 	// display current mode only if there's is no prompt focused
 	// and we are not in normal mode
-	if s.Mode != mode.Normal && s.Type != message.PromptError {
+	if s.canType() && !s.isPrompt() {
 		colGeneral = s.ModeView()
 	}
 
 	// append the prompt to the prompt message
 	// and focus for allow quick input
-	if s.Type == message.PromptError {
+	if s.isPrompt() {
 		s.Prompt.Focus()
-		colGeneral += s.Prompt.View()
+		promptView := strings.TrimSpace(s.Prompt.View())
+		colGeneral = fmt.Sprint(colGeneral, promptView)
 	}
 
 	width, _ := theme.GetTerminalSize()
@@ -169,6 +175,8 @@ func (s *StatusBar) ConfirmAction(
 		return statusMsg
 	}
 
+	s.ShouldQuit = false
+
 	switch s.Prompt.Value() {
 	case message.Response.Yes:
 		if s.DirTree.EditState == EditStates.Delete ||
@@ -180,6 +188,8 @@ func (s *StatusBar) ConfirmAction(
 		statusMsg = c.CancelAction(func() {
 			c.Refresh(false)
 		})
+	case "q":
+		s.ShouldQuit = true
 	}
 
 	s.SetColContent(statusMsg.Column, statusMsg.Content)
@@ -188,7 +198,7 @@ func (s *StatusBar) ConfirmAction(
 }
 
 func (s *StatusBar) CancelAction(cb func()) message.StatusBarMsg {
-	s.Type = message.Error
+	s.Type = message.Success
 	s.BlurPrompt()
 	return message.StatusBarMsg{}
 }
@@ -201,10 +211,24 @@ func (s *StatusBar) SetColContent(col sbc.Column, cnt string) {
 	s.Columns[col] = cnt
 }
 
+func (s *StatusBar) FocusPrompt() {
+	s.Prompt.Focus()
+}
+
 func (s *StatusBar) BlurPrompt() {
 	s.Prompt.SetValue("")
 	s.Prompt.Blur()
 	s.Mode = mode.Normal
+}
+
+func (s *StatusBar) isPrompt() bool {
+	return s.Type == message.Prompt || s.Type == message.PromptError
+}
+
+func (s *StatusBar) canType() bool {
+	return s.Mode == mode.Insert ||
+		s.Mode == mode.Command ||
+		s.Mode == mode.Replace
 }
 
 func style() lipgloss.Style {

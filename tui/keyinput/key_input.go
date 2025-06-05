@@ -65,6 +65,7 @@ func New() *Input {
 			{"enter", "confirmAction", mode.Normal},
 			{"enter", "confirmAction", mode.Insert},
 			{"enter", "confirmAction", mode.Command},
+			{":", "enterCmdMode", mode.Normal},
 			//{"i", "enterInsertMode", mode.NormalMode},
 		},
 	}
@@ -85,29 +86,7 @@ func (ki *Input) HandleSequences(key string) message.StatusBarMsg {
 	actionString := mapToActionString(ki.KeysDown)
 	statusMsg := ki.executeAction(actionString)
 
-	// special key actions for cmd mode
-	switch key {
-	case ":":
-		//m.enterCmdMode()
-	case "esc":
-		//m.mode = mode.Normal
-		//m.exitCmdMode()
-	case "enter":
-		//m.executeCmdModeCommand()
-	}
-	//if key == ":" {
-	//	m.enterCmdMode()
-	//}
-	//if key == "esc" {
-	//	m.exitCmdMode()
-	//}
-	//if key == "enter" {
-	//	m.executeCmdModeCommand()
-	//}
-
-	if ki.Mode != mode.Command {
-		ki.releaseKey(key)
-	}
+	ki.releaseKey(key)
 
 	return statusMsg
 }
