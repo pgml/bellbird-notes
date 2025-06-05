@@ -162,20 +162,7 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		switch e.Vim.Mode.Current {
-		case mode.Insert:
-			if msg.String() == "esc" {
-				e.Vim.Mode.Current = mode.Normal
-				e.CurrentBuffer.History.UpdateEntry(
-					e.Textarea.Value(),
-					e.Textarea.CursorPos(),
-				)
-				return e, nil
-			}
-
-			e.Textarea, cmd = e.Textarea.Update(msg)
-
-			return e, cmd
-
+		// -- NORMAL --
 		case mode.Normal:
 			switch msg.String() {
 			case "i":
@@ -283,8 +270,31 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			//	e.Vim.Pending.Shift,
 			//)
 
-		//case app.ReplaceMode:
+		// -- INSERT --
+		case mode.Insert:
+			if msg.String() == "esc" {
+				e.enterNormalMode()
+				return e, nil
+			}
+			e.Textarea, cmd = e.Textarea.Update(msg)
+			return e, cmd
 
+		// -- REPLACE --
+		case mode.Replace:
+			if msg.String() == "esc" {
+				e.enterNormalMode()
+				return e, nil
+			}
+			// replace current charater in simple replace mode
+			// convert string character to rune
+			rune := []rune(msg.String())[0]
+
+			e.Textarea.ReplaceRune(rune)
+			e.enterNormalMode()
+
+			return e, nil
+
+		// -- OPERATOR --
 		// handles the double key thingy like dd, yy, gg
 		case mode.Operator:
 			if e.Vim.Pending.operator == "d" {
@@ -354,6 +364,14 @@ func (e *Editor) build() string {
 func (e *Editor) enterInsertMode() {
 	e.Vim.Mode.Current = mode.Insert
 	e.CurrentBuffer.History.NewEntry(e.Textarea.CursorPos())
+}
+
+func (e *Editor) enterNormalMode() {
+	e.Vim.Mode.Current = mode.Normal
+	e.CurrentBuffer.History.UpdateEntry(
+		e.Textarea.Value(),
+		e.Textarea.CursorPos(),
+	)
 }
 
 func (e *Editor) operator(c string) {

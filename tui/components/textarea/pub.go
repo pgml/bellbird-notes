@@ -146,3 +146,7 @@ func (m *Model) UpHalfPage() {
 		m.viewport.ScrollUp(min - row)
 	}
 }
+
+func (m *Model) ReplaceRune(replaceWith rune) {
+	m.value[m.row][m.col] = replaceWith
+}
