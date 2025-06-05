@@ -260,15 +260,11 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			case "ctrl+u":
 				e.Textarea.UpHalfPage()
+			case ":":
+				e.Vim.Mode.Current = mode.Command
 			}
 
 			e.Vim.Pending.ResetKeysDown()
-			//app.LogDebug(
-			//	e.Vim.Pending.key,
-			//	e.Vim.Pending.Ctrl,
-			//	e.Vim.Pending.Alt,
-			//	e.Vim.Pending.Shift,
-			//)
 
 		// -- INSERT --
 		case mode.Insert:
@@ -295,7 +291,11 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return e, nil
 
 		// -- COMMAND --
-		//case mode.Command:
+		case mode.Command:
+			if msg.String() == "esc" {
+				e.enterNormalMode()
+				return e, nil
+			}
 
 		// -- OPERATOR --
 		// handles the double key thingy like dd, yy, gg
