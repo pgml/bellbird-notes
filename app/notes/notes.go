@@ -62,6 +62,29 @@ func Create(path string) error {
 	return nil
 }
 
+func Write(path string, content string) (int, error) {
+	if !Exists(path) {
+		return 0, errors.New(message.StatusBar.NoteExists)
+	}
+
+	f, err := os.OpenFile(path, os.O_WRONLY, 0644)
+
+	if err != nil {
+		debug.LogErr(err)
+		return 0, err
+	}
+
+	n, err := f.WriteString(content)
+	f.Close()
+
+	if err != nil {
+		debug.LogErr(err)
+		return 0, err
+	}
+
+	return n, nil
+}
+
 func Rename(oldPath string, newPath string) error {
 	if err := os.Rename(oldPath, newPath); err != nil {
 		debug.LogErr(err)

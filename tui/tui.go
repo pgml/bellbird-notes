@@ -3,6 +3,8 @@ package tui
 import (
 	"strconv"
 
+	"bellbird-notes/app/debug"
+	"bellbird-notes/app/notes"
 	"bellbird-notes/internal/interfaces"
 	"bellbird-notes/tui/components"
 	"bellbird-notes/tui/keyinput"
@@ -116,6 +118,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// exit programme when `:q` is entered in command prompt
 	if m.statusBar.ShouldQuit {
 		return m, tea.Quit
+	}
+
+	if m.statusBar.ShouldWriteFile {
+		m.writeFile()
 	}
 
 	return m, tea.Batch(cmds...)
@@ -280,6 +286,22 @@ func (m *Model) lineDown() message.StatusBarMsg {
 // in the currently selected directory
 func (m *Model) nbrFolders() int {
 	return m.dirTree.SelectedDir().NbrFolders
+}
+
+func (m *Model) writeFile() {
+	m.statusBar.ShouldWriteFile = false
+
+	_, err := notes.Write(
+		m.notesList.SelectedItem(nil).Path(),
+		m.editor.Textarea.Value(),
+	)
+
+	if err != nil {
+		debug.LogErr(err)
+		return
+	}
+
+	//debug.LogInfo(n)
 }
 
 // createDir enters insert mode

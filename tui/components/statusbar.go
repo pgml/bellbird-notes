@@ -33,7 +33,8 @@ type StatusBar struct {
 
 	Columns [4]string
 
-	ShouldQuit bool
+	ShouldQuit      bool
+	ShouldWriteFile bool
 }
 
 var StatusBarColumn = struct {
@@ -177,6 +178,7 @@ func (s *StatusBar) ConfirmAction(
 	}
 
 	s.ShouldQuit = false
+	s.ShouldWriteFile = false
 
 	switch s.Prompt.Value() {
 	case message.Response.Yes:
@@ -191,6 +193,8 @@ func (s *StatusBar) ConfirmAction(
 		})
 	case "q":
 		s.ShouldQuit = true
+	case "w":
+		s.ShouldWriteFile = true
 	}
 
 	s.SetColContent(statusMsg.Column, statusMsg.Content)
