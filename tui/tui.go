@@ -3,8 +3,6 @@ package tui
 import (
 	"strconv"
 
-	"bellbird-notes/app/debug"
-	"bellbird-notes/app/notes"
 	"bellbird-notes/internal/interfaces"
 	"bellbird-notes/tui/components"
 	"bellbird-notes/tui/keyinput"
@@ -112,17 +110,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	m.keyInput.Mode = m.mode.Current
 
-	cmds = m.updateComponents(msg)
-	m.updateStatusBar()
-
 	// exit programme when `:q` is entered in command prompt
 	if m.statusBar.ShouldQuit {
 		return m, tea.Quit
 	}
 
-	if m.statusBar.ShouldWriteFile {
-		m.writeFile()
-	}
+	cmds = m.updateComponents(msg)
+	m.updateStatusBar()
 
 	return m, tea.Batch(cmds...)
 }
@@ -173,6 +167,7 @@ func (m *Model) updateComponents(msg tea.Msg) []tea.Cmd {
 		_, cmd := m.editor.Update(msg)
 		cmds = append(cmds, cmd)
 		m.keyInput.Mode = m.editor.Vim.Mode.Current
+		m.notesList.DirtyBuffers = m.editor.DirtyBuffers()
 	}
 
 	return cmds
@@ -288,22 +283,6 @@ func (m *Model) nbrFolders() int {
 	return m.dirTree.SelectedDir().NbrFolders
 }
 
-func (m *Model) writeFile() {
-	m.statusBar.ShouldWriteFile = false
-
-	_, err := notes.Write(
-		m.notesList.SelectedItem(nil).Path(),
-		m.editor.Textarea.Value(),
-	)
-
-	if err != nil {
-		debug.LogErr(err)
-		return
-	}
-
-	//debug.LogInfo(n)
-}
-
 // createDir enters insert mode
 // and triggers directory creation
 func (m *Model) createDir() message.StatusBarMsg {
@@ -376,12 +355,22 @@ func (m *Model) confirmAction() message.StatusBarMsg {
 	f := m.focusedComponent()
 
 	if m.statusBar.Focused {
-		statusMsg = m.statusBar.ConfirmAction(statusMsg.Sender, f)
+		statusMsg = m.statusBar.ConfirmAction(
+			statusMsg.Sender,
+			f,
+			*m.editor,
+		)
 	}
 
 	if m.mode.Current != mode.Normal && !m.statusBar.Focused {
 		statusMsg = f.ConfirmAction()
 	} else {
+		// only open stuff if we're in normal mode
+		if m.mode.Current != mode.Normal {
+			m.mode.Current = mode.Normal
+			return statusMsg
+		}
+
 		if f == m.dirTree {
 			m.notesList.CurrentPath = m.dirTree.SelectedDir().Path()
 			statusMsg = m.notesList.Refresh(true)
@@ -389,7 +378,7 @@ func (m *Model) confirmAction() message.StatusBarMsg {
 
 		if f == m.notesList {
 			notePath := m.notesList.SelectedItem(nil).Path()
-			m.editor.NewBuffer(notePath)
+			m.editor.OpenBuffer(notePath)
 		}
 	}
 

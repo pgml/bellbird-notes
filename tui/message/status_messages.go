@@ -9,13 +9,14 @@ var Response = struct {
 
 var StatusBar = struct {
 	CmdPrompt, RemovePromptDirContent, RemovePrompt, NoteExists,
-	CtrlCExitNote string
+	CtrlCExitNote, FileWritten string
 }{
 	CmdPrompt:              ":",
 	RemovePromptDirContent: "Delete `%s` and all of its content? [y(es),n(o)]:",
 	RemovePrompt:           "Delete `%s`? [y(es),n(o)]:",
 	NoteExists:             "Note already exists",
 	CtrlCExitNote:          "Type :q and press <Enter> to quit",
+	FileWritten:            "\"%s\" %dL, %dB written",
 }
 
 //var msgColours = map[MsgType]lipgloss.TerminalColor{

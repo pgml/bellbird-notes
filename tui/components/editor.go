@@ -1,14 +1,17 @@
 package components
 
 import (
+	"fmt"
 	"os"
 	"strings"
 
 	"bellbird-notes/app/debug"
+	"bellbird-notes/app/notes"
 	"bellbird-notes/tui/components/textarea"
 	"bellbird-notes/tui/keyinput"
 	"bellbird-notes/tui/message"
 	"bellbird-notes/tui/mode"
+	sbc "bellbird-notes/tui/types/statusbar_column"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -38,7 +41,7 @@ type Editor struct {
 	Component
 
 	Buffers       []Buffer
-	CurrentBuffer Buffer
+	CurrentBuffer *Buffer
 	Textarea      textarea.Model
 	Vim           Vim
 
@@ -53,8 +56,8 @@ type Buffer struct {
 	CursorPos   textarea.CursorPos
 	Path        string
 	Content     string
-
-	History textarea.History
+	History     textarea.History
+	Dirty       bool
 }
 
 type Input struct {
@@ -66,6 +69,14 @@ type Input struct {
 type Vim struct {
 	Mode    mode.ModeInstance
 	Pending Input
+}
+
+func (b *Buffer) undo() (string, textarea.CursorPos) {
+	return b.History.Undo()
+}
+
+func (b *Buffer) redo() (string, textarea.CursorPos) {
+	return b.History.Redo()
 }
 
 func NewEditor() *Editor {
@@ -87,44 +98,14 @@ func NewEditor() *Editor {
 				"",
 			},
 		},
-		Textarea: ta,
+		Textarea:      ta,
+		Component:     Component{},
+		Buffers:       []Buffer{},
+		CurrentBuffer: &Buffer{},
+		err:           nil,
 	}
 
 	return editor
-}
-
-func (e *Editor) NewBuffer(path string) message.StatusBarMsg {
-	note, err := os.ReadFile(path)
-
-	if err != nil {
-		debug.LogErr(err)
-		return message.StatusBarMsg{Content: err.Error()}
-	}
-
-	buffer := Buffer{
-		Index:   len(e.Buffers) + 1,
-		Path:    path,
-		Content: string(note),
-		History: textarea.NewHistory(),
-	}
-
-	e.Buffers = append(e.Buffers, buffer)
-	e.CurrentBuffer = buffer
-
-	content := ""
-	if e.CurrentBuffer.Path == path {
-		content = e.CurrentBuffer.Content
-	}
-
-	e.CurrentBuffer.History.NewEntry(e.Textarea.CursorPos())
-	e.CurrentBuffer.History.UpdateEntry(content, textarea.CursorPos{})
-
-	e.Textarea.SetValue(content)
-	e.Textarea.MoveToBegin()
-	e.Textarea.SetWidth(e.Size.Width)
-	e.Textarea.SetHeight(e.Size.Height - 3)
-
-	return message.StatusBarMsg{}
 }
 
 // Init initialises the Model on program load.
@@ -161,6 +142,8 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			e.Vim.Pending.key = strings.Split(key, "+")[1]
 		}
 
+		origCnt := e.Textarea.Value()
+
 		switch e.Vim.Mode.Current {
 		// -- NORMAL --
 		case mode.Normal:
@@ -191,31 +174,26 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				e.Textarea.CharacterRight()
 
 			case "j":
-				e.Textarea.CursorDown()
-				e.Textarea.RepositionView()
+				e.lineDown()
 
 			case "k":
-				e.Textarea.CursorUp()
-				e.Textarea.RepositionView()
+				e.lineUp()
 
 			case "u":
-				val, cursorPos := e.CurrentBuffer.History.Undo()
+				val, cursorPos := e.CurrentBuffer.undo()
 				e.Textarea.SetValue(val)
 				e.Textarea.MoveCursor(cursorPos.Row, cursorPos.ColumnOffset)
 
 			case "ctrl+r":
-				val, cursorPos := e.CurrentBuffer.History.Redo()
+				val, cursorPos := e.CurrentBuffer.redo()
 				e.Textarea.SetValue(val)
 				defer e.Textarea.MoveCursor(cursorPos.Row, cursorPos.ColumnOffset)
 
 			case "w":
-				e.Textarea.WordRight()
-				e.Textarea.CharacterRight()
+				e.wordRightStart()
 
 			case "e":
-				e.Textarea.CharacterRight()
-				e.Textarea.WordRight()
-				e.Textarea.CharacterLeft(false)
+				e.wordRightEnd()
 
 			case "b":
 				e.Textarea.WordLeft()
@@ -230,17 +208,10 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				e.Textarea.CursorEnd()
 
 			case "o":
-				e.Textarea.CursorEnd()
-				e.Textarea.InsertRune('\n')
-				e.Textarea.RepositionView()
-				e.enterInsertMode()
+				e.insertLineBelow()
 
 			case "O":
-				e.Textarea.CursorUp()
-				e.Textarea.CursorEnd()
-				e.Textarea.InsertRune('\n')
-				e.Textarea.RepositionView()
-				e.enterInsertMode()
+				e.insertLineAbove()
 
 			case "d":
 				e.operator("d")
@@ -252,8 +223,7 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				e.operator("g")
 
 			case "G":
-				e.Textarea.MoveToEnd()
-				e.Textarea.RepositionView()
+				e.goToBottom()
 
 			case "ctrl+d":
 				e.Textarea.DownHalfPage()
@@ -272,7 +242,10 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				e.enterNormalMode()
 				return e, nil
 			}
+
 			e.Textarea, cmd = e.Textarea.Update(msg)
+			e.checkDirty(e.CurrentBuffer.Content)
+
 			return e, cmd
 
 		// -- REPLACE --
@@ -285,7 +258,9 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// convert string character to rune
 			rune := []rune(msg.String())[0]
 
+			oldCnt := e.CurrentBuffer.Content
 			e.Textarea.ReplaceRune(rune)
+			e.checkDirty(oldCnt)
 			e.enterNormalMode()
 
 			return e, nil
@@ -301,6 +276,7 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// -- OPERATOR --
 		// handles the double key thingy like dd, yy, gg
 		case mode.Operator:
+			//origCnt = e.CurrentBuffer.Content
 			if e.Vim.Pending.operator == "d" {
 				switch msg.String() {
 				case "d":
@@ -322,8 +298,7 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if e.Vim.Pending.operator == "g" {
 				switch msg.String() {
 				case "g":
-					e.Textarea.MoveToBegin()
-					e.Textarea.RepositionView()
+					e.goToTop()
 				}
 			}
 
@@ -331,6 +306,7 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			e.Vim.Mode.Current = mode.Normal
 			e.Vim.Pending.operator = ""
 		}
+		e.checkDirty(origCnt)
 
 	case tea.WindowSizeMsg:
 		e.Size.Width = msg.Width
@@ -341,14 +317,9 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	e.CurrentBuffer.CursorPos = e.Textarea.CursorPos()
-	e.Textarea.SetWidth(e.Size.Width)
-	e.Textarea.SetHeight(e.Size.Height - 3)
+	e.setTextareaSize()
 
-	//e.Textarea, cmd = e.Textarea.Update(msg)
 	cmds = append(cmds, cmd)
-	// Handle keyboard and mouse events in the viewport
-	//_, cmd = e.viewport.Update(msg)
-	//cmds = append(cmds, cmd)
 
 	return e, tea.Batch(cmds...)
 }
@@ -365,6 +336,107 @@ func (e *Editor) build() string {
 	return e.Textarea.View()
 }
 
+func (e *Editor) NewBuffer(path string) message.StatusBarMsg {
+	note, err := os.ReadFile(path)
+
+	if err != nil {
+		debug.LogErr(err)
+		return message.StatusBarMsg{Content: err.Error()}
+	}
+
+	noteContent := string(note)
+
+	buf := Buffer{
+		Index:       len(e.Buffers) + 1,
+		Path:        path,
+		Content:     noteContent,
+		History:     textarea.NewHistory(),
+		CurrentLine: 0,
+		CursorPos:   textarea.CursorPos{},
+	}
+
+	e.Buffers = append(e.Buffers, buf)
+	e.CurrentBuffer = &e.Buffers[len(e.Buffers)-1]
+
+	content := ""
+	if e.CurrentBuffer.Path == path {
+		content = e.CurrentBuffer.Content
+	}
+
+	e.CurrentBuffer.History.NewEntry(e.Textarea.CursorPos())
+	e.CurrentBuffer.History.UpdateEntry(content, textarea.CursorPos{})
+
+	e.Textarea.SetValue(content)
+	e.Textarea.MoveToBegin()
+	e.setTextareaSize()
+
+	return message.StatusBarMsg{}
+}
+
+func (e *Editor) OpenBuffer(path string) message.StatusBarMsg {
+	statusMsg := message.StatusBarMsg{}
+
+	buf, exists := e.bufferExists(path)
+	if len(e.Buffers) <= 0 || !exists {
+		e.NewBuffer(path)
+		return statusMsg
+	}
+
+	e.CurrentBuffer = buf
+
+	e.Textarea.SetValue(buf.Content)
+	e.Textarea.MoveCursor(buf.CursorPos.Row, buf.CursorPos.ColumnOffset)
+	e.setTextareaSize()
+
+	return statusMsg
+}
+
+func (e *Editor) SaveBuffer() message.StatusBarMsg {
+	statusMsg := message.StatusBarMsg{
+		Type:   message.Success,
+		Column: sbc.General,
+	}
+
+	path := e.CurrentBuffer.Path
+	bytes, err := notes.Write(path, e.Textarea.Value())
+
+	if err != nil {
+		debug.LogErr(err)
+		return statusMsg
+	}
+
+	e.CurrentBuffer.Dirty = false
+
+	resultMsg := fmt.Sprintf(
+		message.StatusBar.FileWritten,
+		path, 0, bytes,
+	)
+
+	statusMsg.Content = resultMsg
+	return statusMsg
+}
+
+func (e *Editor) DirtyBuffers() []Buffer {
+	bufs := make([]Buffer, 0)
+
+	for i := range e.Buffers {
+		if e.Buffers[i].Dirty {
+			bufs = append(bufs, e.Buffers[i])
+		}
+	}
+
+	return bufs
+}
+
+func (e *Editor) bufferExists(path string) (*Buffer, bool) {
+	for i := range e.Buffers {
+		if e.Buffers[i].Path == path {
+			return &e.Buffers[i], true
+		}
+	}
+	return nil, false
+}
+
 func (e *Editor) enterInsertMode() {
 	e.Vim.Mode.Current = mode.Insert
 	e.CurrentBuffer.History.NewEntry(e.Textarea.CursorPos())
@@ -372,13 +444,78 @@ func (e *Editor) enterInsertMode() {
 
 func (e *Editor) enterNormalMode() {
 	e.Vim.Mode.Current = mode.Normal
+
+	if e.CurrentBuffer == nil {
+		return
+	}
+
+	e.CurrentBuffer.Content = e.Textarea.Value()
 	e.CurrentBuffer.History.UpdateEntry(
 		e.Textarea.Value(),
 		e.Textarea.CursorPos(),
 	)
 }
 
+func (e *Editor) checkDirty(origCnt string) {
+	val := e.Textarea.Value()
+	if origCnt != val {
+		e.CurrentBuffer.Content = val
+		e.CurrentBuffer.Dirty = true
+	}
+}
+
+func (e *Editor) setTextareaSize() {
+	e.Textarea.SetWidth(e.Size.Width)
+	e.Textarea.SetHeight(e.Size.Height - 3)
+}
+
 func (e *Editor) operator(c string) {
 	e.Vim.Mode.Current = mode.Operator
 	e.Vim.Pending.operator = c
+}
+
+func (e *Editor) insertLineAbove() {
+	e.Textarea.CursorUp()
+	e.Textarea.CursorEnd()
+	e.Textarea.InsertRune('\n')
+	e.Textarea.RepositionView()
+	e.enterInsertMode()
+}
+
+func (e *Editor) insertLineBelow() {
+	e.Textarea.CursorEnd()
+	e.Textarea.InsertRune('\n')
+	e.Textarea.RepositionView()
+	e.enterInsertMode()
+}
+
+func (e *Editor) lineUp() {
+	e.Textarea.CursorUp()
+	e.Textarea.RepositionView()
+}
+
+func (e *Editor) lineDown() {
+	e.Textarea.CursorDown()
+	e.Textarea.RepositionView()
+}
+
+func (e *Editor) goToTop() {
+	e.Textarea.MoveToBegin()
+	e.Textarea.RepositionView()
+}
+
+func (e *Editor) goToBottom() {
+	e.Textarea.MoveToEnd()
+	e.Textarea.RepositionView()
+}
+
+func (e *Editor) wordRightEnd() {
+	e.Textarea.CharacterRight()
+	e.Textarea.WordRight()
+	e.Textarea.CharacterLeft(false)
+}
+
+func (e *Editor) wordRightStart() {
+	e.Textarea.WordRight()
+	e.Textarea.CharacterRight()
 }

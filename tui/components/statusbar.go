@@ -169,6 +169,7 @@ func (s *StatusBar) ModeView() string {
 func (s *StatusBar) ConfirmAction(
 	sender message.Sender,
 	c Focusable,
+	e Editor,
 ) message.StatusBarMsg {
 	statusMsg := message.StatusBarMsg{}
 
@@ -194,7 +195,7 @@ func (s *StatusBar) ConfirmAction(
 	case "q":
 		s.ShouldQuit = true
 	case "w":
-		s.ShouldWriteFile = true
+		statusMsg = e.SaveBuffer()
 	}
 
 	s.SetColContent(statusMsg.Column, statusMsg.Content)

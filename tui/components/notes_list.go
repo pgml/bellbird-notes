@@ -13,7 +13,7 @@ import (
 	"bellbird-notes/tui/message"
 	"bellbird-notes/tui/mode"
 	"bellbird-notes/tui/theme"
-	statusbarcolumn "bellbird-notes/tui/types/statusbar_column"
+	sbc "bellbird-notes/tui/types/statusbar_column"
 
 	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbles/viewport"
@@ -28,12 +28,14 @@ type NotesList struct {
 	// This path might not match the directory that is selected in the
 	// directory tree since we don't automatically display a directory's
 	// content on a selection change
-	CurrentPath string
+	CurrentPath  string
+	DirtyBuffers []Buffer
 }
 
 type NoteItem struct {
 	Item
 	isPinned bool
+	IsDirty  bool
 }
 
 // Index returns the index of a Note-Item
@@ -67,7 +69,12 @@ func (n NoteItem) String() string {
 			Bold(true)
 	}
 
-	return baseStyle.Render(icon + r(name))
+	dirty := ""
+	if n.IsDirty {
+		dirty = "* "
+	}
+
+	return baseStyle.Render(icon + r(dirty+name))
 }
 
 // Init initialises the Model on program load.
@@ -163,6 +170,13 @@ func (l NotesList) build() string {
 	for i, note := range l.items {
 		note.selected = (l.selectedIndex == i)
 
+		for i := range l.DirtyBuffers {
+			buf := l.DirtyBuffers[i]
+			if buf.Path == note.path {
+				note.IsDirty = true
+			}
+		}
+
 		if *app.Debug {
 			// prepend list item indices for debugging purposes
 			style := lipgloss.NewStyle().Foreground(lipgloss.Color("#999"))
@@ -173,7 +187,10 @@ func (l NotesList) build() string {
 			// Show input field instead of text
 			list += l.editor.View() + "\n"
 		} else {
-			list += fmt.Sprintf("%-*s \n", l.viewport.Width, note.String())
+			list += fmt.Sprintf(
+				"%-*s \n",
+				l.viewport.Width, note.String(),
+			)
 		}
 	}
 
@@ -326,7 +343,7 @@ func (l *NotesList) ConfirmRemove() message.StatusBarMsg {
 		Content: resultMsg,
 		Type:    msgType,
 		Sender:  message.SenderNotesList,
-		Column:  statusbarcolumn.General,
+		Column:  sbc.General,
 	}
 }
 
@@ -334,7 +351,7 @@ func (l *NotesList) ConfirmRemove() message.StatusBarMsg {
 func (l *NotesList) Remove() message.StatusBarMsg {
 	note := l.SelectedItem(nil)
 	index := l.selectedIndex
-	resultMsg := ""
+	resultMsg := "213"
 	msgType := message.Success
 
 	if err := notes.Delete(note.path); err == nil {
@@ -349,7 +366,7 @@ func (l *NotesList) Remove() message.StatusBarMsg {
 	return message.StatusBarMsg{
 		Content: resultMsg,
 		Type:    msgType,
-		Column:  statusbarcolumn.General,
+		Column:  sbc.General,
 	}
 }
 
@@ -392,7 +409,7 @@ func (l *NotesList) ConfirmAction() message.StatusBarMsg {
 		return message.StatusBarMsg{
 			Content: resultMsg,
 			Sender:  message.SenderNotesList,
-			Column:  statusbarcolumn.General,
+			Column:  sbc.General,
 		}
 	}
 
