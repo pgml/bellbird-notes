@@ -266,7 +266,7 @@ func (e *Editor) SaveBuffer() message.StatusBarMsg {
 
 	rootDir, _ := app.NotesRootDir()
 	path := e.CurrentBuffer.Path
-	relative_path := strings.ReplaceAll(e.CurrentBuffer.Path, rootDir, ".")
+	relative_path := strings.ReplaceAll(path, rootDir, ".")
 	bytes, err := notes.Write(path, e.Textarea.Value())
 
 	if err != nil {

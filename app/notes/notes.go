@@ -67,15 +67,14 @@ func Write(path string, content string) (int, error) {
 		return 0, errors.New(message.StatusBar.NoteExists)
 	}
 
-	f, err := os.OpenFile(path, os.O_WRONLY, 0644)
-
+	f, err := os.OpenFile(path, os.O_WRONLY|os.O_TRUNC, 0644)
 	if err != nil {
 		debug.LogErr(err)
 		return 0, err
 	}
+	defer f.Close()
 
 	n, err := f.WriteString(content)
-	f.Close()
 
 	if err != nil {
 		debug.LogErr(err)
