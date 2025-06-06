@@ -196,6 +196,9 @@ func (s *StatusBar) ConfirmAction(
 		s.ShouldQuit = true
 	case "w":
 		statusMsg = e.SaveBuffer()
+	case "wq":
+		statusMsg = e.SaveBuffer()
+		s.ShouldQuit = true
 	}
 
 	s.SetColContent(statusMsg.Column, statusMsg.Content)
