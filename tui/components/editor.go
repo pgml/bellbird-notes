@@ -178,7 +178,6 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	e.setTextareaSize()
-
 	cmds = append(cmds, cmd)
 
 	return e, tea.Batch(cmds...)
@@ -188,7 +187,6 @@ func (e *Editor) View() string {
 	if !e.Focused {
 		e.Textarea.Blur()
 	}
-
 	return e.build()
 }
 
@@ -476,9 +474,12 @@ func (e *Editor) lineDown() {
 	e.Textarea.RepositionView()
 
 	pos := e.CurrentBuffer.CursorPos
-	// if we have a wrapped line we skip the wrapped part of the line
-	if pos.Row == e.Textarea.CursorPos().Row {
-		e.Textarea.CursorDown()
+	// If we have a wrapped line we skip the wrapped part of the line
+	if pos.Row == e.Textarea.CursorPos().Row &&
+		e.Textarea.Line() < e.Textarea.LineCount()-1 {
+		// e.Textarea.CursorDown() doesn't work properly for some reason
+		// so I'm gonna be a little dirty
+		e.lineDown()
 	}
 
 	e.Textarea.SetCursor(pos.ColumnOffset)
