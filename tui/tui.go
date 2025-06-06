@@ -358,7 +358,7 @@ func (m *Model) confirmAction() message.StatusBarMsg {
 		statusMsg = m.statusBar.ConfirmAction(
 			statusMsg.Sender,
 			f,
-			*m.editor,
+			m.editor,
 		)
 	}
 

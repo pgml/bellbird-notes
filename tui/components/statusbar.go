@@ -169,7 +169,7 @@ func (s *StatusBar) ModeView() string {
 func (s *StatusBar) ConfirmAction(
 	sender message.Sender,
 	c Focusable,
-	e Editor,
+	e *Editor,
 ) message.StatusBarMsg {
 	statusMsg := message.StatusBarMsg{}
 
@@ -199,6 +199,12 @@ func (s *StatusBar) ConfirmAction(
 	case "wq":
 		statusMsg = e.SaveBuffer()
 		s.ShouldQuit = true
+	// this `set` stuff should only be here temporarily
+	// this needs to be done better
+	case "set number":
+		e.SetNumbers()
+	case "set nonumber":
+		e.SetNoNumbers()
 	}
 
 	s.SetColContent(statusMsg.Column, statusMsg.Content)

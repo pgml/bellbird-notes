@@ -19,9 +19,9 @@ import (
 )
 
 const (
-	charLimit       = 0
-	maxHeight       = 0
-	showLineNumbers = false
+	charLimit = 0
+	maxHeight = 0
+	//showLineNumbers = false
 )
 
 var (
@@ -49,6 +49,8 @@ type Editor struct {
 	isAtLineStart bool
 
 	err error
+
+	ShowLineNumbers bool
 }
 
 type errMsg error
@@ -84,7 +86,6 @@ func (b *Buffer) redo() (string, textarea.CursorPos) {
 
 func NewEditor() *Editor {
 	ta := textarea.New()
-	ta.ShowLineNumbers = showLineNumbers
 	ta.Prompt = ""
 	ta.FocusedStyle.CursorLine = cursorLine
 	ta.FocusedStyle.Base = focusedStyle
@@ -101,14 +102,17 @@ func NewEditor() *Editor {
 				"",
 			},
 		},
-		Textarea:      ta,
-		Component:     Component{},
-		Buffers:       []Buffer{},
-		CurrentBuffer: &Buffer{},
-		err:           nil,
-		isAtLineEnd:   false,
-		isAtLineStart: false,
+		Textarea:        ta,
+		Component:       Component{},
+		Buffers:         []Buffer{},
+		CurrentBuffer:   &Buffer{},
+		err:             nil,
+		isAtLineEnd:     false,
+		isAtLineStart:   false,
+		ShowLineNumbers: false,
 	}
+
+	editor.Textarea.ShowLineNumbers = editor.ShowLineNumbers
 
 	return editor
 }
@@ -380,6 +384,16 @@ func (e *Editor) operator(c string) {
 	e.Vim.Pending.operator = c
 }
 
+func (e *Editor) SetNumbers() {
+	e.Textarea.ShowLineNumbers = true
+	e.build()
+}
+
+func (e *Editor) SetNoNumbers() {
+	e.Textarea.ShowLineNumbers = false
+	e.build()
+}
+
 // moveCharacterLeft moves the cursor one character to the left
 // and checks if the cursor is either at the end or the beginning
 // of the line and saves it's position
@@ -453,8 +467,11 @@ func (e *Editor) lineUp() {
 
 	pos := e.CurrentBuffer.CursorPos
 	// if we have a wrapped line we skip the wrapped part of the line
-	if pos.Row == e.Textarea.CursorPos().Row {
-		e.Textarea.CursorUp()
+	if pos.Row == e.Textarea.CursorPos().Row &&
+		e.Textarea.Line() > 0 {
+		// e.Textarea.CursorUp() doesn't work properly on some occasions
+		// so I'm gonna be a little dirty
+		e.lineUp()
 	}
 
 	e.Textarea.SetCursor(pos.ColumnOffset)
@@ -478,7 +495,7 @@ func (e *Editor) lineDown() {
 	if pos.Row == e.Textarea.CursorPos().Row &&
 		e.Textarea.Line() < e.Textarea.LineCount()-1 {
 		// e.Textarea.CursorDown() doesn't work properly for some reason
-		// so I'm gonna be a little dirty
+		// so I'm gonna be a little dirty again
 		e.lineDown()
 	}
 
