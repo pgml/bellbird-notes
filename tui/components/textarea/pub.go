@@ -13,12 +13,24 @@ type CursorPos struct {
 // If insideLine is set, the cursor is moved to the last
 // character in the previous line, instead of one past that.
 func (m *Model) CharacterLeft(inside bool) {
-	m.characterLeft(inside)
+	//m.characterLeft(inside)
+	if m.col > 0 {
+		m.SetCursor(m.col - 1)
+	}
 }
 
 // characterRight moves the cursor one character to the right.
-func (m *Model) CharacterRight() {
-	m.characterRight()
+//
+// If overshoot is true, the cursor moves past the last character
+// in the current row
+func (m *Model) CharacterRight(overshoot bool) {
+	if !overshoot {
+		if m.col < len(m.value[m.row])-1 {
+			m.SetCursor(m.col + 1)
+		}
+	} else {
+		m.characterRight()
+	}
 }
 
 // repositionView repositions the view of the viewport based on the defined
@@ -72,6 +84,22 @@ func (m *Model) DeleteAfterCursor() {
 ///
 /// custom methods
 ///
+
+func (m *Model) CursorVimEnd() {
+	m.SetCursor(len(m.value[m.row]) - 1)
+}
+
+func (m *Model) IsExceedingLine() bool {
+	return m.col >= len(m.value[m.row])
+}
+
+func (m *Model) IsAtLineStart() bool {
+	return m.col == 0
+}
+
+func (m *Model) IsAtLineEnd() bool {
+	return m.col == len(m.value[m.row])-1
+}
 
 // SetCursor moves the cursor to the given position. If the position is
 // out of bounds the cursor will be moved to the start or end accordingly.
