@@ -276,7 +276,7 @@ func (e *Editor) SaveBuffer() message.StatusBarMsg {
 
 	resultMsg := fmt.Sprintf(
 		message.StatusBar.FileWritten,
-		relative_path, 0, bytes,
+		relative_path, e.Textarea.LineCount(), bytes,
 	)
 
 	statusMsg.Content = resultMsg
@@ -495,6 +495,7 @@ func (e *Editor) lineDown() {
 func (e *Editor) goToLineStart() {
 	e.Textarea.CursorStart()
 	e.isAtLineStart = e.Textarea.IsAtLineStart()
+	e.isAtLineEnd = e.Textarea.IsAtLineEnd()
 	e.saveCursorPos()
 }
 
@@ -504,6 +505,7 @@ func (e *Editor) goToLineStart() {
 func (e *Editor) goToInputStart() {
 	e.Textarea.CursorInputStart()
 	e.isAtLineStart = e.Textarea.IsAtLineStart()
+	e.isAtLineEnd = e.Textarea.IsAtLineEnd()
 	e.saveCursorPos()
 }
 
@@ -511,6 +513,7 @@ func (e *Editor) goToInputStart() {
 // and saves the cursor position
 func (e *Editor) goToLineEnd() {
 	e.Textarea.CursorVimEnd()
+	e.isAtLineStart = e.Textarea.IsAtLineStart()
 	e.isAtLineEnd = e.Textarea.IsAtLineEnd()
 	e.saveCursorPos()
 }
