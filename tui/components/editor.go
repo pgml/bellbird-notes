@@ -152,162 +152,20 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch e.Vim.Mode.Current {
 		// -- NORMAL --
 		case mode.Normal:
-			switch msg.String() {
-			case "i":
-				e.enterInsertMode()
-
-			case "I":
-				e.insertLineStart()
-
-			case "a":
-				e.inserAfter()
-
-			case "A":
-				e.insertLineEnd()
-
-			case "r":
-				e.Vim.Mode.Current = mode.Replace
-
-			//case "v":
-			//	e.Vim.Mode.Current = app.VisualMode
-
-			case "h":
-				e.moveCharacterLeft()
-
-			case "l":
-				e.moveCharacterRight()
-
-			case "j":
-				e.lineDown()
-
-			case "k":
-				e.lineUp()
-
-			case "u":
-				e.undo()
-
-			case "ctrl+r":
-				e.redo()
-
-			case "w":
-				e.wordRightStart()
-				e.saveCursorPos()
-
-			case "e":
-				e.wordRightEnd()
-				e.saveCursorPos()
-
-			case "b":
-				e.Textarea.WordLeft()
-				e.saveCursorPos()
-
-			case "^", "_":
-				e.goToInputStart()
-
-			case "0":
-				e.goToLineStart()
-
-			case "$":
-				e.goToLineEnd()
-
-			case "o":
-				e.insertLineBelow()
-
-			case "O":
-				e.insertLineAbove()
-
-			case "d":
-				e.operator("d")
-
-			case "D":
-				e.Textarea.DeleteAfterCursor()
-
-			case "g":
-				e.operator("g")
-
-			case "G":
-				e.goToBottom()
-
-			case "ctrl+d":
-				e.Textarea.DownHalfPage()
-
-			case "ctrl+u":
-				e.Textarea.UpHalfPage()
-			case ":":
-				e.Vim.Mode.Current = mode.Command
-			}
-
-			e.Vim.Pending.ResetKeysDown()
-
+			cmd = e.handleNormalMode(msg)
 		// -- INSERT --
 		case mode.Insert:
-			if msg.String() == "esc" {
-				e.enterNormalMode()
-				return e, nil
-			}
-
-			e.Textarea, cmd = e.Textarea.Update(msg)
-			e.checkDirty(e.CurrentBuffer.Content)
-
-			return e, cmd
-
+			cmd = e.handleInsertMode(msg)
 		// -- REPLACE --
 		case mode.Replace:
-			if msg.String() == "esc" {
-				e.enterNormalMode()
-				return e, nil
-			}
-			// replace current charater in simple replace mode
-			// convert string character to rune
-			rune := []rune(msg.String())[0]
-
-			oldCnt := e.CurrentBuffer.Content
-			e.Textarea.ReplaceRune(rune)
-			e.checkDirty(oldCnt)
-			e.enterNormalMode()
-
-			return e, nil
-
+			cmd = e.handleReplaceMode(msg)
 		// -- COMMAND --
 		case mode.Command:
-			switch msg.String() {
-			case "esc", "enter":
-				e.enterNormalMode()
-				return e, nil
-			}
-
+			cmd = e.handleCommandMode(msg)
 		// -- OPERATOR --
 		// handles the double key thingy like dd, yy, gg
 		case mode.Operator:
-			//origCnt = e.CurrentBuffer.Content
-			if e.Vim.Pending.operator == "d" {
-				switch msg.String() {
-				case "d":
-					e.Textarea.DeleteLine()
-
-				case "j":
-					e.Textarea.DeleteLines(2, false)
-
-				case "k":
-					e.Textarea.DeleteLines(2, true)
-
-				case "w":
-					e.Textarea.DeleteWordRight()
-				}
-
-				e.CurrentBuffer.History.NewEntry(e.Textarea.CursorPos())
-			}
-
-			if e.Vim.Pending.operator == "g" {
-				switch msg.String() {
-				case "g":
-					e.goToTop()
-				}
-			}
-
-			e.Vim.Pending.ResetKeysDown()
-			e.Vim.Mode.Current = mode.Normal
-			e.Vim.Pending.operator = ""
+			cmd = e.handleOperatorMode(msg)
 		}
 		e.checkDirty(origCnt)
 
