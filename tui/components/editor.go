@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 
+	"bellbird-notes/app"
 	"bellbird-notes/app/debug"
 	"bellbird-notes/app/notes"
 	"bellbird-notes/tui/components/textarea"
@@ -397,7 +398,9 @@ func (e *Editor) SaveBuffer() message.StatusBarMsg {
 		Column: sbc.General,
 	}
 
+	rootDir, _ := app.NotesRootDir()
 	path := e.CurrentBuffer.Path
+	relative_path := strings.ReplaceAll(e.CurrentBuffer.Path, rootDir, ".")
 	bytes, err := notes.Write(path, e.Textarea.Value())
 
 	if err != nil {
@@ -409,7 +412,7 @@ func (e *Editor) SaveBuffer() message.StatusBarMsg {
 
 	resultMsg := fmt.Sprintf(
 		message.StatusBar.FileWritten,
-		path, 0, bytes,
+		relative_path, 0, bytes,
 	)
 
 	statusMsg.Content = resultMsg
