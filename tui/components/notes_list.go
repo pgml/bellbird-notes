@@ -56,8 +56,8 @@ func (n NoteItem) String() string {
 		filepath.Ext(name),
 	)
 
-	baseStyle := lipgloss.NewStyle().Width(25)
-	iconStyle := lipgloss.NewStyle().Width(3)
+	baseStyle := lipgloss.NewStyle().Width(26)
+	iconStyle := lipgloss.NewStyle().Width(2)
 
 	if n.selected {
 		baseStyle = baseStyle.Background(theme.ColourBgSelected).Bold(true)

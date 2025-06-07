@@ -3,6 +3,7 @@ package components
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	"bellbird-notes/app"
@@ -47,6 +48,8 @@ type Editor struct {
 	Vim           Vim
 	isAtLineEnd   bool
 	isAtLineStart bool
+
+	StatusBarMsg message.StatusBarMsg
 
 	err error
 
@@ -356,6 +359,34 @@ func (e *Editor) checkDirty(origCnt string) {
 	}
 }
 
+func (e *Editor) fileProgress() int {
+	pc := float32(e.Textarea.Line()+1) / float32(e.Textarea.LineCount())
+	return int(pc * 100.0)
+}
+
+func (e *Editor) fileProgresStr() string {
+	fileProgress := strconv.Itoa(e.fileProgress())
+	return fileProgress + "%"
+}
+
+func (e *Editor) cursorInfo() string {
+	line := strconv.Itoa(e.Textarea.Line() + 1)
+	col := strconv.Itoa(e.Textarea.LineInfo().ColumnOffset)
+	return line + "," + col
+}
+
+//func (e *Editor) filePosition() int {
+//	firstVis := e.Textarea.FirstVisibleLine()
+//	filePos := (firstVis - 1) * 100 / (e.Textarea.LineCount() - 1)
+//	return int(filePos)
+//}
+//
+//func (e *Editor) filePosStr() string {
+//	debug.LogDebug(e.Textarea.FirstVisibleLine(), e.Textarea.LineCount())
+//	pos := strconv.Itoa(e.filePosition())
+//	return pos + "%"
+//}
+
 // setTextareaSize update the textarea height and width to match
 // the height and width of the editor
 func (e *Editor) setTextareaSize() {
@@ -402,6 +433,11 @@ func (e *Editor) moveCharacterLeft() {
 	e.isAtLineStart = e.Textarea.IsAtLineStart()
 	e.isAtLineEnd = e.Textarea.IsAtLineEnd()
 	e.saveCursorPos()
+
+	e.StatusBarMsg = message.StatusBarMsg{
+		Content: e.cursorInfo() + "\t" + e.fileProgresStr(),
+		Column:  sbc.Progress,
+	}
 }
 
 // moveCharacterRight moves the cursor one character to the right
@@ -412,6 +448,11 @@ func (e *Editor) moveCharacterRight() {
 	e.isAtLineStart = e.Textarea.IsAtLineStart()
 	e.isAtLineEnd = e.Textarea.IsAtLineEnd()
 	e.saveCursorPos()
+
+	e.StatusBarMsg = message.StatusBarMsg{
+		Content: e.cursorInfo() + "\t" + e.fileProgresStr(),
+		Column:  sbc.Progress,
+	}
 }
 
 // inserAfter enters insert mode one character after the current cursor's
@@ -480,6 +521,11 @@ func (e *Editor) lineUp() {
 	if e.Textarea.IsExceedingLine() || e.isAtLineEnd {
 		e.Textarea.CursorVimEnd()
 	}
+
+	e.StatusBarMsg = message.StatusBarMsg{
+		Content: e.cursorInfo() + "\t" + e.fileProgresStr(),
+		Column:  sbc.Progress,
+	}
 }
 
 // lineDown moves the cursor one line down and sets the column offset
@@ -504,6 +550,11 @@ func (e *Editor) lineDown() {
 
 	if e.Textarea.IsExceedingLine() || e.isAtLineEnd {
 		e.Textarea.CursorVimEnd()
+	}
+
+	e.StatusBarMsg = message.StatusBarMsg{
+		Content: e.cursorInfo() + "\t" + e.fileProgresStr(),
+		Column:  sbc.Progress,
 	}
 }
 
@@ -571,5 +622,5 @@ func (e *Editor) undo() {
 func (e *Editor) redo() {
 	val, cursorPos := e.CurrentBuffer.redo()
 	e.Textarea.SetValue(val)
-	defer e.Textarea.MoveCursor(cursorPos.Row, cursorPos.ColumnOffset)
+	e.Textarea.MoveCursor(cursorPos.Row, cursorPos.ColumnOffset)
 }

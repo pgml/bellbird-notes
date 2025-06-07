@@ -178,3 +178,7 @@ func (m *Model) UpHalfPage() {
 func (m *Model) ReplaceRune(replaceWith rune) {
 	m.value[m.row][m.col] = replaceWith
 }
+
+func (m *Model) FirstVisibleLine() int {
+	return m.viewport.YOffset
+}

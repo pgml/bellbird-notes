@@ -74,6 +74,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		statusMsg := m.keyInput.HandleSequences(msg.String())
 
+		// fetch statusbar messages from the editor except when not
+		// in command mode, this is a bit ugly but works for now
+		// @todo make this not ugly
+		if m.editor.Focused && m.mode.Current != mode.Command {
+			statusMsg = m.editor.StatusBarMsg
+		}
+
 		if msg.String() == "ctrl+c" {
 			statusMsg = message.StatusBarMsg{
 				Content: message.StatusBar.CtrlCExitNote,
@@ -258,7 +265,9 @@ func (m *Model) lineUp() message.StatusBarMsg {
 
 	if f := m.focusedComponent(); f != nil {
 		statusMsg = f.LineUp()
-		statusMsg.Content = strconv.Itoa(m.nbrFolders()) + " Folders"
+		if f == m.dirTree {
+			statusMsg.Content = strconv.Itoa(m.nbrFolders()) + " Folders"
+		}
 	}
 
 	return statusMsg
@@ -271,7 +280,9 @@ func (m *Model) lineDown() message.StatusBarMsg {
 
 	if f := m.focusedComponent(); f != nil {
 		statusMsg = f.LineDown()
-		statusMsg.Content = strconv.Itoa(m.nbrFolders()) + " Folders"
+		if f == m.dirTree {
+			statusMsg.Content = strconv.Itoa(m.nbrFolders()) + " Folders"
+		}
 	}
 
 	return statusMsg
@@ -362,7 +373,9 @@ func (m *Model) confirmAction() message.StatusBarMsg {
 		)
 	}
 
-	if m.mode.Current != mode.Normal && !m.statusBar.Focused {
+	if m.mode.Current != mode.Normal &&
+		!m.statusBar.Focused &&
+		!m.editor.Focused {
 		statusMsg = f.ConfirmAction()
 	} else {
 		// only open stuff if we're in normal mode

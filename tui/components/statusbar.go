@@ -147,7 +147,7 @@ func (s *StatusBar) View() string {
 
 		style.Width(wColProgress).
 			Align(lipgloss.Right).
-			Render(colProgress),
+			Render(colProgress+" "),
 	)
 }
 
