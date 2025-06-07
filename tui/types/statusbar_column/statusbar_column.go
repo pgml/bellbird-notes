@@ -4,8 +4,8 @@ type Column int
 
 const (
 	General Column = iota
-	Info
-	CursorPos
+	DirInfo
+	FileInfo
 	Progress
 )
 

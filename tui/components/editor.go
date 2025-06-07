@@ -236,6 +236,7 @@ func (e *Editor) NewBuffer(path string) message.StatusBarMsg {
 	e.Textarea.SetValue(content)
 	e.Textarea.MoveToBegin()
 	e.setTextareaSize()
+	e.UpdateStatusBarInfo()
 
 	return message.StatusBarMsg{}
 }
@@ -243,7 +244,13 @@ func (e *Editor) NewBuffer(path string) message.StatusBarMsg {
 // OpenBuffer attempts to open the buffer with the given path.
 // If no buffer is found a new buffer is created
 func (e *Editor) OpenBuffer(path string) message.StatusBarMsg {
-	statusMsg := message.StatusBarMsg{}
+	rootDir, _ := app.NotesRootDir()
+	relPath := strings.ReplaceAll(path, rootDir, ".")
+
+	statusMsg := message.StatusBarMsg{
+		Content: relPath,
+		Column:  sbc.FileInfo,
+	}
 
 	buf, exists := e.bufferExists(path)
 	// create new buffer if we can't find anything
@@ -257,6 +264,7 @@ func (e *Editor) OpenBuffer(path string) message.StatusBarMsg {
 	e.Textarea.SetValue(buf.Content)
 	e.Textarea.MoveCursor(buf.CursorPos.Row, buf.CursorPos.ColumnOffset)
 	e.setTextareaSize()
+	e.UpdateStatusBarInfo()
 
 	return statusMsg
 }
@@ -415,6 +423,17 @@ func (e *Editor) operator(c string) {
 	e.Vim.Pending.operator = c
 }
 
+func (e *Editor) UpdateStatusBarInfo() {
+	e.StatusBarMsg = e.StatusBarInfo()
+}
+
+func (e *Editor) StatusBarInfo() message.StatusBarMsg {
+	return message.StatusBarMsg{
+		Content: e.cursorInfo() + "\t" + e.fileProgresStr(),
+		Column:  sbc.Progress,
+	}
+}
+
 func (e *Editor) SetNumbers() {
 	e.Textarea.ShowLineNumbers = true
 	e.build()
@@ -431,13 +450,9 @@ func (e *Editor) SetNoNumbers() {
 func (e *Editor) moveCharacterLeft() {
 	e.Textarea.CharacterLeft(false)
 	e.isAtLineStart = e.Textarea.IsAtLineStart()
-	e.isAtLineEnd = e.Textarea.IsAtLineEnd()
+	e.isAtLineEnd = false
 	e.saveCursorPos()
-
-	e.StatusBarMsg = message.StatusBarMsg{
-		Content: e.cursorInfo() + "\t" + e.fileProgresStr(),
-		Column:  sbc.Progress,
-	}
+	e.UpdateStatusBarInfo()
 }
 
 // moveCharacterRight moves the cursor one character to the right
@@ -446,13 +461,9 @@ func (e *Editor) moveCharacterLeft() {
 func (e *Editor) moveCharacterRight() {
 	e.Textarea.CharacterRight(false)
 	e.isAtLineStart = e.Textarea.IsAtLineStart()
-	e.isAtLineEnd = e.Textarea.IsAtLineEnd()
+	e.isAtLineEnd = false
 	e.saveCursorPos()
-
-	e.StatusBarMsg = message.StatusBarMsg{
-		Content: e.cursorInfo() + "\t" + e.fileProgresStr(),
-		Column:  sbc.Progress,
-	}
+	e.UpdateStatusBarInfo()
 }
 
 // inserAfter enters insert mode one character after the current cursor's
@@ -461,6 +472,7 @@ func (e *Editor) inserAfter() {
 	e.Textarea.CharacterRight(true)
 	e.enterInsertMode()
 	e.saveCursorPos()
+	e.UpdateStatusBarInfo()
 }
 
 // insertLineStart moves the cursor to the beginning of the line,
@@ -469,6 +481,7 @@ func (e *Editor) insertLineStart() {
 	e.Textarea.CursorInputStart()
 	e.enterInsertMode()
 	e.saveCursorPos()
+	e.UpdateStatusBarInfo()
 }
 
 // insertLineEnd moves the cursor to the end of the line,
@@ -477,6 +490,7 @@ func (e *Editor) insertLineEnd() {
 	e.Textarea.CursorEnd()
 	e.enterInsertMode()
 	e.saveCursorPos()
+	e.UpdateStatusBarInfo()
 }
 
 // insertLineAbove creates and empty line above the current line
@@ -487,6 +501,7 @@ func (e *Editor) insertLineAbove() {
 	e.Textarea.InsertRune('\n')
 	e.Textarea.RepositionView()
 	e.enterInsertMode()
+	e.UpdateStatusBarInfo()
 }
 
 // insertLineBelow creates and empty line below the current line
@@ -496,6 +511,7 @@ func (e *Editor) insertLineBelow() {
 	e.Textarea.InsertRune('\n')
 	e.Textarea.RepositionView()
 	e.enterInsertMode()
+	e.UpdateStatusBarInfo()
 }
 
 // lineUp moves the cursor one line up and sets the column offset
@@ -522,10 +538,7 @@ func (e *Editor) lineUp() {
 		e.Textarea.CursorVimEnd()
 	}
 
-	e.StatusBarMsg = message.StatusBarMsg{
-		Content: e.cursorInfo() + "\t" + e.fileProgresStr(),
-		Column:  sbc.Progress,
-	}
+	e.UpdateStatusBarInfo()
 }
 
 // lineDown moves the cursor one line down and sets the column offset
@@ -552,10 +565,7 @@ func (e *Editor) lineDown() {
 		e.Textarea.CursorVimEnd()
 	}
 
-	e.StatusBarMsg = message.StatusBarMsg{
-		Content: e.cursorInfo() + "\t" + e.fileProgresStr(),
-		Column:  sbc.Progress,
-	}
+	e.UpdateStatusBarInfo()
 }
 
 // goToLineStart moves the cursor to the beginning of the line,
@@ -565,6 +575,7 @@ func (e *Editor) goToLineStart() {
 	e.isAtLineStart = e.Textarea.IsAtLineStart()
 	e.isAtLineEnd = e.Textarea.IsAtLineEnd()
 	e.saveCursorPos()
+	e.UpdateStatusBarInfo()
 }
 
 // goToInputStart moves the cursor to the first character of the line,
@@ -575,6 +586,7 @@ func (e *Editor) goToInputStart() {
 	e.isAtLineStart = e.Textarea.IsAtLineStart()
 	e.isAtLineEnd = e.Textarea.IsAtLineEnd()
 	e.saveCursorPos()
+	e.UpdateStatusBarInfo()
 }
 
 // goToLineEnd moves the cursor to the end of the line, sets isAtLineEnd
@@ -584,18 +596,22 @@ func (e *Editor) goToLineEnd() {
 	e.isAtLineStart = e.Textarea.IsAtLineStart()
 	e.isAtLineEnd = e.Textarea.IsAtLineEnd()
 	e.saveCursorPos()
+	e.UpdateStatusBarInfo()
 }
 
 // goToTop moves the cursor to the beginning of the buffer
 func (e *Editor) goToTop() {
 	e.Textarea.MoveToBegin()
 	e.Textarea.RepositionView()
+
+	e.UpdateStatusBarInfo()
 }
 
 // goToTop moves the cursor to the bottom of the buffer
 func (e *Editor) goToBottom() {
 	e.Textarea.MoveToEnd()
 	e.Textarea.RepositionView()
+	e.UpdateStatusBarInfo()
 }
 
 // wordRightEnd moves the cursor to the end of the next word
@@ -603,12 +619,14 @@ func (e *Editor) wordRightEnd() {
 	e.Textarea.CharacterRight(false)
 	e.Textarea.WordRight()
 	e.Textarea.CharacterLeft(false)
+	e.UpdateStatusBarInfo()
 }
 
 // wordRightStart moves the cursor to the beginning of the next word
 func (e *Editor) wordRightStart() {
 	e.Textarea.WordRight()
 	e.Textarea.CharacterRight(false)
+	e.UpdateStatusBarInfo()
 }
 
 // undo sets the buffer content to the previous history entry
@@ -616,6 +634,7 @@ func (e *Editor) undo() {
 	val, cursorPos := e.CurrentBuffer.undo()
 	e.Textarea.SetValue(val)
 	e.Textarea.MoveCursor(cursorPos.Row, cursorPos.ColumnOffset)
+	e.UpdateStatusBarInfo()
 }
 
 // redo sets the buffer content to the next history entry
@@ -623,4 +642,5 @@ func (e *Editor) redo() {
 	val, cursorPos := e.CurrentBuffer.redo()
 	e.Textarea.SetValue(val)
 	e.Textarea.MoveCursor(cursorPos.Row, cursorPos.ColumnOffset)
+	e.UpdateStatusBarInfo()
 }

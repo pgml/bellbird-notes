@@ -82,11 +82,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		if msg.String() == "ctrl+c" {
-			statusMsg = message.StatusBarMsg{
-				Content: message.StatusBar.CtrlCExitNote,
-				Type:    message.Success,
-				Column:  sbc.General,
-			}
+			statusMsg.Content = message.StatusBar.CtrlCExitNote
+			statusMsg.Type = message.Success
+			statusMsg.Column = sbc.General
 		}
 
 		m.statusBar = m.statusBar.Update(statusMsg, msg)
@@ -391,7 +389,7 @@ func (m *Model) confirmAction() message.StatusBarMsg {
 
 		if f == m.notesList {
 			notePath := m.notesList.SelectedItem(nil).Path()
-			m.editor.OpenBuffer(notePath)
+			statusMsg = m.editor.OpenBuffer(notePath)
 		}
 	}
 

@@ -107,8 +107,8 @@ func (s *StatusBar) View() string {
 
 	// get the content of each column
 	colGeneral := s.ColContent(sbc.General)
-	colInfo := style.Render(s.ColContent(sbc.Info))
-	colCursorPos := s.ColContent(sbc.CursorPos)
+	//colDirInfo := s.ColContent(sbc.DirInfo)
+	colFileInfo := s.ColContent(sbc.FileInfo)
 	colProgress := s.ColContent(sbc.Progress)
 
 	// display current mode only if there's is no prompt focused
@@ -127,23 +127,24 @@ func (s *StatusBar) View() string {
 
 	width, _ := theme.GetTerminalSize()
 
-	wColInfo := 15
-	wColCursorPos := 15
-	wColProgress := 15
-	wColGeneral := max(width-(wColInfo+wColCursorPos+wColProgress), 1)
+	//wColDirInfo := 15
+	wColFileInfo := 70
+	wColProgress := 20
+	//wColGeneral := max(width-(wColDirInfo+wColFileInfo+wColProgress), 1)
+	wColGeneral := max(width-(wColFileInfo+wColProgress), 1)
 
 	return lipgloss.JoinHorizontal(lipgloss.Right,
 		style.Width(wColGeneral).
 			Foreground(s.Type.Colour()).
 			Render(colGeneral),
 
-		style.Width(wColInfo).
-			Align(lipgloss.Right).
-			Render(colInfo),
+		//style.Width(wColDirInfo).
+		//	Align(lipgloss.Right).
+		//	Render(colDirInfo),
 
-		style.Width(wColCursorPos).
+		style.Width(wColFileInfo).
 			Align(lipgloss.Right).
-			Render(colCursorPos),
+			Render(colFileInfo),
 
 		style.Width(wColProgress).
 			Align(lipgloss.Right).
