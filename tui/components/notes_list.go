@@ -56,25 +56,29 @@ func (n NoteItem) String() string {
 		filepath.Ext(name),
 	)
 
+	baseStyle := lipgloss.NewStyle().Width(25)
+	iconStyle := lipgloss.NewStyle().Width(3)
+
+	if n.selected {
+		baseStyle = baseStyle.Background(theme.ColourBgSelected).Bold(true)
+		iconStyle = iconStyle.Background(theme.ColourBgSelected).Bold(true)
+	}
+
 	// nerdfonts required
 	icon := " 󰎞"
 	if *app.NoNerdFonts {
 		icon = " "
 	}
 
-	baseStyle := lipgloss.NewStyle().Width(28)
-	if n.selected {
-		baseStyle = baseStyle.
-			Background(theme.ColourBgSelected).
-			Bold(true)
-	}
-
-	dirty := ""
 	if n.IsDirty {
-		dirty = "* "
+		iconStyle = iconStyle.Foreground(theme.ColourDirty)
+		icon = " "
+		if *app.NoNerdFonts {
+			icon = " *"
+		}
 	}
 
-	return baseStyle.Render(icon + r(dirty+name))
+	return iconStyle.Render(icon) + baseStyle.Render(r(name))
 }
 
 // Init initialises the Model on program load.

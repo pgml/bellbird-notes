@@ -15,7 +15,9 @@ var (
 	ColourBorderFocused = lipgloss.AdaptiveColor{Dark: "#69c8dc"}
 	ColourFg            = lipgloss.NoColor{}
 	ColourBgSelected    = lipgloss.AdaptiveColor{Light: "#333", Dark: "#424B5D"}
-	BorderStyle         = lipgloss.RoundedBorder()
+	ColourDirty         = lipgloss.AdaptiveColor{Light: "#333", Dark: "#c05d5f"}
+
+	BorderStyle = lipgloss.RoundedBorder()
 )
 
 const IconInput = ""
