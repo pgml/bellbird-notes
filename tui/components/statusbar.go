@@ -64,21 +64,24 @@ func (s *StatusBar) Init() tea.Cmd {
 }
 
 func (s *StatusBar) Update(
-	msg message.StatusBarMsg,
+	msgs []message.StatusBarMsg,
 	teaMsg tea.Msg,
 ) *StatusBar {
-	// only update content if we are in normal mode and there is
-	// no kind of input focused since we don't want to overwrite
-	// the original message of the prompt
-	if s.Type != message.PromptError && s.Mode == mode.Normal {
-		s.SetColContent(msg.Column, msg.Content)
-	}
+	for i := range msgs {
+		msg := msgs[i]
+		// only update content if we are in normal mode and there is
+		// no kind of input focused since we don't want to overwrite
+		// the original message of the prompt
+		if s.Type != message.PromptError && s.Mode == mode.Normal {
+			s.SetColContent(msg.Column, msg.Content)
+		}
 
-	if s.Focused && s.Mode == mode.Normal {
-		s.Type = msg.Type
-	}
+		if s.Focused && s.Mode == mode.Normal {
+			s.Type = msg.Type
+		}
 
-	s.Sender = msg.Sender
+		s.Sender = msg.Sender
+	}
 
 	switch teaMsg.(type) {
 	case tea.KeyMsg:
@@ -107,8 +110,8 @@ func (s *StatusBar) View() string {
 
 	// get the content of each column
 	colGeneral := s.ColContent(sbc.General)
-	//colDirInfo := s.ColContent(sbc.DirInfo)
 	colFileInfo := s.ColContent(sbc.FileInfo)
+	colKeyInfo := s.ColContent(sbc.KeyInfo)
 	colProgress := s.ColContent(sbc.Progress)
 
 	// display current mode only if there's is no prompt focused
@@ -127,24 +130,23 @@ func (s *StatusBar) View() string {
 
 	width, _ := theme.GetTerminalSize()
 
-	//wColDirInfo := 15
 	wColFileInfo := 70
-	wColProgress := 20
-	//wColGeneral := max(width-(wColDirInfo+wColFileInfo+wColProgress), 1)
-	wColGeneral := max(width-(wColFileInfo+wColProgress), 1)
+	wColKeyInfo := 15
+	wColProgress := 15
+	wColGeneral := max(width-(wColFileInfo+wColKeyInfo+wColProgress), 1)
 
 	return lipgloss.JoinHorizontal(lipgloss.Right,
 		style.Width(wColGeneral).
 			Foreground(s.Type.Colour()).
 			Render(colGeneral),
 
-		//style.Width(wColDirInfo).
-		//	Align(lipgloss.Right).
-		//	Render(colDirInfo),
-
 		style.Width(wColFileInfo).
 			Align(lipgloss.Right).
 			Render(colFileInfo),
+
+		style.Width(wColKeyInfo).
+			Align(lipgloss.Center).
+			Render(colKeyInfo),
 
 		style.Width(wColProgress).
 			Align(lipgloss.Right).
@@ -210,6 +212,7 @@ func (s *StatusBar) ConfirmAction(
 
 	s.SetColContent(statusMsg.Column, statusMsg.Content)
 	s.BlurPrompt()
+
 	return statusMsg
 }
 

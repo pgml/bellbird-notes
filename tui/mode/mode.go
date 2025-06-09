@@ -27,12 +27,12 @@ var modeName = map[Mode]string{
 }
 
 var fullName = map[Mode]string{
-	Normal:      "NORMAL",
-	Insert:      "INSERT",
-	Visual:      "VISUAL",
-	VisualLine:  "VISUAL LINE",
-	VisualBlock: "VISUAL BLOCK",
-	Replace:     "REPLACE",
+	Normal:      "-- NORMAL --",
+	Insert:      "-- INSERT --",
+	Visual:      "-- VISUAL --",
+	VisualLine:  "-- VISUAL LINE --",
+	VisualBlock: "-- VISUAL BLOCK --",
+	Replace:     "-- REPLACE --",
 	Operator:    "",
 	Command:     "",
 }

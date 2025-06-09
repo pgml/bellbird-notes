@@ -17,9 +17,17 @@ type Component struct {
 
 	// Indicates hether the directory tree column is focused.
 	// Used to determine if the directory tree should receive keyboard shortcuts
-	Focused bool
+	focused bool
 
 	statusMessage string         // For displaying useful information in the status bar
 	viewport      viewport.Model // The tree viewport that allows scrolling
 	ready         bool
+}
+
+func (c *Component) Focused() bool {
+	return c.focused
+}
+
+func (c *Component) SetFocus(focus bool) {
+	c.focused = focus
 }

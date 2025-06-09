@@ -1,8 +1,6 @@
 package tui
 
 import (
-	"strconv"
-
 	"bellbird-notes/internal/interfaces"
 	"bellbird-notes/tui/components"
 	"bellbird-notes/tui/keyinput"
@@ -74,17 +72,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		statusMsg := m.keyInput.HandleSequences(msg.String())
 
-		// fetch statusbar messages from the editor except when not
-		// in command mode, this is a bit ugly but works for now
-		// @todo make this not ugly
-		if m.editor.Focused && m.mode.Current != mode.Command {
-			statusMsg = m.editor.StatusBarMsg
-		}
-
 		if msg.String() == "ctrl+c" {
-			statusMsg.Content = message.StatusBar.CtrlCExitNote
-			statusMsg.Type = message.Success
-			statusMsg.Column = sbc.General
+			statusMsg = []message.StatusBarMsg{{
+				Content: message.StatusBar.CtrlCExitNote,
+				Type:    message.Success,
+				Column:  sbc.General,
+			}}
 		}
 
 		m.statusBar = m.statusBar.Update(statusMsg, msg)
@@ -109,8 +102,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.notesList.Size, _ = msg.Size(m.notesList.Id)
 		m.editor.Size, _ = msg.Size(m.editor.Id)
 
-	case message.StatusBarMsg:
-		m.statusBar = m.statusBar.Update(msg, msg)
+		//case message.StatusBarMsg:
+		//	m.statusBar = m.statusBar.Update(msg, msg)
 	}
 
 	m.keyInput.Mode = m.mode.Current
@@ -142,13 +135,9 @@ func (m Model) View() string {
 // and sets initial focus
 func (m *Model) componentsInit() {
 	m.dirTree.Id = m.layout.Add("width 30")
-	m.dirTree.Focused = true
-
 	m.notesList.Id = m.layout.Add("width 30")
-	m.notesList.Focused = false
-
 	m.editor.Id = m.layout.Add("grow")
-	m.editor.Focused = false
+	m.focusColumn(1)
 }
 
 // updateComponents dispatches updates to the focused components
@@ -156,22 +145,35 @@ func (m *Model) componentsInit() {
 func (m *Model) updateComponents(msg tea.Msg) []tea.Cmd {
 	var cmds []tea.Cmd
 
-	if m.dirTree.Focused {
+	if m.dirTree.Focused() {
 		m.dirTree.Mode = m.mode.Current
 		_, cmd := m.dirTree.Update(msg)
 		cmds = append(cmds, cmd)
 	}
 
-	if m.notesList.Focused {
+	if m.notesList.Focused() {
 		m.notesList.Mode = m.mode.Current
 		_, cmd := m.notesList.Update(msg)
 		cmds = append(cmds, cmd)
 	}
 
-	if m.editor.Focused {
+	if m.editor.Focused() {
 		_, cmd := m.editor.Update(msg)
 		cmds = append(cmds, cmd)
-		m.keyInput.Mode = m.editor.Vim.Mode.Current
+		editorMode := m.editor.Vim.Mode.Current
+		m.mode.Current = editorMode
+		m.keyInput.Mode = editorMode
+		// This is probably a dirty workaround - since key events are
+		// being executed before the editor receives updates, insert
+		// mode is already active which means we already start typing
+		// with the initial key that is only supposed to go into insert mode.
+		// So we set this flag AFTER the editor update method so that
+		// insert mode is activated but doesn't immediately receive any
+		// input
+		m.editor.CanInsert = false
+		if editorMode == mode.Insert || editorMode == mode.Replace {
+			m.editor.CanInsert = true
+		}
 		m.notesList.DirtyBuffers = m.editor.DirtyBuffers()
 	}
 
@@ -200,10 +202,11 @@ func (m *Model) updateStatusBar() {
 // focusColumn selects and higlights a column with index `index`
 // (1=dirTree, 2=notesList, 3=editor)
 func (m *Model) focusColumn(index int) message.StatusBarMsg {
-	m.dirTree.Focused = index == 1
-	m.notesList.Focused = index == 2
-	m.editor.Focused = index == 3
+	m.dirTree.SetFocus(index == 1)
+	m.notesList.SetFocus(index == 2)
+	m.editor.SetFocus(index == 3)
 	m.currColFocus = index
+	m.keyInput.FetchKeyMap(true)
 
 	return message.StatusBarMsg{}
 }
@@ -238,19 +241,16 @@ func (m *Model) focusNextColumn() message.StatusBarMsg {
 // currently selected column.
 // Selects the first if the currently selected column is the last column...
 func (m *Model) focusPrevColumn() message.StatusBarMsg {
-	index := m.currColFocus - 1
-	if index < 0 {
-		index = 1
-	}
+	index := max(m.currColFocus-1, 1)
 	return m.focusColumn(index)
 }
 
 // focusedComponent returns the component that is currently focused
 func (m *Model) focusedComponent() Focusable {
-	if m.dirTree.Focused {
+	if m.dirTree.Focused() {
 		return m.dirTree
 	}
-	if m.notesList.Focused {
+	if m.notesList.Focused() {
 		return m.notesList
 	}
 	return nil
@@ -263,9 +263,6 @@ func (m *Model) lineUp() message.StatusBarMsg {
 
 	if f := m.focusedComponent(); f != nil {
 		statusMsg = f.LineUp()
-		if f == m.dirTree {
-			statusMsg.Content = strconv.Itoa(m.nbrFolders()) + " Folders"
-		}
 	}
 
 	return statusMsg
@@ -278,18 +275,9 @@ func (m *Model) lineDown() message.StatusBarMsg {
 
 	if f := m.focusedComponent(); f != nil {
 		statusMsg = f.LineDown()
-		if f == m.dirTree {
-			statusMsg.Content = strconv.Itoa(m.nbrFolders()) + " Folders"
-		}
 	}
 
 	return statusMsg
-}
-
-// nbrFolders returns the number of folders
-// in the currently selected directory
-func (m *Model) nbrFolders() int {
-	return m.dirTree.SelectedDir().NbrFolders
 }
 
 // createDir enters insert mode
@@ -307,18 +295,18 @@ func (m *Model) createNote() message.StatusBarMsg {
 // rename enters insert mode and renames the selected item
 // in the directory or note list
 func (m *Model) rename() message.StatusBarMsg {
-	if m.dirTree.Focused || m.notesList.Focused {
+	if m.dirTree.Focused() || m.notesList.Focused() {
 		m.mode.Current = mode.Insert
 		m.statusBar.Focused = false
 	}
 
-	if m.dirTree.Focused {
+	if m.dirTree.Focused() {
 		return m.dirTree.Rename(
 			m.dirTree.SelectedDir().Name(),
 		)
 	}
 
-	if m.notesList.Focused {
+	if m.notesList.Focused() {
 		return m.notesList.Rename(
 			m.notesList.SelectedItem(nil).Name(),
 		)
@@ -373,7 +361,7 @@ func (m *Model) confirmAction() message.StatusBarMsg {
 
 	if m.mode.Current != mode.Normal &&
 		!m.statusBar.Focused &&
-		!m.editor.Focused {
+		!m.editor.Focused() {
 		statusMsg = f.ConfirmAction()
 	} else {
 		// only open stuff if we're in normal mode
@@ -405,6 +393,7 @@ func (m *Model) cancelAction() message.StatusBarMsg {
 
 	if m.statusBar.Prompt.Focused() {
 		m.statusBar.CancelAction(func() {})
+		m.enterNormalMode()
 	} else {
 		if f := m.focusedComponent(); f != nil {
 			resetIndex := false
@@ -421,7 +410,22 @@ func (m *Model) cancelAction() message.StatusBarMsg {
 		}
 	}
 
-	return message.StatusBarMsg{}
+	return message.StatusBarMsg{
+		Content: "",
+		Column:  sbc.General,
+	}
+}
+
+func (m *Model) enterNormalMode() message.StatusBarMsg {
+	m.editor.Vim.Mode.Current = mode.Normal
+	m.mode.Current = mode.Normal
+	m.statusBar.Focused = false
+
+	return message.StatusBarMsg{
+		Content: "",
+		Type:    message.Prompt,
+		Column:  sbc.General,
+	}
 }
 
 func (m *Model) enterCmdMode() message.StatusBarMsg {
@@ -429,6 +433,7 @@ func (m *Model) enterCmdMode() message.StatusBarMsg {
 		return message.StatusBarMsg{}
 	}
 
+	m.editor.Vim.Mode.Current = mode.Command
 	m.mode.Current = mode.Command
 	m.statusBar.Focused = true
 	m.statusBar.Type = message.Prompt
@@ -438,40 +443,5 @@ func (m *Model) enterCmdMode() message.StatusBarMsg {
 		Content: statusMsg,
 		Type:    message.Prompt,
 		Column:  sbc.General,
-	}
-}
-
-//func (m *TuiModel) exitCmdMode() {
-//	m.mode.Current = mode.NormalMode
-//	m.keyInput.ResetKeysDown()
-//}
-
-//func (m *TuiModel) executeCmdModeCommand() {}
-
-//func (m *TuiModel) quit() {
-//	tea.Quit()
-//}
-
-// KeyInputFn maps command strings to actions for key sequence input.
-func (m *Model) KeyInputFn() map[string]func() message.StatusBarMsg {
-	return map[string]func() message.StatusBarMsg{
-		"focusDirectoryTree": m.focusDirectoryTree,
-		"focusNotesList":     m.focusNotesList,
-		"focusEditor":        m.focusEditor,
-		"focusNextColumn":    m.focusNextColumn,
-		"focusPrevColumn":    m.focusPrevColumn,
-		"lineUp":             m.lineUp,
-		"lineDown":           m.lineDown,
-		"collapse":           m.dirTree.Collapse,
-		"expand":             m.dirTree.Expand,
-		"createDir":          m.createDir,
-		"createNote":         m.createNote,
-		"rename":             m.rename,
-		"delete":             m.remove,
-		"goToTop":            m.goToTop,
-		"goToBottom":         m.goToBottom,
-		"cancelAction":       m.cancelAction,
-		"confirmAction":      m.confirmAction,
-		"enterCmdMode":       m.enterCmdMode,
 	}
 }

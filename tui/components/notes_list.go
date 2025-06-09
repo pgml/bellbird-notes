@@ -137,7 +137,7 @@ func (l *NotesList) View() string {
 
 	l.viewport.Style = theme.BaseColumnLayout(
 		l.Size,
-		l.Focused,
+		l.Focused(),
 	)
 
 	return l.viewport.View()
@@ -306,7 +306,7 @@ func (l *NotesList) Create(
 ) message.StatusBarMsg {
 	statusMsg := message.StatusBarMsg{}
 
-	if l.Focused {
+	if l.Focused() {
 		mi.Current = mode.Insert
 		statusBar.Focused = false
 
@@ -338,7 +338,7 @@ func (l *NotesList) ConfirmRemove() message.StatusBarMsg {
 	msgType := message.PromptError
 
 	rootDir, _ := app.NotesRootDir()
-	path := strings.ReplaceAll(selectedNote.path, rootDir, ".")
+	path := strings.ReplaceAll(selectedNote.path, rootDir+"/", "")
 	resultMsg := fmt.Sprintf(message.StatusBar.RemovePrompt, path)
 
 	l.EditState = EditStates.Delete

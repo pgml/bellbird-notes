@@ -2,7 +2,6 @@ package components
 
 import (
 	"bellbird-notes/tui/message"
-	statusbarcolumn "bellbird-notes/tui/types/statusbar_column"
 
 	"github.com/charmbracelet/bubbles/textinput"
 )
@@ -141,7 +140,7 @@ func (l *List[T]) LineUp() message.StatusBarMsg {
 		l.viewport.ScrollUp(1)
 	}
 
-	return message.StatusBarMsg{Column: statusbarcolumn.DirInfo}
+	return message.StatusBarMsg{}
 }
 
 // Increments `m.selectedIndex`
@@ -158,7 +157,7 @@ func (l *List[T]) LineDown() message.StatusBarMsg {
 		l.viewport.ScrollDown(1)
 	}
 
-	return message.StatusBarMsg{Column: statusbarcolumn.DirInfo}
+	return message.StatusBarMsg{}
 }
 
 // GoToTop moves the selection and viewport to the top of the tree

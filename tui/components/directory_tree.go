@@ -164,7 +164,7 @@ func (t *DirectoryTree) View() string {
 
 	t.viewport.Style = theme.BaseColumnLayout(
 		t.Size,
-		t.Focused,
+		t.Focused(),
 	)
 
 	return t.viewport.View()
@@ -535,7 +535,7 @@ func findDirInTree(directories []TreeItem, path string) *TreeItem {
 // Collapses the currently selected directory
 func (t *DirectoryTree) Collapse() message.StatusBarMsg {
 	statusMsg := message.StatusBarMsg{}
-	if t.selectedIndex >= len(t.dirsListFlat) || !t.Focused {
+	if t.selectedIndex >= len(t.dirsListFlat) || !t.Focused() {
 		return statusMsg
 	}
 
@@ -556,7 +556,7 @@ func (t *DirectoryTree) Collapse() message.StatusBarMsg {
 // Expands the currently selected directory
 func (t *DirectoryTree) Expand() message.StatusBarMsg {
 	statusMsg := message.StatusBarMsg{}
-	if t.selectedIndex >= len(t.dirsListFlat) || !t.Focused {
+	if t.selectedIndex >= len(t.dirsListFlat) || !t.Focused() {
 		return statusMsg
 	}
 
@@ -585,7 +585,7 @@ func (t *DirectoryTree) Create(
 ) message.StatusBarMsg {
 	statusMsg := message.StatusBarMsg{}
 
-	if t.Focused {
+	if t.Focused() {
 		mi.Current = mode.Insert
 		statusBar.Focused = false
 
