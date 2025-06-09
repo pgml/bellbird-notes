@@ -6,8 +6,6 @@ import (
 	"path/filepath"
 
 	"bellbird-notes/app/debug"
-
-	"golang.org/x/mod/modfile"
 )
 
 var NoNerdFonts = flag.Bool("no-nerd-fonts", false, "Nerd fonts disabled")
@@ -27,20 +25,9 @@ func Name() string {
 	return name
 }
 
+// Huh?
 func ModuleName() (string, error) {
-	data, err := os.ReadFile("go.mod")
-	if err != nil {
-		debug.LogErr(err)
-		return "", err
-	}
-
-	mod, err := modfile.Parse("go.mod", data, nil)
-	if err != nil {
-		debug.LogErr(err)
-		return "", err
-	}
-
-	moduleName := mod.Module.Mod.Path
+	moduleName := "bellbird-notes"
 	if IsSnapshot() {
 		moduleName += "-snapshot"
 	}
