@@ -30,7 +30,7 @@ type Model struct {
 	statusBar *components.StatusBar
 }
 
-func InitialModel() Model {
+func InitialModel() *Model {
 	layout := bl.New()
 
 	mode := &mode.ModeInstance{
@@ -51,7 +51,7 @@ func InitialModel() Model {
 	m.keyInput.Functions = m.KeyInputFn()
 	m.componentsInit()
 
-	return m
+	return &m
 }
 
 func (m Model) Init() tea.Cmd {
