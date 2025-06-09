@@ -175,7 +175,7 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tea.WindowSizeMsg:
 		e.Size.Width = msg.Width
-		e.Size.Height = msg.Height - 1
+		e.Size.Height = msg.Height
 	case errMsg:
 		e.err = msg
 		return e, nil
@@ -232,8 +232,6 @@ func (e *Editor) NewBuffer(path string) message.StatusBarMsg {
 
 	e.Textarea.SetValue(content)
 	e.Textarea.MoveToBegin()
-	e.setTextareaSize()
-	//e.UpdateStatusBarInfo()
 
 	return message.StatusBarMsg{}
 }
@@ -260,7 +258,6 @@ func (e *Editor) OpenBuffer(path string) message.StatusBarMsg {
 
 	e.Textarea.SetValue(buf.Content)
 	e.Textarea.MoveCursor(buf.CursorPos.Row, buf.CursorPos.ColumnOffset)
-	e.setTextareaSize()
 
 	return statusMsg
 }
@@ -437,11 +434,6 @@ func (e *Editor) saveCursorRow() {
 //func (e *Editor) saveCursorCol() {
 //	e.CurrentBuffer.CursorPos.ColumnOffset = e.Textarea.CursorPos().ColumnOffset
 //}
-
-func (e *Editor) operator(c string) {
-	e.Vim.Mode.Current = mode.Operator
-	e.Vim.Pending.operator = c
-}
 
 func (e *Editor) UpdateStatusBarInfo() {
 	e.StatusBarMsg = e.StatusBarInfo()
