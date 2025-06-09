@@ -59,19 +59,25 @@ func New() *Input {
 }
 
 func (ki *Input) HandleSequences(key string) []message.StatusBarMsg {
-	if key == "ctrl+w" {
-		ki.Ctrl = true
-	}
-
 	statusMsg := []message.StatusBarMsg{}
 	//statusMsg := []message.StatusBarMsg{{
 	//	Content: key,
 	//	Column:  statusbarcolumn.KeyInfo,
 	//}}
 
+	if key == "esc" {
+		ki.ResetKeysDown()
+		return statusMsg
+	}
+
 	if slices.Contains(ki.sequenceKeys, key) && !ki.KeySequence[key] {
 		ki.KeySequence[key] = true
 		return statusMsg
+	}
+
+	if key == "ctrl+w" {
+		ki.KeySequence[key] = true
+		ki.Ctrl = true
 	}
 
 	// build key sequences
@@ -170,6 +176,7 @@ func (ki *Input) FetchKeyMap(resetSeq bool) {
 func (ki *Input) ResetKeysDown() {
 	ki.Ctrl = false
 	ki.KeysDown = make(map[string]bool)
+	ki.resetSequenceCache()
 }
 
 func (ki *Input) resetSequenceCache() {

@@ -411,6 +411,8 @@ func (m *Model) cancelAction() message.StatusBarMsg {
 		}
 	}
 
+	m.keyInput.ResetKeysDown()
+
 	return message.StatusBarMsg{
 		Content: "",
 		Column:  sbc.General,

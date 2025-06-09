@@ -281,6 +281,10 @@ func (m *Model) KeyInputFn() []keyAction {
 		{
 			Keys: "esc",
 			Cond: []keyCond{{
+				Mode:       mode.Normal,
+				Components: []c{m.dirTree, m.notesList, m.editor},
+				Action:     m.cancelAction,
+			}, {
 				Mode:       mode.Insert,
 				Components: []c{m.dirTree, m.notesList},
 				Action:     m.cancelAction,
