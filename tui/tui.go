@@ -376,8 +376,9 @@ func (m *Model) confirmAction() message.StatusBarMsg {
 		}
 
 		if f == m.notesList {
-			notePath := m.notesList.SelectedItem(nil).Path()
-			statusMsg = m.editor.OpenBuffer(notePath)
+			if sel := m.notesList.SelectedItem(nil); sel != nil {
+				statusMsg = m.editor.OpenBuffer(sel.Path())
+			}
 		}
 	}
 
