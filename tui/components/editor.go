@@ -652,11 +652,6 @@ func (e *Editor) WordBack() message.StatusBarMsg {
 	return e.StatusBarInfo()
 }
 
-func (e *Editor) DeleteAfterCursor() message.StatusBarMsg {
-	e.Textarea.DeleteAfterCursor()
-	return e.StatusBarInfo()
-}
-
 func (e *Editor) DownHalfPage() message.StatusBarMsg {
 	e.Textarea.DownHalfPage()
 	return e.StatusBarInfo()
@@ -670,6 +665,13 @@ func (e *Editor) UpHalfPage() message.StatusBarMsg {
 func (e *Editor) DeleteLine() message.StatusBarMsg {
 	origCnt := e.Textarea.Value()
 	e.Textarea.DeleteLine()
+	e.checkDirty(origCnt)
+	return e.StatusBarInfo()
+}
+
+func (e *Editor) DeleteAfterCursor() message.StatusBarMsg {
+	origCnt := e.Textarea.Value()
+	e.Textarea.DeleteAfterCursor()
 	e.checkDirty(origCnt)
 	return e.StatusBarInfo()
 }
