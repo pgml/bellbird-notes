@@ -65,17 +65,11 @@ func (n NoteItem) String() string {
 	}
 
 	// nerdfonts required
-	icon := " 󰎞"
-	if *app.NoNerdFonts {
-		icon = " "
-	}
+	icon := " " + theme.Icon(theme.IconNote)
 
 	if n.IsDirty {
 		iconStyle = iconStyle.Foreground(theme.ColourDirty)
-		icon = " "
-		if *app.NoNerdFonts {
-			icon = " *"
-		}
+		icon = " " + theme.Icon(theme.IconDot)
 	}
 
 	return iconStyle.Render(icon) + baseStyle.Render(r(name))
@@ -146,7 +140,7 @@ func (l *NotesList) View() string {
 // NewNotesList creates a new model with default settings.
 func NewNotesList() *NotesList {
 	ti := textinput.New()
-	ti.Prompt = " " + theme.IconInput + " "
+	ti.Prompt = " " + theme.Icon(theme.IconPen) + " "
 	ti.CharLimit = 100
 
 	conf := config.New()

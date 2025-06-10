@@ -81,17 +81,9 @@ func (d *TreeItem) String() string {
 	)
 	name := utils.TruncateText(d.Name(), 22)
 
-	// nerdfonts required
 	toggle := map[string]string{
-		"open":  "",
-		"close": "󰉋",
-	}
-
-	if *app.NoNerdFonts {
-		toggle = map[string]string{
-			"open":  "▼",
-			"close": "▶",
-		}
+		"open":  theme.Icon(theme.IconDirOpen),
+		"close": theme.Icon(theme.IconDirClosed),
 	}
 
 	baseStyle := lipgloss.NewStyle().Width(28)
@@ -173,7 +165,7 @@ func (t *DirectoryTree) View() string {
 // NewDirectoryTree creates a new model with default settings.
 func NewDirectoryTree() *DirectoryTree {
 	ti := textinput.New()
-	ti.Prompt = theme.IconInput + " "
+	ti.Prompt = theme.Icon(theme.IconPen) + " "
 	ti.CharLimit = 100
 
 	tree := &DirectoryTree{

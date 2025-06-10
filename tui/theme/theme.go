@@ -1,6 +1,7 @@
 package theme
 
 import (
+	"bellbird-notes/app"
 	"os"
 
 	"github.com/charmbracelet/lipgloss"
@@ -20,7 +21,26 @@ var (
 	BorderStyle = lipgloss.RoundedBorder()
 )
 
-const IconInput = ""
+type icon struct {
+	Nerd string
+	Alt  string
+}
+
+var (
+	IconPen       = icon{Nerd: "", Alt: ">"}
+	IconNote      = icon{Nerd: "󰎞", Alt: ""}
+	IconDirOpen   = icon{Nerd: "", Alt: "▼"}
+	IconDirClosed = icon{Nerd: "󰉋", Alt: "▶"}
+	IconDot       = icon{Nerd: "", Alt: "*"}
+)
+
+func Icon(icon icon) string {
+	icn := icon.Nerd
+	if *app.NoNerdFonts {
+		icn = icon.Alt
+	}
+	return icn
+}
 
 // BaseColumnLayout provides thae basic layout style for a column
 func BaseColumnLayout(size bl.Size, focused bool) lipgloss.Style {

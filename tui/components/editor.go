@@ -13,6 +13,7 @@ import (
 	"bellbird-notes/tui/keyinput"
 	"bellbird-notes/tui/message"
 	"bellbird-notes/tui/mode"
+	"bellbird-notes/tui/theme"
 	sbc "bellbird-notes/tui/types/statusbar_column"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -242,8 +243,10 @@ func (e *Editor) OpenBuffer(path string) message.StatusBarMsg {
 	rootDir, _ := app.NotesRootDir()
 	relPath := strings.ReplaceAll(path, rootDir+"/", "")
 
+	icon := theme.Icon(theme.IconNote)
+
 	statusMsg := message.StatusBarMsg{
-		Content: "󰎞 " + relPath,
+		Content: icon + " " + relPath,
 		Column:  sbc.FileInfo,
 	}
 
