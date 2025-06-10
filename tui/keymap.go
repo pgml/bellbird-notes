@@ -1,21 +1,21 @@
 package tui
 
 import (
-	"bellbird-notes/tui/keyinput"
+	ki "bellbird-notes/tui/keyinput"
 	"bellbird-notes/tui/message"
 	"bellbird-notes/tui/mode"
 )
 
-type c = keyinput.FocusedComponent
-type keyAction = keyinput.KeyAction
-type keyCond = keyinput.KeyCondition
+type c = ki.FocusedComponent
+type keyAction = ki.KeyAction
+type keyCond = ki.KeyCondition
+type binding = ki.KeyBinding
 
-func (m *Model) KeyInputFn() []keyAction {
+func (m *Model) KeyInputFn() []ki.KeyAction {
 	return []keyAction{
-
 		// LINE DOWN
 		{
-			Keys: "j",
+			Bindings: ki.KeyBindings("j"),
 			Cond: []keyCond{
 				{
 					Mode:       mode.Normal,
@@ -28,7 +28,7 @@ func (m *Model) KeyInputFn() []keyAction {
 
 		// LINE UP
 		{
-			Keys: "k",
+			Bindings: ki.KeyBindings("k"),
 			Cond: []keyCond{
 				{
 					Mode:       mode.Normal,
@@ -41,7 +41,7 @@ func (m *Model) KeyInputFn() []keyAction {
 
 		// TREE COLLAPSE, EDITOR CHARACTER LEFT
 		{
-			Keys: "h",
+			Bindings: ki.KeyBindings("h"),
 			Cond: []keyCond{
 				{
 					Mode:       mode.Normal,
@@ -54,7 +54,7 @@ func (m *Model) KeyInputFn() []keyAction {
 
 		// TREE EXPAND, EDITOR CHARACTER RIGHT
 		{
-			Keys: "l",
+			Bindings: ki.KeyBindings("l"),
 			Cond: []keyCond{
 				{
 					Mode:       mode.Normal,
@@ -67,15 +67,7 @@ func (m *Model) KeyInputFn() []keyAction {
 
 		// CREATE DIR
 		{
-			Keys: "d",
-			Cond: []keyCond{{
-				Mode:       mode.Normal,
-				Components: []c{m.dirTree},
-				Action:     m.createDir,
-			}},
-		},
-		{
-			Keys: "n",
+			Bindings: ki.KeyBindings("d", "n"),
 			Cond: []keyCond{{
 				Mode:       mode.Normal,
 				Components: []c{m.dirTree},
@@ -85,7 +77,7 @@ func (m *Model) KeyInputFn() []keyAction {
 
 		// DELETE DIR/NOTE
 		{
-			Keys: "D",
+			Bindings: ki.KeyBindings("D"),
 			Cond: []keyCond{{
 				Mode:       mode.Normal,
 				Components: []c{m.dirTree, m.notesList},
@@ -95,15 +87,7 @@ func (m *Model) KeyInputFn() []keyAction {
 
 		// CREATE NOTE
 		{
-			Keys: "%",
-			Cond: []keyCond{{
-				Mode:       mode.Normal,
-				Components: []c{m.notesList},
-				Action:     m.createNote,
-			}},
-		},
-		{
-			Keys: "n",
+			Bindings: ki.KeyBindings("%", "n"),
 			Cond: []keyCond{{
 				Mode:       mode.Normal,
 				Components: []c{m.notesList},
@@ -113,7 +97,7 @@ func (m *Model) KeyInputFn() []keyAction {
 
 		// TREE/NOTE RENAME
 		{
-			Keys: "R",
+			Bindings: ki.KeyBindings("R"),
 			Cond: []keyCond{{
 				Mode:       mode.Normal,
 				Components: []c{m.dirTree, m.notesList},
@@ -122,7 +106,7 @@ func (m *Model) KeyInputFn() []keyAction {
 		},
 
 		{
-			Keys: "gg",
+			Bindings: ki.KeyBindings("gg"),
 			Cond: []keyCond{
 				{
 					Mode:       mode.Normal,
@@ -133,7 +117,7 @@ func (m *Model) KeyInputFn() []keyAction {
 			},
 		},
 		{
-			Keys: "G",
+			Bindings: ki.KeyBindings("G"),
 			Cond: []keyCond{
 				{
 					Mode:       mode.Normal,
@@ -145,75 +129,71 @@ func (m *Model) KeyInputFn() []keyAction {
 		},
 
 		{
-			Keys: "i",
-			Cond: []keyCond{m.editorInputAction(m.editor.EnterInsertMode)},
+			Bindings: ki.KeyBindings("i"),
+			Cond:     []keyCond{m.editorInputAction(m.editor.EnterInsertMode)},
 		},
 		{
-			Keys: "I",
-			Cond: []keyCond{m.editorInputAction(m.editor.InsertLineStart)},
+			Bindings: ki.KeyBindings("I"),
+			Cond:     []keyCond{m.editorInputAction(m.editor.InsertLineStart)},
 		},
 		{
-			Keys: "a",
-			Cond: []keyCond{m.editorInputAction(m.editor.InsertAfter)},
+			Bindings: ki.KeyBindings("a"),
+			Cond:     []keyCond{m.editorInputAction(m.editor.InsertAfter)},
 		},
 		{
-			Keys: "A",
-			Cond: []keyCond{m.editorInputAction(m.editor.InsertLineEnd)},
+			Bindings: ki.KeyBindings("A"),
+			Cond:     []keyCond{m.editorInputAction(m.editor.InsertLineEnd)},
 		},
 		{
-			Keys: "r",
-			Cond: []keyCond{m.editorInputAction(m.editor.EnterReplaceMode)},
+			Bindings: ki.KeyBindings("r"),
+			Cond:     []keyCond{m.editorInputAction(m.editor.EnterReplaceMode)},
 		},
 		{
-			Keys: "u",
-			Cond: []keyCond{m.editorInputAction(m.editor.Undo)},
+			Bindings: ki.KeyBindings("u"),
+			Cond:     []keyCond{m.editorInputAction(m.editor.Undo)},
 		},
 		{
-			Keys: "ctrl+r",
-			Cond: []keyCond{m.editorInputAction(m.editor.Redo)},
+			Bindings: ki.KeyBindings("ctrl+r"),
+			Cond:     []keyCond{m.editorInputAction(m.editor.Redo)},
 		},
 		{
-			Keys: "w",
-			Cond: []keyCond{m.editorInputAction(m.editor.WordRightStart)},
+			Bindings: ki.KeyBindings("w"),
+			Cond:     []keyCond{m.editorInputAction(m.editor.WordRightStart)},
 		},
 		{
-			Keys: "e",
-			Cond: []keyCond{m.editorInputAction(m.editor.WordRightEnd)},
+			Bindings: ki.KeyBindings("e"),
+			Cond:     []keyCond{m.editorInputAction(m.editor.WordRightEnd)},
 		},
 		{
-			Keys: "b",
-			Cond: []keyCond{m.editorInputAction(m.editor.WordBack)},
+			Bindings: ki.KeyBindings("b"),
+			Cond:     []keyCond{m.editorInputAction(m.editor.WordBack)},
 		},
 		{
-			Keys: "^",
-			Cond: []keyCond{m.editorInputAction(m.editor.GoToInputStart)},
+			Bindings: ki.KeyBindings("^", "_"),
+			Cond:     []keyCond{m.editorInputAction(m.editor.GoToInputStart)},
 		},
 		{
-			Keys: "_",
-			Cond: []keyCond{m.editorInputAction(m.editor.GoToInputStart)},
+			Bindings: ki.KeyBindings("0"),
+			Cond:     []keyCond{m.editorInputAction(m.editor.GoToLineStart)},
 		},
 		{
-			Keys: "0",
-			Cond: []keyCond{m.editorInputAction(m.editor.GoToLineStart)},
+			Bindings: ki.KeyBindings("$"),
+			Cond:     []keyCond{m.editorInputAction(m.editor.GoToLineEnd)},
 		},
 		{
-			Keys: "$",
-			Cond: []keyCond{m.editorInputAction(m.editor.GoToLineEnd)},
+			Bindings: ki.KeyBindings("o"),
+			Cond:     []keyCond{m.editorInputAction(m.editor.InsertLineBelow)},
 		},
 		{
-			Keys: "o",
-			Cond: []keyCond{m.editorInputAction(m.editor.InsertLineBelow)},
+			Bindings: ki.KeyBindings("O"),
+			Cond:     []keyCond{m.editorInputAction(m.editor.InsertLineAbove)},
 		},
 		{
-			Keys: "O",
-			Cond: []keyCond{m.editorInputAction(m.editor.InsertLineAbove)},
+			Bindings: ki.KeyBindings("dd"),
+			Cond:     []keyCond{m.editorInputAction(m.editor.DeleteLine)},
 		},
 		{
-			Keys: "dd",
-			Cond: []keyCond{m.editorInputAction(m.editor.DeleteLine)},
-		},
-		{
-			Keys: "dj",
+			Bindings: ki.KeyBindings("dj"),
 			Cond: []keyCond{{
 				Mode:       mode.Normal,
 				Components: []c{m.editor},
@@ -223,7 +203,7 @@ func (m *Model) KeyInputFn() []keyAction {
 			}},
 		},
 		{
-			Keys: "dk",
+			Bindings: ki.KeyBindings("dk"),
 			Cond: []keyCond{{
 				Mode:       mode.Normal,
 				Components: []c{m.editor},
@@ -233,25 +213,25 @@ func (m *Model) KeyInputFn() []keyAction {
 			}},
 		},
 		{
-			Keys: "dw",
-			Cond: []keyCond{m.editorInputAction(m.editor.DeleteWordRight)},
+			Bindings: ki.KeyBindings("dw"),
+			Cond:     []keyCond{m.editorInputAction(m.editor.DeleteWordRight)},
 		},
 		{
-			Keys: "D",
-			Cond: []keyCond{m.editorInputAction(m.editor.DeleteAfterCursor)},
+			Bindings: ki.KeyBindings("D"),
+			Cond:     []keyCond{m.editorInputAction(m.editor.DeleteAfterCursor)},
 		},
 		{
-			Keys: "ctrl+d",
-			Cond: []keyCond{m.editorInputAction(m.editor.DownHalfPage)},
+			Bindings: ki.KeyBindings("ctrl+d"),
+			Cond:     []keyCond{m.editorInputAction(m.editor.DownHalfPage)},
 		},
 		{
-			Keys: "ctrl+u",
-			Cond: []keyCond{m.editorInputAction(m.editor.UpHalfPage)},
+			Bindings: ki.KeyBindings("ctrl+u"),
+			Cond:     []keyCond{m.editorInputAction(m.editor.UpHalfPage)},
 		},
 
 		// ENTER CMD MODE
 		{
-			Keys: ":",
+			Bindings: ki.KeyBindings(":"),
 			Cond: []keyCond{{
 				Mode:       mode.Normal,
 				Components: []c{m.dirTree, m.notesList, m.editor},
@@ -261,7 +241,7 @@ func (m *Model) KeyInputFn() []keyAction {
 
 		// CONFIRM ACTION
 		{
-			Keys: "enter",
+			Bindings: ki.KeyBindings("enter"),
 			Cond: []keyCond{{
 				Mode:       mode.Normal,
 				Components: []c{m.dirTree, m.notesList},
@@ -279,7 +259,7 @@ func (m *Model) KeyInputFn() []keyAction {
 
 		// CANCEL ACTION
 		{
-			Keys: "esc",
+			Bindings: ki.KeyBindings("esc"),
 			Cond: []keyCond{{
 				Mode:       mode.Normal,
 				Components: []c{m.dirTree, m.notesList, m.editor},
@@ -299,7 +279,7 @@ func (m *Model) KeyInputFn() []keyAction {
 			}},
 		},
 		{
-			Keys: "ctrl+w l",
+			Bindings: ki.KeyBindings("ctrl+w l", "ctrl+w ctrl+l", "alt+e"),
 			Cond: []keyCond{{
 				Mode:       mode.Normal,
 				Components: []c{m.dirTree, m.notesList, m.editor},
@@ -307,7 +287,7 @@ func (m *Model) KeyInputFn() []keyAction {
 			}},
 		},
 		{
-			Keys: "ctrl+w h",
+			Bindings: ki.KeyBindings("ctrl+w h", "ctrl+w ctrl+h", "alt+q"),
 			Cond: []keyCond{{
 				Mode:       mode.Normal,
 				Components: []c{m.dirTree, m.notesList, m.editor},
@@ -315,7 +295,7 @@ func (m *Model) KeyInputFn() []keyAction {
 			}},
 		},
 		{
-			Keys: "1",
+			Bindings: ki.KeyBindings("1"),
 			Cond: []keyCond{{
 				Mode:       mode.Normal,
 				Components: []c{m.dirTree, m.notesList, m.editor},
@@ -323,7 +303,7 @@ func (m *Model) KeyInputFn() []keyAction {
 			}},
 		},
 		{
-			Keys: "2",
+			Bindings: ki.KeyBindings("2"),
 			Cond: []keyCond{{
 				Mode:       mode.Normal,
 				Components: []c{m.dirTree, m.notesList, m.editor},
@@ -331,7 +311,7 @@ func (m *Model) KeyInputFn() []keyAction {
 			}},
 		},
 		{
-			Keys: "3",
+			Bindings: ki.KeyBindings("3"),
 			Cond: []keyCond{{
 				Mode:       mode.Normal,
 				Components: []c{m.dirTree, m.notesList, m.editor},

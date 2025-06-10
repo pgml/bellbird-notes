@@ -23,7 +23,6 @@ import (
 const (
 	charLimit = 0
 	maxHeight = 0
-	//showLineNumbers = false
 )
 
 var (
@@ -104,7 +103,7 @@ func NewEditor() *Editor {
 		Vim: Vim{
 			Mode: mode.ModeInstance{Current: mode.Normal},
 			Pending: Input{
-				keyinput.Input{Ctrl: false, Alt: false, Shift: false},
+				keyinput.Input{Ctrl: false, Alt: false},
 				"",
 				"",
 			},
@@ -141,22 +140,6 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		if !e.Textarea.Focused() {
 			cmd = e.Textarea.Focus()
-		}
-
-		key := msg.String()
-		if strings.Contains(key, "ctrl+") {
-			e.Vim.Pending.Ctrl = true
-			e.Vim.Pending.key = strings.Split(key, "+")[1]
-		}
-
-		if strings.Contains(key, "alt+") {
-			e.Vim.Pending.Alt = true
-			e.Vim.Pending.key = strings.Split(key, "+")[1]
-		}
-
-		if strings.Contains(key, "shift+") {
-			e.Vim.Pending.Shift = true
-			e.Vim.Pending.key = strings.Split(key, "+")[1]
 		}
 
 		origCnt := e.Textarea.Value()
