@@ -65,7 +65,7 @@ func (ki *Input) HandleSequences(key string) []message.StatusBarMsg {
 	//	Column:  statusbarcolumn.KeyInfo,
 	//}}
 
-	if key == "esc" {
+	if key == "esc" && len(ki.KeysDown) > 0 {
 		ki.ResetKeysDown()
 		return statusMsg
 	}

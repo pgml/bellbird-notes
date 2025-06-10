@@ -1,8 +1,9 @@
 package theme
 
 import (
-	"bellbird-notes/app"
 	"os"
+
+	"bellbird-notes/app"
 
 	"github.com/charmbracelet/lipgloss"
 	bl "github.com/winder/bubblelayout"
