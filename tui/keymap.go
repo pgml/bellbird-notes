@@ -1,9 +1,11 @@
 package tui
 
 import (
+	"bellbird-notes/tui/components"
 	ki "bellbird-notes/tui/keyinput"
 	"bellbird-notes/tui/message"
 	"bellbird-notes/tui/mode"
+	sbc "bellbird-notes/tui/types/statusbar_column"
 )
 
 type c = ki.FocusedComponent
@@ -326,5 +328,259 @@ func (m *Model) editorInputAction(fn func() message.StatusBarMsg) keyCond {
 		Mode:       mode.Normal,
 		Components: []c{m.editor},
 		Action:     fn,
+	}
+}
+
+///
+/// Keyboard shortcut delegations
+///
+
+// focusColumn selects and higlights a column with index `index`
+// (1=dirTree, 2=notesList, 3=editor)
+func (m *Model) focusColumn(index int) message.StatusBarMsg {
+	m.dirTree.SetFocus(index == 1)
+	m.notesList.SetFocus(index == 2)
+	m.editor.SetFocus(index == 3)
+	m.currColFocus = index
+	m.keyInput.FetchKeyMap(true)
+
+	return message.StatusBarMsg{}
+}
+
+// focusDirectoryTree is a helper function
+// for selecting the directory tree
+func (m *Model) focusDirectoryTree() message.StatusBarMsg {
+	return m.focusColumn(1)
+}
+
+// focusNotesList() is a helper function
+// for selecting the notes list
+func (m *Model) focusNotesList() message.StatusBarMsg {
+	return m.focusColumn(2)
+}
+
+// focusEditor is a helper function
+// for selecting the editor
+func (m *Model) focusEditor() message.StatusBarMsg {
+	return m.focusColumn(3)
+}
+
+// focusNextColumn selects and highlights the respectivley next of the
+// currently selected column.
+// Selects the first if the currently selected column is the last column...
+func (m *Model) focusNextColumn() message.StatusBarMsg {
+	index := min(m.currColFocus+1, 3)
+	return m.focusColumn(index)
+}
+
+// focusNextColumn selects and highlights the respectivley next of the
+// currently selected column.
+// Selects the first if the currently selected column is the last column...
+func (m *Model) focusPrevColumn() message.StatusBarMsg {
+	index := max(m.currColFocus-1, 1)
+	return m.focusColumn(index)
+}
+
+// focusedComponent returns the component that is currently focused
+func (m *Model) focusedComponent() Focusable {
+	if m.dirTree.Focused() {
+		return m.dirTree
+	}
+	if m.notesList.Focused() {
+		return m.notesList
+	}
+	return nil
+}
+
+// lineUp moves the cursor one line up in the currently focused column.
+// Ignores editor since it is handled differently
+func (m *Model) lineUp() message.StatusBarMsg {
+	statusMsg := message.StatusBarMsg{}
+
+	if f := m.focusedComponent(); f != nil {
+		statusMsg = f.LineUp()
+	}
+
+	return statusMsg
+}
+
+// lineUp moves the cursor one line up in the currently focused column.
+// Ignores editor since it is handled differently
+func (m *Model) lineDown() message.StatusBarMsg {
+	statusMsg := message.StatusBarMsg{}
+
+	if f := m.focusedComponent(); f != nil {
+		statusMsg = f.LineDown()
+	}
+
+	return statusMsg
+}
+
+// createDir enters insert mode
+// and triggers directory creation
+func (m *Model) createDir() message.StatusBarMsg {
+	return m.dirTree.Create(m.mode, m.statusBar)
+}
+
+// createNote enters insert mode
+// and triggers notes creation
+func (m *Model) createNote() message.StatusBarMsg {
+	return m.notesList.Create(m.mode, m.statusBar)
+}
+
+// rename enters insert mode and renames the selected item
+// in the directory or note list
+func (m *Model) rename() message.StatusBarMsg {
+	if m.dirTree.Focused() || m.notesList.Focused() {
+		m.mode.Current = mode.Insert
+		m.statusBar.Focused = false
+	}
+
+	if m.dirTree.Focused() {
+		return m.dirTree.Rename(
+			m.dirTree.SelectedDir().Name(),
+		)
+	}
+
+	if m.notesList.Focused() {
+		return m.notesList.Rename(
+			m.notesList.SelectedItem(nil).Name(),
+		)
+	}
+	return message.StatusBarMsg{}
+}
+
+// remove enters insert mode and triggers a delete confirmation
+// for the focused component
+func (m *Model) remove() message.StatusBarMsg {
+	// go into insert mode because we always ask for
+	// confirmation before deleting anything
+	m.mode.Current = mode.Insert
+
+	if f := m.focusedComponent(); f != nil {
+		m.statusBar.Focused = true
+		return f.ConfirmRemove()
+	}
+	return message.StatusBarMsg{}
+}
+
+// goToTop moves the focused list to its first item
+func (m *Model) goToTop() message.StatusBarMsg {
+	if f := m.focusedComponent(); f != nil {
+		return f.GoToTop()
+	}
+	return message.StatusBarMsg{}
+}
+
+// goToTop moves the focused list to its last item
+func (m *Model) goToBottom() message.StatusBarMsg {
+	if f := m.focusedComponent(); f != nil {
+		return f.GoToBottom()
+	}
+	return message.StatusBarMsg{}
+}
+
+// confirmAction performs the primary action for the focused component,
+// or loads note data into the editor if in normal mode.
+func (m *Model) confirmAction() message.StatusBarMsg {
+	statusMsg := message.StatusBarMsg{}
+
+	f := m.focusedComponent()
+
+	if m.statusBar.Focused {
+		statusMsg = m.statusBar.ConfirmAction(
+			statusMsg.Sender,
+			f,
+			m.editor,
+		)
+	}
+
+	if m.mode.Current != mode.Normal &&
+		!m.statusBar.Focused &&
+		!m.editor.Focused() {
+		statusMsg = f.ConfirmAction()
+	} else {
+		// only open stuff if we're in normal mode
+		if m.mode.Current != mode.Normal {
+			m.mode.Current = mode.Normal
+			return statusMsg
+		}
+
+		if f == m.dirTree {
+			m.notesList.CurrentPath = m.dirTree.SelectedDir().Path()
+			statusMsg = m.notesList.Refresh(true)
+		}
+
+		if f == m.notesList {
+			if sel := m.notesList.SelectedItem(nil); sel != nil {
+				statusMsg = m.editor.OpenBuffer(sel.Path())
+			}
+		}
+	}
+
+	m.mode.Current = mode.Normal
+	return statusMsg
+}
+
+// cancelAction resets mode to normal
+// and cancels pending actions in the focused component.
+func (m *Model) cancelAction() message.StatusBarMsg {
+	m.mode.Current = mode.Normal
+	m.statusBar.Focused = false
+
+	if m.statusBar.Prompt.Focused() {
+		m.statusBar.CancelAction(func() {})
+		m.enterNormalMode()
+	} else {
+		if f := m.focusedComponent(); f != nil {
+			resetIndex := false
+			stateCreate := components.EditStates.Create
+
+			if m.dirTree.EditState == stateCreate ||
+				m.notesList.EditState == stateCreate {
+				resetIndex = true
+			}
+
+			return f.CancelAction(func() {
+				f.Refresh(resetIndex)
+			})
+		}
+	}
+
+	m.keyInput.ResetKeysDown()
+
+	return message.StatusBarMsg{
+		Content: "",
+		Column:  sbc.General,
+	}
+}
+
+func (m *Model) enterNormalMode() message.StatusBarMsg {
+	m.editor.Vim.Mode.Current = mode.Normal
+	m.mode.Current = mode.Normal
+	m.statusBar.Focused = false
+
+	return message.StatusBarMsg{
+		Content: "",
+		Type:    message.Prompt,
+		Column:  sbc.General,
+	}
+}
+
+func (m *Model) enterCmdMode() message.StatusBarMsg {
+	if m.mode.Current != mode.Normal {
+		return message.StatusBarMsg{}
+	}
+
+	m.editor.Vim.Mode.Current = mode.Command
+	m.mode.Current = mode.Command
+	m.statusBar.Focused = true
+	m.statusBar.Type = message.Prompt
+	statusMsg := message.StatusBar.CmdPrompt
+
+	return message.StatusBarMsg{
+		Content: statusMsg,
+		Type:    message.Prompt,
+		Column:  sbc.General,
 	}
 }
