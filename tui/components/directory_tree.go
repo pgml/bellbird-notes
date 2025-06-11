@@ -38,8 +38,9 @@ type TreeItem struct {
 	// The parent index of the directory.
 	// Used to make expanding and collapsing a directory possible
 	// using DirectoryTree.dirsListFlat
-	parent   int
-	children []TreeItem
+	parent      int
+	children    []TreeItem
+	isLastChild bool
 	// Indicates whether a directory is expanded
 	expanded bool
 	// Indicates the depth of a directory
@@ -63,7 +64,11 @@ func (d TreeItem) Name() string { return d.name }
 // Indent returns the path of a Dir-Item
 func (d TreeItem) Indent(indentLines bool) string {
 	if indentLines {
-		return "│ "
+		indentStr := "│ "
+		if d.isLastChild {
+			indentStr = "╰ "
+		}
+		return indentStr
 	} else {
 		return "  "
 	}
@@ -75,15 +80,23 @@ func (d *TreeItem) String() string {
 	n := d.styles.dir.Render
 	e := d.styles.enumerator.Render
 
+	indentStr := d.Indent(false) // @todo make this a config option
+
 	indent := strings.Repeat(
-		d.Indent(false), // @todo make this a config option
+		indentStr,
 		d.level,
 	)
+
 	name := utils.TruncateText(d.Name(), 22)
 
 	toggle := map[string]string{
 		"open":  theme.Icon(theme.IconDirOpen),
 		"close": theme.Icon(theme.IconDirClosed),
+	}
+
+	if len(d.children) <= 0 {
+		toggle["open"] = " "
+		toggle["close"] = " "
 	}
 
 	baseStyle := lipgloss.NewStyle().Width(28)
@@ -236,6 +249,10 @@ func (t *DirectoryTree) render() string {
 			dir.Indent(false),
 			dir.level,
 		)
+
+		if t.lastIndex == dir.Index() {
+			dir.isLastChild = true
+		}
 
 		dir.selected = (t.selectedIndex == i)
 
