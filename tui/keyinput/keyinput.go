@@ -201,13 +201,13 @@ func (ki *Input) FetchKeyMap(resetSeq bool) {
 				}
 
 				ki.actions[key] = cond.Action
-				ki.addKeyToSequence(key)
+				ki.addSequenceKey(key)
 			}
 		}
 	}
 }
 
-func (ki *Input) addKeyToSequence(binding string) {
+func (ki *Input) addSequenceKey(binding string) {
 	if utf8.RuneCountInString(binding) == 2 {
 		r := string([]rune(binding)[0])
 		if !slices.Contains(ki.sequenceKeys, r) {
