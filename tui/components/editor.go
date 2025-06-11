@@ -3,7 +3,7 @@ package components
 import (
 	"fmt"
 	"os"
-	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -28,21 +28,19 @@ const (
 )
 
 var (
-	cursorLine          = lipgloss.NewStyle()
-	borderColour        = lipgloss.Color("#424B5D")
-	focusedBorderColour = lipgloss.Color("#69c8dc")
+	cursorLine = lipgloss.NewStyle()
 
 	focusedStyle = lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
 			BorderTop(false).
 			Padding(0, 1).
-			BorderForeground(focusedBorderColour)
+			BorderForeground(theme.ColourBorderFocused)
 
 	blurredStyle = lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
 			BorderTop(false).
 			Padding(0, 1).
-			BorderForeground(borderColour)
+			BorderForeground(theme.ColourBorder)
 )
 
 type Editor struct {
@@ -310,10 +308,11 @@ func (e *Editor) SetFocus(focus bool) {
 }
 
 func (e *Editor) breadcrumb() string {
-	noteName := path.Base(e.CurrentBuffer.Path)
+	noteName := filepath.Base(e.CurrentBuffer.Path)
+	pathSeparator := string(os.PathSeparator)
 
 	relPath := utils.RelativePath(e.CurrentBuffer.Path, false)
-	relPath = strings.ReplaceAll(relPath, "/", " › ")
+	relPath = strings.ReplaceAll(relPath, pathSeparator, " › ")
 	breadcrumb := strings.ReplaceAll(relPath, noteName, "")
 
 	iconDir := theme.Icon(theme.IconDirClosed)

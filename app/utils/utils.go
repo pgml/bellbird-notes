@@ -1,6 +1,8 @@
 package utils
 
 import (
+	"os"
+	"path/filepath"
 	"slices"
 	"sort"
 	"strings"
@@ -61,9 +63,12 @@ func Pointer[T any](d T) *T {
 
 func RelativePath(path string, trailingSlash bool) string {
 	rootDir, _ := app.NotesRootDir()
+
 	if trailingSlash {
-		rootDir = rootDir + "/"
+		pathSeparator := string(os.PathSeparator)
+		rootDir = rootDir + pathSeparator
 	}
+
 	relPath := strings.ReplaceAll(path, rootDir, "")
-	return relPath
+	return filepath.FromSlash(relPath)
 }
