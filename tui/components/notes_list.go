@@ -253,10 +253,10 @@ func (l *NotesList) createNoteItem(note notes.Note) NoteItem {
 // This note is mainly used as a placeholder when creating a note
 // and is not actually written to the file system.
 func (l *NotesList) createVirtualNote() NoteItem {
-	selectedNote := l.SelectedItem(nil)
 	name := "New Note"
+
 	path := filepath.Join(
-		filepath.Dir(selectedNote.path),
+		filepath.Dir(l.CurrentPath),
 		name,
 	)
 
@@ -271,6 +271,7 @@ func (l *NotesList) createVirtualNote() NoteItem {
 	return noteItem
 }
 
+// getLastChild returns the last NoteItem in the current directory
 func (l NotesList) getLastChild() NoteItem {
 	if len(l.items) <= 0 {
 		return NoteItem{}
@@ -306,7 +307,6 @@ func (l *NotesList) Create(
 		statusBar.Focused = false
 
 		l.EditState = EditStates.Create
-
 		vrtNote := l.createVirtualNote()
 		lastChild := l.getLastChild()
 
@@ -318,9 +318,8 @@ func (l *NotesList) Create(
 		}
 
 		if l.editIndex == nil {
-			selItem := l.SelectedItem(nil)
 			l.editIndex = &l.selectedIndex
-			l.editor.SetValue(selItem.name)
+			l.editor.SetValue(vrtNote.name)
 			l.editor.CursorEnd()
 		}
 	}
