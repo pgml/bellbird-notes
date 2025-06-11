@@ -2,6 +2,7 @@ package theme
 
 import (
 	"os"
+	"strings"
 
 	"bellbird-notes/app"
 
@@ -13,11 +14,12 @@ import (
 // @todo make this a theme.conf or whatever
 // colors
 var (
-	ColourBorder        = lipgloss.AdaptiveColor{Dark: "#424B5D"}
+	ColourBorder        = lipgloss.AdaptiveColor{Dark: "#606d87"}
 	ColourBorderFocused = lipgloss.AdaptiveColor{Dark: "#69c8dc"}
 	ColourFg            = lipgloss.NoColor{}
 	ColourBgSelected    = lipgloss.AdaptiveColor{Light: "#333", Dark: "#424B5D"}
 	ColourDirty         = lipgloss.AdaptiveColor{Light: "#333", Dark: "#c05d5f"}
+	ColourTitle         = lipgloss.AdaptiveColor{Light: "#333", Dark: "#999999"}
 
 	BorderStyle = lipgloss.RoundedBorder()
 )
@@ -43,21 +45,60 @@ func Icon(icon icon) string {
 	return icn
 }
 
-// BaseColumnLayout provides thae basic layout style for a column
-func BaseColumnLayout(size bl.Size, focused bool) lipgloss.Style {
-	borderColour := ColourBorder
+func Header(title string, colWidth int, focused bool) string {
+	borderColour := BorderColour(focused)
+	titleColour := ColourTitle
+
 	if focused {
-		borderColour = ColourBorderFocused
+		titleColour = ColourBorderFocused
 	}
 
+	// @todo clean this shit up
+	b := lipgloss.RoundedBorder()
+	b.Left = "╭"
+	ts := lipgloss.NewStyle().
+		Border(b, false, false, false, true).
+		BorderForeground(borderColour).
+		Foreground(titleColour).
+		Padding(0, 1)
+
+	ls := lipgloss.NewStyle().Foreground(borderColour)
+	title = ts.Render(title)
+	line := ls.Render(strings.Repeat(
+		"─",
+		max(0, colWidth-lipgloss.Width(title)-1)),
+	)
+
+	borderTopRight := ls.Render("╮")
+
+	return lipgloss.JoinHorizontal(
+		lipgloss.Center,
+		title,
+		line,
+		borderTopRight,
+	)
+}
+
+// BaseColumnLayout provides thae basic layout style for a column
+func BaseColumnLayout(size bl.Size, focused bool) lipgloss.Style {
+	borderColour := BorderColour(focused)
 	_, termHeight := GetTerminalSize()
 
 	return lipgloss.NewStyle().
 		Border(BorderStyle).
+		BorderTop(false).
 		BorderForeground(borderColour).
 		Foreground(ColourFg).
 		Width(size.Width).
 		Height(termHeight)
+}
+
+func BorderColour(focused bool) lipgloss.TerminalColor {
+	borderColour := ColourBorder
+	if focused {
+		borderColour = ColourBorderFocused
+	}
+	return borderColour
 }
 
 // GetTerminalSize determines the current

@@ -3,12 +3,14 @@ package components
 import (
 	"fmt"
 	"os"
+	"path"
 	"strconv"
 	"strings"
 
 	"bellbird-notes/app"
 	"bellbird-notes/app/debug"
 	"bellbird-notes/app/notes"
+	"bellbird-notes/app/utils"
 	"bellbird-notes/tui/components/textarea"
 	"bellbird-notes/tui/keyinput"
 	"bellbird-notes/tui/message"
@@ -32,10 +34,14 @@ var (
 
 	focusedStyle = lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
+			BorderTop(false).
+			Padding(0, 1).
 			BorderForeground(focusedBorderColour)
 
 	blurredStyle = lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
+			BorderTop(false).
+			Padding(0, 1).
 			BorderForeground(borderColour)
 )
 
@@ -159,7 +165,7 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tea.WindowSizeMsg:
 		e.Size.Width = msg.Width
-		e.Size.Height = msg.Height
+		e.Size.Height = msg.Height - 1
 	case errMsg:
 		e.err = msg
 		return e, nil
@@ -179,7 +185,14 @@ func (e *Editor) View() string {
 }
 
 func (e *Editor) build() string {
-	return e.Textarea.View()
+	title := "EDITOR"
+
+	if e.CurrentBuffer.Path != "" {
+		title = e.breadcrumb()
+	}
+
+	e.header = theme.Header(title, e.Size.Width, e.Focused())
+	return fmt.Sprintf("%s\n%s", e.header, e.Textarea.View())
 }
 
 // NewBuffer creates a new buffer, sets the textareas content
@@ -223,9 +236,7 @@ func (e *Editor) NewBuffer(path string) message.StatusBarMsg {
 // OpenBuffer attempts to open the buffer with the given path.
 // If no buffer is found a new buffer is created
 func (e *Editor) OpenBuffer(path string) message.StatusBarMsg {
-	rootDir, _ := app.NotesRootDir()
-	relPath := strings.ReplaceAll(path, rootDir+"/", "")
-
+	relPath := utils.RelativePath(path, true)
 	icon := theme.Icon(theme.IconNote)
 
 	statusMsg := message.StatusBarMsg{
@@ -296,6 +307,19 @@ func (e *Editor) Focused() bool {
 
 func (e *Editor) SetFocus(focus bool) {
 	e.focused = focus
+}
+
+func (e *Editor) breadcrumb() string {
+	noteName := path.Base(e.CurrentBuffer.Path)
+
+	relPath := utils.RelativePath(e.CurrentBuffer.Path, false)
+	relPath = strings.ReplaceAll(relPath, "/", " › ")
+	breadcrumb := strings.ReplaceAll(relPath, noteName, "")
+
+	iconDir := theme.Icon(theme.IconDirClosed)
+	iconNote := theme.Icon(theme.IconNote)
+
+	return iconDir + breadcrumb + iconNote + " " + noteName
 }
 
 // bufferExists returns whether a buffer is in memory

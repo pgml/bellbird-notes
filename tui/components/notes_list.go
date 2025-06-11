@@ -100,18 +100,17 @@ func (l *NotesList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case tea.WindowSizeMsg:
+		colHeight := termHeight - 1
+
 		if !l.ready {
-			l.viewport = viewport.New(
-				termWidth,
-				termHeight,
-			)
+			l.viewport = viewport.New(termWidth, colHeight)
 			l.viewport.SetContent(l.build())
 			l.viewport.KeyMap = viewport.KeyMap{}
 			l.lastVisibleLine = l.viewport.VisibleLineCount() - reservedLines
 			l.ready = true
 		} else {
 			l.viewport.Width = termWidth
-			l.viewport.Height = termHeight
+			l.viewport.Height = colHeight
 		}
 	}
 
@@ -134,7 +133,9 @@ func (l *NotesList) View() string {
 		l.Focused(),
 	)
 
-	return l.viewport.View()
+	l.header = theme.Header("NOTES", l.Size.Width, l.Focused())
+
+	return fmt.Sprintf("%s\n%s", l.header, l.viewport.View())
 }
 
 // NewNotesList creates a new model with default settings.

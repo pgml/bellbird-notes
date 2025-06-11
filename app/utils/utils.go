@@ -5,6 +5,8 @@ import (
 	"sort"
 	"strings"
 
+	"bellbird-notes/app"
+
 	"github.com/charmbracelet/lipgloss"
 )
 
@@ -55,4 +57,13 @@ func SortSliceAsc[T HasName](slice []T, skipFirst bool, setIndex func(*T, int)) 
 
 func Pointer[T any](d T) *T {
 	return &d
+}
+
+func RelativePath(path string, trailingSlash bool) string {
+	rootDir, _ := app.NotesRootDir()
+	if trailingSlash {
+		rootDir = rootDir + "/"
+	}
+	relPath := strings.ReplaceAll(path, rootDir, "")
+	return relPath
 }

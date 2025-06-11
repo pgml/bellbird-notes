@@ -21,6 +21,7 @@ type Component struct {
 
 	statusMessage string         // For displaying useful information in the status bar
 	viewport      viewport.Model // The tree viewport that allows scrolling
+	header        string
 	ready         bool
 }
 

@@ -128,8 +128,10 @@ func (t *DirectoryTree) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case tea.WindowSizeMsg:
+		colHeight := termHeight - 1
+
 		if !t.ready {
-			t.viewport = viewport.New(termWidth, termHeight)
+			t.viewport = viewport.New(termWidth, colHeight)
 			t.viewport.SetContent(t.render())
 			t.viewport.KeyMap = viewport.KeyMap{}
 			t.lastVisibleLine = t.viewport.
@@ -137,7 +139,7 @@ func (t *DirectoryTree) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			t.ready = true
 		} else {
 			t.viewport.Width = termWidth
-			t.viewport.Height = termHeight
+			t.viewport.Height = colHeight
 		}
 	}
 
@@ -159,7 +161,9 @@ func (t *DirectoryTree) View() string {
 		t.Focused(),
 	)
 
-	return t.viewport.View()
+	t.header = theme.Header("FOLDERS", t.Size.Width, t.Focused())
+
+	return fmt.Sprintf("%s\n%s", t.header, t.viewport.View())
 }
 
 // NewDirectoryTree creates a new model with default settings.
