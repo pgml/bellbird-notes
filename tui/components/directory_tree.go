@@ -94,11 +94,6 @@ func (d *TreeItem) String() string {
 		"close": theme.Icon(theme.IconDirClosed),
 	}
 
-	if len(d.children) <= 0 {
-		toggle["open"] = " "
-		toggle["close"] = " "
-	}
-
 	baseStyle := lipgloss.NewStyle().Width(28)
 	if d.selected {
 		baseStyle = baseStyle.
