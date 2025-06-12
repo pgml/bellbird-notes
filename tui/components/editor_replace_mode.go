@@ -8,8 +8,6 @@ func (e *Editor) handleReplaceMode(msg tea.KeyMsg) tea.Cmd {
 		return nil
 	}
 
-	//var cmd tea.Cmd
-
 	// only allow input when this flag is true.
 	// See tui.updateComponents() for further explanation
 	if e.CanInsert {

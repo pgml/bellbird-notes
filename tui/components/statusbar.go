@@ -69,14 +69,16 @@ func (s *StatusBar) Update(
 ) *StatusBar {
 	for i := range msgs {
 		msg := msgs[i]
-		// only update content if we are in normal mode and there is
+		// only update content if there is
 		// no kind of input focused since we don't want to overwrite
 		// the original message of the prompt
-		if s.Type != message.PromptError && s.Mode == mode.Normal {
+		if s.Type != message.PromptError {
 			s.SetColContent(msg.Column, msg.Content)
 		}
 
-		if s.Focused && s.Mode == mode.Normal {
+		// we only really need the type for displaying messages in the
+		// general column
+		if s.Focused && s.Mode == mode.Normal && msg.Column == sbc.General {
 			s.Type = msg.Type
 		}
 
@@ -85,7 +87,7 @@ func (s *StatusBar) Update(
 
 	switch teaMsg.(type) {
 	case tea.KeyMsg:
-		if s.Focused && s.canType() && s.Prompt.Focused() {
+		if s.Focused && s.shouldShowMode() && s.Prompt.Focused() {
 			s.Prompt, _ = s.Prompt.Update(teaMsg)
 			return s
 		}

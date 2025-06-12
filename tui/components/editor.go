@@ -473,7 +473,7 @@ func (e *Editor) MoveCharacterLeft() message.StatusBarMsg {
 	e.isAtLineStart = e.Textarea.IsAtLineStart()
 	e.isAtLineEnd = false
 	e.saveCursorPos()
-	return e.StatusBarInfo()
+	return message.StatusBarMsg{}
 }
 
 // moveCharacterRight moves the cursor one character to the right
@@ -484,7 +484,7 @@ func (e *Editor) MoveCharacterRight() message.StatusBarMsg {
 	e.isAtLineStart = e.Textarea.IsAtLineStart()
 	e.isAtLineEnd = false
 	e.saveCursorPos()
-	return e.StatusBarInfo()
+	return message.StatusBarMsg{}
 }
 
 // inserAfter enters insert mode one character after the current cursor's
@@ -493,7 +493,7 @@ func (e *Editor) InsertAfter() message.StatusBarMsg {
 	e.Textarea.CharacterRight(true)
 	e.EnterInsertMode()
 	e.saveCursorPos()
-	return e.StatusBarInfo()
+	return message.StatusBarMsg{}
 }
 
 // insertLineStart moves the cursor to the beginning of the line,
@@ -502,7 +502,7 @@ func (e *Editor) InsertLineStart() message.StatusBarMsg {
 	e.Textarea.CursorInputStart()
 	e.EnterInsertMode()
 	e.saveCursorPos()
-	return e.StatusBarInfo()
+	return message.StatusBarMsg{}
 }
 
 // insertLineEnd moves the cursor to the end of the line,
@@ -511,7 +511,7 @@ func (e *Editor) InsertLineEnd() message.StatusBarMsg {
 	e.Textarea.CursorEnd()
 	e.EnterInsertMode()
 	e.saveCursorPos()
-	return e.StatusBarInfo()
+	return message.StatusBarMsg{}
 }
 
 // insertLineAbove creates and empty line above the current line
@@ -522,7 +522,7 @@ func (e *Editor) InsertLineAbove() message.StatusBarMsg {
 	e.Textarea.InsertRune('\n')
 	e.Textarea.RepositionView()
 	e.EnterInsertMode()
-	return e.StatusBarInfo()
+	return message.StatusBarMsg{}
 }
 
 // insertLineBelow creates and empty line below the current line
@@ -532,7 +532,7 @@ func (e *Editor) InsertLineBelow() message.StatusBarMsg {
 	e.Textarea.InsertRune('\n')
 	e.Textarea.RepositionView()
 	e.EnterInsertMode()
-	return e.StatusBarInfo()
+	return message.StatusBarMsg{}
 }
 
 // LineUp moves the cursor one line up and sets the column offset
@@ -559,7 +559,7 @@ func (e *Editor) LineUp() message.StatusBarMsg {
 		e.Textarea.CursorVimEnd()
 	}
 
-	return e.StatusBarInfo()
+	return message.StatusBarMsg{}
 }
 
 // LineDown moves the cursor one line down and sets the column offset
@@ -586,7 +586,7 @@ func (e *Editor) LineDown() message.StatusBarMsg {
 		e.Textarea.CursorVimEnd()
 	}
 
-	return e.StatusBarInfo()
+	return message.StatusBarMsg{}
 }
 
 // goToLineStart moves the cursor to the beginning of the line,
@@ -596,7 +596,7 @@ func (e *Editor) GoToLineStart() message.StatusBarMsg {
 	e.isAtLineStart = e.Textarea.IsAtLineStart()
 	e.isAtLineEnd = e.Textarea.IsAtLineEnd()
 	e.saveCursorPos()
-	return e.StatusBarInfo()
+	return message.StatusBarMsg{}
 }
 
 // goToInputStart moves the cursor to the first character of the line,
@@ -607,7 +607,7 @@ func (e *Editor) GoToInputStart() message.StatusBarMsg {
 	e.isAtLineStart = e.Textarea.IsAtLineStart()
 	e.isAtLineEnd = e.Textarea.IsAtLineEnd()
 	e.saveCursorPos()
-	return e.StatusBarInfo()
+	return message.StatusBarMsg{}
 }
 
 // goToLineEnd moves the cursor to the end of the line, sets isAtLineEnd
@@ -617,21 +617,21 @@ func (e *Editor) GoToLineEnd() message.StatusBarMsg {
 	e.isAtLineStart = e.Textarea.IsAtLineStart()
 	e.isAtLineEnd = e.Textarea.IsAtLineEnd()
 	e.saveCursorPos()
-	return e.StatusBarInfo()
+	return message.StatusBarMsg{}
 }
 
 // goToTop moves the cursor to the beginning of the buffer
 func (e *Editor) GoToTop() message.StatusBarMsg {
 	e.Textarea.MoveToBegin()
 	e.Textarea.RepositionView()
-	return e.StatusBarInfo()
+	return message.StatusBarMsg{}
 }
 
 // goToTop moves the cursor to the bottom of the buffer
 func (e *Editor) GoToBottom() message.StatusBarMsg {
 	e.Textarea.MoveToEnd()
 	e.Textarea.RepositionView()
-	return e.StatusBarInfo()
+	return message.StatusBarMsg{}
 }
 
 // wordRightEnd moves the cursor to the end of the next word
@@ -640,7 +640,7 @@ func (e *Editor) WordRightEnd() message.StatusBarMsg {
 	e.Textarea.WordRight()
 	e.Textarea.CharacterLeft(false)
 	e.saveCursorPos()
-	return e.StatusBarInfo()
+	return message.StatusBarMsg{}
 }
 
 // WordRightStart moves the cursor to the beginning of the next word
@@ -648,52 +648,52 @@ func (e *Editor) WordRightStart() message.StatusBarMsg {
 	e.Textarea.WordRight()
 	e.Textarea.CharacterRight(false)
 	e.saveCursorPos()
-	return e.StatusBarInfo()
+	return message.StatusBarMsg{}
 }
 
 // WordBack moves the cursor to the beginning of the next word
 func (e *Editor) WordBack() message.StatusBarMsg {
 	e.Textarea.WordLeft()
 	e.saveCursorPos()
-	return e.StatusBarInfo()
+	return message.StatusBarMsg{}
 }
 
 func (e *Editor) DownHalfPage() message.StatusBarMsg {
 	e.Textarea.DownHalfPage()
-	return e.StatusBarInfo()
+	return message.StatusBarMsg{}
 }
 
 func (e *Editor) UpHalfPage() message.StatusBarMsg {
 	e.Textarea.UpHalfPage()
-	return e.StatusBarInfo()
+	return message.StatusBarMsg{}
 }
 
 func (e *Editor) DeleteLine() message.StatusBarMsg {
 	origCnt := e.Textarea.Value()
 	e.Textarea.DeleteLine()
 	e.checkDirty(origCnt)
-	return e.StatusBarInfo()
+	return message.StatusBarMsg{}
 }
 
 func (e *Editor) DeleteAfterCursor() message.StatusBarMsg {
 	origCnt := e.Textarea.Value()
 	e.Textarea.DeleteAfterCursor()
 	e.checkDirty(origCnt)
-	return e.StatusBarInfo()
+	return message.StatusBarMsg{}
 }
 
 func (e *Editor) DeleteNLines(lines int, up bool) message.StatusBarMsg {
 	origCnt := e.Textarea.Value()
 	e.Textarea.DeleteLines(lines, up)
 	e.checkDirty(origCnt)
-	return e.StatusBarInfo()
+	return message.StatusBarMsg{}
 }
 
 func (e *Editor) DeleteWordRight() message.StatusBarMsg {
 	origCnt := e.Textarea.Value()
 	e.Textarea.DeleteWordRight()
 	e.checkDirty(origCnt)
-	return e.StatusBarInfo()
+	return message.StatusBarMsg{}
 }
 
 // undo sets the buffer content to the previous history entry
@@ -701,7 +701,7 @@ func (e *Editor) Undo() message.StatusBarMsg {
 	val, cursorPos := e.CurrentBuffer.undo()
 	e.Textarea.SetValue(val)
 	e.Textarea.MoveCursor(cursorPos.Row, cursorPos.ColumnOffset)
-	return e.StatusBarInfo()
+	return message.StatusBarMsg{}
 }
 
 // redo sets the buffer content to the next history entry
@@ -709,5 +709,5 @@ func (e *Editor) Redo() message.StatusBarMsg {
 	val, cursorPos := e.CurrentBuffer.redo()
 	e.Textarea.SetValue(val)
 	e.Textarea.MoveCursor(cursorPos.Row, cursorPos.ColumnOffset)
-	return e.StatusBarInfo()
+	return message.StatusBarMsg{}
 }
