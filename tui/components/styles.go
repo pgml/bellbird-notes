@@ -12,7 +12,9 @@ type styles struct {
 	icon,
 	selected,
 	toggle lipgloss.Style
-	iconWidth int
+
+	iconWidth,
+	toggleWidth int
 }
 
 func NotesListStyle() styles {
@@ -38,13 +40,17 @@ func NotesListStyle() styles {
 func DirTreeStyle() styles {
 	var s styles
 	s.iconWidth = 2
+	s.toggleWidth = 2
 
 	s.base = lipgloss.NewStyle().
 		Foreground(lipgloss.NoColor{})
 
 	s.icon = lipgloss.NewStyle().
 		Width(s.iconWidth)
-		//Foreground(theme.ColourBorder)
+	//Foreground(theme.ColourBorder)
+	s.toggle = s.icon.
+		Width(s.toggleWidth).
+		Foreground(theme.ColourBorder)
 
 	s.selected = s.base.
 		Background(theme.ColourBgSelected).

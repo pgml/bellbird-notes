@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 
 	"bellbird-notes/app"
@@ -13,7 +14,7 @@ import (
 	"bellbird-notes/tui/message"
 	"bellbird-notes/tui/mode"
 	"bellbird-notes/tui/theme"
-	statusbarcolumn "bellbird-notes/tui/types/statusbar_column"
+	sbc "bellbird-notes/tui/types/statusbar_column"
 
 	"github.com/charmbracelet/bubbles/v2/textinput"
 	"github.com/charmbracelet/bubbles/v2/viewport"
@@ -76,15 +77,21 @@ func (d TreeItem) Indent(indentLines bool) string {
 
 // The string representation of a Dir
 func (d *TreeItem) String() string {
+	if *app.NoNerdFonts {
+		d.styles.iconWidth = 0
+	}
+
 	base := d.styles.base
-	icn := d.styles.icon
+	icn := d.styles.icon.Width(d.styles.iconWidth)
+	toggle := d.styles.toggle
 	sel := d.styles.selected
 
 	indentChar := d.Indent(false) // @todo make this a config option
 	indentStr := strings.Repeat(indentChar, d.level)
 	indentWidth := lipgloss.Width(indentStr)
 
-	baseWidth := 25 - indentWidth
+	//baseWidth := 21 - d.styles.iconWidth - indentWidth
+	baseWidth := 26 - d.styles.iconWidth - indentWidth
 	base = base.Width(baseWidth)
 	indent := lipgloss.NewStyle().Width(indentWidth)
 	name := utils.TruncateText(d.Name(), baseWidth)
@@ -92,22 +99,72 @@ func (d *TreeItem) String() string {
 	if d.selected {
 		base = sel.Width(baseWidth)
 		icn = sel.Width(d.styles.iconWidth)
+		toggle = sel.Width(d.styles.toggleWidth)
 		indent = sel.Width(indentWidth)
 	}
 
-	iconToggle := map[string]string{
-		"open":  theme.Icon(theme.IconDirOpen),
-		"close": theme.Icon(theme.IconDirClosed),
+	iconToggleArrow := map[string]string{
+		"open":  theme.IconDirOpen.Alt,
+		"close": theme.IconDirClosed.Alt,
+	}
+	iconToggleDir := map[string]string{"open": "", "close": ""}
+
+	if !*app.NoNerdFonts {
+		iconToggleDir = map[string]string{
+			"open":  theme.IconDirOpen.Nerd,
+			"close": theme.IconDirClosed.Nerd,
+		}
+	} else {
 	}
 
-	icon := iconToggle["close"]
+	iconArrow := iconToggleArrow["close"]
+	iconDir := iconToggleDir["close"]
 	if d.expanded {
-		icon = iconToggle["open"]
+		iconArrow = iconToggleArrow["open"]
+		iconDir = iconToggleDir["open"]
 	}
 
-	return indent.Render(indentStr) +
-		icn.Render(icon) +
-		base.Render(name)
+	if len(d.children) == 0 {
+		iconArrow = ""
+	}
+
+	return lipgloss.JoinHorizontal(lipgloss.Center,
+		indent.Render(indentStr),
+		toggle.Render(iconArrow),
+		icn.Render(iconDir),
+		base.Render(name),
+		//d.ContentInfo(),
+	)
+}
+
+func (d TreeItem) ContentInfo() string {
+	dirStyle := lipgloss.NewStyle().
+		Width(5).
+		Foreground(theme.ColourBorder).
+		Align(lipgloss.Right)
+	nbrDir := strconv.Itoa(d.NbrFolders)
+	nbrNotes := strconv.Itoa(d.NbrNotes)
+	dirInfo := ""
+
+	if d.NbrNotes == 0 {
+		nbrNotes = ""
+	}
+
+	if d.NbrNotes == 0 && d.NbrFolders == 0 {
+		dirInfo = "0"
+	} else if d.NbrFolders == 0 && d.NbrNotes > 0 {
+		dirInfo = nbrNotes
+	} else if d.NbrFolders > 0 && d.NbrNotes == 0 {
+		dirInfo = nbrDir
+	} else {
+		dirInfo = nbrDir + "|" + nbrNotes
+	}
+
+	if d.selected {
+		dirStyle = d.styles.selected.Width(5).Align(lipgloss.Right)
+	}
+
+	return dirStyle.Render(dirInfo)
 }
 
 // Init initialises the Model on program load.
@@ -311,7 +368,7 @@ func (m *DirectoryTree) createDirectoryItem(
 		children:   m.getChildren(dir.Path, level+1),
 		NbrFolders: dir.NbrFolders,
 		level:      level,
-		NbrNotes:   0,
+		NbrNotes:   dir.NbrNotes,
 	}
 
 	return dirItem
@@ -565,7 +622,9 @@ func (t *DirectoryTree) Collapse() message.StatusBarMsg {
 // Expands the currently selected directory
 func (t *DirectoryTree) Expand() message.StatusBarMsg {
 	statusMsg := message.StatusBarMsg{}
-	if t.selectedIndex >= len(t.dirsListFlat) || !t.Focused() {
+	if t.selectedIndex >= len(t.dirsListFlat) ||
+		!t.Focused() ||
+		len(t.SelectedDir().children) == 0 {
 		return statusMsg
 	}
 
@@ -643,7 +702,7 @@ func (t *DirectoryTree) ConfirmRemove() message.StatusBarMsg {
 		Content: resultMsg,
 		Type:    message.PromptError,
 		Sender:  message.SenderDirTree,
-		Column:  statusbarcolumn.General,
+		Column:  sbc.General,
 	}
 }
 
@@ -671,7 +730,7 @@ func (t *DirectoryTree) Remove() message.StatusBarMsg {
 	return message.StatusBarMsg{
 		Content: resultMsg,
 		Type:    msgType,
-		Column:  statusbarcolumn.General,
+		Column:  sbc.General,
 	}
 }
 
@@ -712,4 +771,17 @@ func (t *DirectoryTree) ConfirmAction() message.StatusBarMsg {
 	}
 
 	return message.StatusBarMsg{}
+}
+
+func (t *DirectoryTree) ContentInfo() message.StatusBarMsg {
+	sel := t.SelectedDir()
+	iconDir := theme.Icon(theme.IconDirClosed)
+	iconNotes := theme.Icon(theme.IconNote)
+	nbrFolders := iconDir + " " + strconv.Itoa(sel.NbrFolders) + " Folders"
+	nbrNotes := iconNotes + " " + strconv.Itoa(sel.NbrNotes) + " Notes"
+
+	return message.StatusBarMsg{
+		Column:  sbc.FileInfo,
+		Content: nbrFolders + ", " + nbrNotes,
+	}
 }

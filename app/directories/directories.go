@@ -36,11 +36,17 @@ func List(dirPath string) ([]Directory, error) {
 			continue
 		}
 
+		nbrNotes, err := GetFileCount(filePath)
+		if err != nil {
+			debug.LogErr(err)
+			return nil, err
+		}
+
 		nbrDirs, _ := List(filePath)
 		Directories = append(Directories, Directory{
 			Name:       child.Name(),
 			Path:       filePath,
-			NbrNotes:   0,
+			NbrNotes:   nbrNotes,
 			NbrFolders: len(nbrDirs),
 			IsExpanded: false,
 		})
@@ -50,6 +56,26 @@ func List(dirPath string) ([]Directory, error) {
 	utils.SortSliceAsc(Directories, false, nil)
 
 	return Directories, nil
+}
+
+func GetFileCount(dir string) (int, error) {
+	dirs, err := os.ReadDir(dir)
+	if err != nil {
+		debug.LogErr(err)
+		return 0, err
+	}
+
+	nbrNotes := 0
+
+	for _, child := range dirs {
+		if child.IsDir() {
+			continue
+		}
+
+		nbrNotes++
+	}
+
+	return nbrNotes, nil
 }
 
 func ContainsDir(path string, dirName string) (error, bool) {
