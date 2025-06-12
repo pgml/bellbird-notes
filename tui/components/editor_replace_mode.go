@@ -1,6 +1,6 @@
 package components
 
-import tea "github.com/charmbracelet/bubbletea"
+import tea "github.com/charmbracelet/bubbletea/v2"
 
 func (e *Editor) handleReplaceMode(msg tea.KeyMsg) tea.Cmd {
 	if msg.String() == "esc" {

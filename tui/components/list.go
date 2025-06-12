@@ -3,7 +3,7 @@ package components
 import (
 	"bellbird-notes/tui/message"
 
-	"github.com/charmbracelet/bubbles/textinput"
+	"github.com/charmbracelet/bubbles/v2/textinput"
 )
 
 // EditState is the state in which the DirectoryTree.editor is in
@@ -137,7 +137,7 @@ func (l *List[T]) LineUp() message.StatusBarMsg {
 	// scroll up
 	if l.selectedIndex < l.firstVisibleLine {
 		l.firstVisibleLine = l.selectedIndex
-		l.viewport.ScrollUp(1)
+		l.viewport.LineUp(1)
 	}
 
 	return message.StatusBarMsg{}
@@ -154,7 +154,7 @@ func (l *List[T]) LineDown() message.StatusBarMsg {
 	// scroll down
 	if l.selectedIndex > l.lastVisibleLine {
 		l.firstVisibleLine = l.selectedIndex - l.visibleLines
-		l.viewport.ScrollDown(1)
+		l.viewport.LineDown(1)
 	}
 
 	return message.StatusBarMsg{}

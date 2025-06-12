@@ -1,12 +1,25 @@
 // I need stuff that is not public to be public for the vim motions
 // That's why this file exists
 // Also I need need new textarea functions
-
 package textarea
+
+import (
+	"github.com/charmbracelet/lipgloss/v2"
+
+	"bellbird-notes/tui/components/cursor"
+)
 
 type CursorPos struct {
 	Row          int
 	ColumnOffset int
+}
+
+type Selection struct {
+	Cursor   cursor.Model
+	Start    CursorPos
+	StartRow int
+	StartCol int
+	//Characters [][]rune
 }
 
 // characterLeft moves the cursor one character to the left.
@@ -15,7 +28,7 @@ type CursorPos struct {
 func (m *Model) CharacterLeft(inside bool) {
 	//m.characterLeft(inside)
 	if m.col > 0 {
-		m.SetCursor(m.col - 1)
+		m.SetCursorColumn(m.col - 1)
 	}
 }
 
@@ -26,7 +39,7 @@ func (m *Model) CharacterLeft(inside bool) {
 func (m *Model) CharacterRight(overshoot bool) {
 	if !overshoot {
 		if m.col < len(m.value[m.row])-1 {
-			m.SetCursor(m.col + 1)
+			m.SetCursorColumn(m.col + 1)
 		}
 	} else {
 		m.characterRight()
@@ -57,7 +70,7 @@ func (m *Model) WordRight() {
 func (m *Model) CursorInputStart() {
 	for i, r := range m.value[m.row] {
 		if r != 32 {
-			m.SetCursor(i)
+			m.SetCursorColumn(i)
 			break
 		}
 	}
@@ -78,7 +91,7 @@ func (m *Model) MoveToEnd() {
 // the cursor so as not to reveal word breaks in the masked input.
 func (m *Model) DeleteAfterCursor() {
 	m.deleteAfterCursor()
-	m.SetCursor(len(m.value[m.row]) - 1)
+	m.SetCursorColumn(len(m.value[m.row]) - 1)
 }
 
 ///
@@ -86,7 +99,7 @@ func (m *Model) DeleteAfterCursor() {
 ///
 
 func (m *Model) CursorVimEnd() {
-	m.SetCursor(len(m.value[m.row]) - 1)
+	m.SetCursorColumn(len(m.value[m.row]) - 1)
 }
 
 func (m *Model) IsExceedingLine() bool {
@@ -128,7 +141,7 @@ func (m *Model) DeleteLine() {
 	m.CursorStart()
 	m.deleteAfterCursor()
 	m.mergeLineBelow(m.row)
-	m.SetCursor(currCursorPos)
+	m.SetCursorColumn(currCursorPos)
 }
 
 // DeleteLines deletes l lines
@@ -139,7 +152,7 @@ func (m *Model) DeleteLines(l int, up bool) {
 		m.CursorUp()
 	}
 	for range l {
-		m.SetCursor(l)
+		m.SetCursorColumn(l)
 		m.DeleteLine()
 	}
 }
@@ -150,28 +163,28 @@ func (m *Model) DeleteWordRight() {
 
 // DownHalfPage move cursor and screen down 1/2 page
 func (m *Model) DownHalfPage() {
-	for range m.viewport.Height / 2 {
+	for range m.viewport.Height() / 2 {
 		m.CursorDown()
 	}
 
 	min := m.viewport.YOffset
-	max := min + m.viewport.Height - 1
+	max := min + m.viewport.Height() - 1
 
 	if row := m.cursorLineNumber(); row > max {
-		m.viewport.ScrollDown(m.viewport.Height / 2)
+		m.viewport.LineDown(m.viewport.Height() / 2)
 	}
 }
 
 // UpHalfPage move cursor and screen down 1/2 page
 func (m *Model) UpHalfPage() {
-	for range m.viewport.Height / 2 {
+	for range m.viewport.Height() / 2 {
 		m.CursorUp()
 	}
 
 	min := m.viewport.YOffset
 
 	if row := m.cursorLineNumber(); row < min {
-		m.viewport.ScrollUp(min - row)
+		m.viewport.LineUp(min - row)
 	}
 }
 

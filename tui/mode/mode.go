@@ -1,6 +1,10 @@
 package mode
 
-import "github.com/charmbracelet/lipgloss"
+import (
+	"image/color"
+
+	"github.com/charmbracelet/lipgloss/v2"
+)
 
 type Mode int
 
@@ -37,7 +41,7 @@ var fullName = map[Mode]string{
 	Command:     "",
 }
 
-var colour = map[Mode]lipgloss.TerminalColor{
+var colour = map[Mode]color.Color{
 	Normal:      lipgloss.NoColor{},
 	Insert:      lipgloss.Color("#7bb791"),
 	Visual:      lipgloss.Color("#b7b27b"),
@@ -56,7 +60,7 @@ func (m Mode) FullString() string {
 	return fullName[m]
 }
 
-func (m Mode) Colour() lipgloss.TerminalColor {
+func (m Mode) Colour() color.Color {
 	return colour[m]
 }
 

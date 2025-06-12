@@ -15,10 +15,10 @@ import (
 	"bellbird-notes/tui/theme"
 	statusbarcolumn "bellbird-notes/tui/types/statusbar_column"
 
-	"github.com/charmbracelet/bubbles/textinput"
-	"github.com/charmbracelet/bubbles/viewport"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/bubbles/v2/textinput"
+	"github.com/charmbracelet/bubbles/v2/viewport"
+	tea "github.com/charmbracelet/bubbletea/v2"
+	"github.com/charmbracelet/lipgloss/v2"
 )
 
 // DirectoryTree represents the bubbletea model.
@@ -76,39 +76,38 @@ func (d TreeItem) Indent(indentLines bool) string {
 
 // The string representation of a Dir
 func (d *TreeItem) String() string {
-	t := d.styles.toggle.Render
-	n := d.styles.dir.Render
-	e := d.styles.enumerator.Render
+	base := d.styles.base
+	icn := d.styles.icon
+	sel := d.styles.selected
 
-	indentStr := d.Indent(false) // @todo make this a config option
+	indentChar := d.Indent(false) // @todo make this a config option
+	indentStr := strings.Repeat(indentChar, d.level)
+	indentWidth := lipgloss.Width(indentStr)
 
-	indent := strings.Repeat(
-		indentStr,
-		d.level,
-	)
+	baseWidth := 25 - indentWidth
+	base = base.Width(baseWidth)
+	indent := lipgloss.NewStyle().Width(indentWidth)
+	name := utils.TruncateText(d.Name(), baseWidth)
 
-	name := utils.TruncateText(d.Name(), 22)
+	if d.selected {
+		base = sel.Width(baseWidth)
+		icn = sel.Width(d.styles.iconWidth)
+		indent = sel.Width(indentWidth)
+	}
 
-	toggle := map[string]string{
+	iconToggle := map[string]string{
 		"open":  theme.Icon(theme.IconDirOpen),
 		"close": theme.Icon(theme.IconDirClosed),
 	}
 
-	baseStyle := lipgloss.NewStyle().Width(28)
-	if d.selected {
-		baseStyle = baseStyle.
-			Background(theme.ColourBgSelected).
-			Bold(true)
-	}
-
-	row := e(indent)
+	icon := iconToggle["close"]
 	if d.expanded {
-		row += t(toggle["open"])
-	} else {
-		row += t(toggle["close"])
+		icon = iconToggle["open"]
 	}
 
-	return baseStyle.Render(row + n(name))
+	return indent.Render(indentStr) +
+		icn.Render(icon) +
+		base.Render(name)
 }
 
 // Init initialises the Model on program load.
@@ -139,15 +138,17 @@ func (t *DirectoryTree) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		colHeight := termHeight - 1
 
 		if !t.ready {
-			t.viewport = viewport.New(termWidth, colHeight)
+			t.viewport = viewport.New()
+			t.viewport.SetWidth(termWidth)
+			t.viewport.SetHeight(colHeight)
 			t.viewport.SetContent(t.render())
 			t.viewport.KeyMap = viewport.KeyMap{}
 			t.lastVisibleLine = t.viewport.
 				VisibleLineCount() - reservedLines
 			t.ready = true
 		} else {
-			t.viewport.Width = termWidth
-			t.viewport.Height = colHeight
+			t.viewport.SetWidth(termWidth)
+			t.viewport.SetHeight(colHeight)
 		}
 	}
 
@@ -263,7 +264,7 @@ func (t *DirectoryTree) render() string {
 		} else {
 			tree += fmt.Sprintf(
 				"%-*s \n",
-				t.viewport.Width,
+				t.viewport.Width(),
 				dir.String(),
 			)
 		}

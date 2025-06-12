@@ -1,38 +1,53 @@
 package components
 
-import "github.com/charmbracelet/lipgloss"
+import (
+	"github.com/charmbracelet/lipgloss/v2"
+
+	"bellbird-notes/tui/theme"
+)
 
 type styles struct {
 	base,
 	enumerator,
-	dir,
-	note,
+	icon,
+	selected,
 	toggle lipgloss.Style
+	iconWidth int
 }
 
 func NotesListStyle() styles {
 	var s styles
+	s.iconWidth = 3
+
 	s.base = lipgloss.NewStyle().
 		Foreground(lipgloss.NoColor{}).
-		MarginLeft(0).
-		PaddingLeft(1)
-	s.note = s.base.
-		MarginRight(0).
-		PaddingLeft(1).
-		PaddingRight(0).
-		Foreground(lipgloss.AdaptiveColor{Light: "#333", Dark: "#eee"})
+		Width(25)
+		//MarginLeft(0)
+		//PaddingLeft(1)
+
+	s.icon = s.base.
+		Width(s.iconWidth)
+		//Foreground(theme.ColourBorder)
+
+	s.selected = s.base.
+		Background(theme.ColourBgSelected).
+		Bold(true)
 	return s
 }
 
 func DirTreeStyle() styles {
 	var s styles
+	s.iconWidth = 2
+
 	s.base = lipgloss.NewStyle().
-		Foreground(lipgloss.NoColor{}).
-		MarginLeft(0).
-		PaddingLeft(1)
-	s.dir = s.base.
-		MarginRight(0).
-		PaddingRight(0).
-		Foreground(lipgloss.AdaptiveColor{Light: "#333", Dark: "#eee"})
+		Foreground(lipgloss.NoColor{})
+
+	s.icon = lipgloss.NewStyle().
+		Width(s.iconWidth)
+		//Foreground(theme.ColourBorder)
+
+	s.selected = s.base.
+		Background(theme.ColourBgSelected).
+		Bold(true)
 	return s
 }

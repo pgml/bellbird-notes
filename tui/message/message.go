@@ -1,7 +1,9 @@
 package message
 
 import (
-	"github.com/charmbracelet/lipgloss"
+	"image/color"
+
+	"github.com/charmbracelet/lipgloss/v2"
 
 	statusbarcolumn "bellbird-notes/tui/types/statusbar_column"
 )
@@ -15,14 +17,14 @@ const (
 	PromptError
 )
 
-var msgColours = map[Type]lipgloss.TerminalColor{
+var msgColours = map[Type]color.Color{
 	Success:     lipgloss.NoColor{},
 	Error:       lipgloss.Color("#d75a7d"),
 	Prompt:      lipgloss.NoColor{},
 	PromptError: lipgloss.Color("#d75a7d"),
 }
 
-func (m Type) Colour() lipgloss.TerminalColor {
+func (m Type) Colour() color.Color {
 	return msgColours[m]
 }
 

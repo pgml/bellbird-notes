@@ -1,7 +1,7 @@
 package components
 
 import (
-	"github.com/charmbracelet/bubbles/viewport"
+	"github.com/charmbracelet/bubbles/v2/viewport"
 	bl "github.com/winder/bubblelayout"
 
 	"bellbird-notes/tui/mode"

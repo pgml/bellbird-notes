@@ -8,8 +8,8 @@ import (
 	"bellbird-notes/tui/mode"
 	sbc "bellbird-notes/tui/types/statusbar_column"
 
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	tea "github.com/charmbracelet/bubbletea/v2"
+	"github.com/charmbracelet/lipgloss/v2"
 
 	bl "github.com/winder/bubblelayout"
 )
@@ -55,14 +55,10 @@ func InitialModel() *Model {
 }
 
 func (m Model) Init() tea.Cmd {
-	resizeCmd := func() tea.Msg {
-		return m.layout.Resize(80, 40)
-	}
-
 	editorCmd := m.editor.Init()
 	statusBarCmd := m.statusBar.Init()
 
-	return tea.Batch(resizeCmd, editorCmd, statusBarCmd)
+	return tea.Batch(editorCmd, statusBarCmd)
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -103,9 +99,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.dirTree.Size, _ = msg.Size(m.dirTree.Id)
 		m.notesList.Size, _ = msg.Size(m.notesList.Id)
 		m.editor.Size, _ = msg.Size(m.editor.Id)
-
-		//case message.StatusBarMsg:
-		//	m.statusBar = m.statusBar.Update(msg, msg)
 	}
 
 	m.keyInput.Mode = m.mode.Current
@@ -136,8 +129,8 @@ func (m Model) View() string {
 // componentsInit registers components in the layout
 // and sets initial focus
 func (m *Model) componentsInit() {
-	m.dirTree.Id = m.layout.Add("width 30")
-	m.notesList.Id = m.layout.Add("width 30")
+	m.dirTree.Id = m.layout.Add("w 30")
+	m.notesList.Id = m.layout.Add("w 30")
 	m.editor.Id = m.layout.Add("grow")
 	m.focusColumn(1)
 }

@@ -10,9 +10,9 @@ import (
 	"bellbird-notes/tui/theme"
 	sbc "bellbird-notes/tui/types/statusbar_column"
 
-	"github.com/charmbracelet/bubbles/textinput"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/bubbles/v2/textinput"
+	tea "github.com/charmbracelet/bubbletea/v2"
+	"github.com/charmbracelet/lipgloss/v2"
 )
 
 type Focusable = interfaces.Focusable
@@ -47,7 +47,7 @@ var StatusBarColumn = struct {
 
 func NewStatusBar() *StatusBar {
 	ti := textinput.New()
-	ti.Prompt = " "
+	ti.Prompt = ":"
 	ti.CharLimit = 100
 
 	statusBar := &StatusBar{
@@ -118,7 +118,7 @@ func (s *StatusBar) View() string {
 
 	// display current mode only if there's is no prompt focused
 	// and we are not in normal mode
-	if s.canType() && !s.isPrompt() {
+	if s.shouldShowMode() && !s.isPrompt() {
 		colGeneral = s.ModeView()
 	}
 
@@ -246,10 +246,11 @@ func (s *StatusBar) isPrompt() bool {
 	return s.Type == message.Prompt || s.Type == message.PromptError
 }
 
-func (s *StatusBar) canType() bool {
+func (s *StatusBar) shouldShowMode() bool {
 	return s.Mode == mode.Insert ||
 		s.Mode == mode.Command ||
-		s.Mode == mode.Replace
+		s.Mode == mode.Replace ||
+		s.Mode == mode.Visual
 }
 
 func style() lipgloss.Style {

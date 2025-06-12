@@ -9,7 +9,7 @@ import (
 
 	"bellbird-notes/app"
 
-	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/lipgloss/v2"
 )
 
 type HasName interface {

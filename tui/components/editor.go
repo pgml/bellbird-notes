@@ -18,8 +18,8 @@ import (
 	"bellbird-notes/tui/theme"
 	sbc "bellbird-notes/tui/types/statusbar_column"
 
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	tea "github.com/charmbracelet/bubbletea/v2"
+	"github.com/charmbracelet/lipgloss/v2"
 )
 
 const (
@@ -97,9 +97,9 @@ func (b *Buffer) redo() (string, textarea.CursorPos) {
 func NewEditor() *Editor {
 	ta := textarea.New()
 	ta.Prompt = ""
-	ta.FocusedStyle.CursorLine = cursorLine
-	ta.FocusedStyle.Base = focusedStyle
-	ta.BlurredStyle.Base = blurredStyle
+	ta.Styles.Focused.CursorLine = cursorLine
+	ta.Styles.Focused.Base = focusedStyle
+	ta.Styles.Blurred.Base = blurredStyle
 	ta.CharLimit = charLimit
 	ta.MaxHeight = maxHeight
 
@@ -552,7 +552,7 @@ func (e *Editor) LineUp() message.StatusBarMsg {
 		e.LineUp()
 	}
 
-	e.Textarea.SetCursor(pos.ColumnOffset)
+	e.Textarea.SetCursorColumn(pos.ColumnOffset)
 	e.saveCursorRow()
 
 	if e.Textarea.IsExceedingLine() || e.isAtLineEnd {
@@ -579,7 +579,7 @@ func (e *Editor) LineDown() message.StatusBarMsg {
 		e.LineDown()
 	}
 
-	e.Textarea.SetCursor(pos.ColumnOffset)
+	e.Textarea.SetCursorColumn(pos.ColumnOffset)
 	e.saveCursorRow()
 
 	if e.Textarea.IsExceedingLine() || e.isAtLineEnd {

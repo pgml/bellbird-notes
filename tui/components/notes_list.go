@@ -15,10 +15,10 @@ import (
 	"bellbird-notes/tui/theme"
 	sbc "bellbird-notes/tui/types/statusbar_column"
 
-	"github.com/charmbracelet/bubbles/textinput"
-	"github.com/charmbracelet/bubbles/viewport"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/bubbles/v2/textinput"
+	"github.com/charmbracelet/bubbles/v2/viewport"
+	tea "github.com/charmbracelet/bubbletea/v2"
+	"github.com/charmbracelet/lipgloss/v2"
 )
 
 type NotesList struct {
@@ -49,30 +49,29 @@ func (n NoteItem) Name() string { return n.name }
 
 // The string representation of a Dir
 func (n NoteItem) String() string {
-	r := n.styles.note.Render
-	name := utils.TruncateText(n.Name(), 22)
+	base := n.styles.base
+	icn := n.styles.icon
+	sel := n.styles.selected
+
+	name := utils.TruncateText(n.Name(), 24)
 	name = strings.TrimSuffix(
 		name,
 		filepath.Ext(name),
 	)
 
-	baseStyle := lipgloss.NewStyle().Width(26)
-	iconStyle := lipgloss.NewStyle().Width(2)
-
 	if n.selected {
-		baseStyle = baseStyle.Background(theme.ColourBgSelected).Bold(true)
-		iconStyle = iconStyle.Background(theme.ColourBgSelected).Bold(true)
+		base = sel
+		icn = sel.Width(n.styles.iconWidth)
 	}
 
-	// nerdfonts required
 	icon := " " + theme.Icon(theme.IconNote)
 
 	if n.IsDirty {
-		iconStyle = iconStyle.Foreground(theme.ColourDirty)
+		icn = icn.Foreground(theme.ColourDirty)
 		icon = " " + theme.Icon(theme.IconDot)
 	}
 
-	return iconStyle.Render(icon) + baseStyle.Render(r(name))
+	return icn.Render(icon) + base.Render(name)
 }
 
 // Init initialises the Model on program load.
@@ -103,14 +102,16 @@ func (l *NotesList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		colHeight := termHeight - 1
 
 		if !l.ready {
-			l.viewport = viewport.New(termWidth, colHeight)
+			l.viewport = viewport.New()
+			l.viewport.SetWidth(termWidth)
+			l.viewport.SetHeight(colHeight)
 			l.viewport.SetContent(l.build())
 			l.viewport.KeyMap = viewport.KeyMap{}
 			l.lastVisibleLine = l.viewport.VisibleLineCount() - reservedLines
 			l.ready = true
 		} else {
-			l.viewport.Width = termWidth
-			l.viewport.Height = colHeight
+			l.viewport.SetWidth(termWidth)
+			l.viewport.SetHeight(colHeight)
 		}
 	}
 
@@ -186,10 +187,7 @@ func (l NotesList) build() string {
 			// Show input field instead of text
 			list += l.editor.View() + "\n"
 		} else {
-			list += fmt.Sprintf(
-				"%-*s \n",
-				l.viewport.Width, note.String(),
-			)
+			list += fmt.Sprintf("%-*s \n", l.viewport.Width(), note.String())
 		}
 	}
 
