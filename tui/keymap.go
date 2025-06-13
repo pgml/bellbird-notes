@@ -237,6 +237,17 @@ func (m *Model) KeyInputFn() []ki.KeyAction {
 			Bindings: ki.KeyBindings("D"),
 			Cond:     []keyCond{m.editorInputAction(n, m.editor.DeleteAfterCursor)},
 		},
+		//{
+		//	Bindings: ki.KeyBindings("d"),
+		//	Cond:     []keyCond{m.editorInputAction(v, m.editor.DeleteRune)},
+		//},
+		{
+			Bindings: ki.KeyBindings("x"),
+			Cond: []keyCond{
+				m.editorInputAction(n, m.editor.DeleteRune),
+				m.editorInputAction(v, m.editor.DeleteRune),
+			},
+		},
 		{
 			Bindings: ki.KeyBindings("ctrl+d"),
 			Cond:     []keyCond{m.editorInputAction(n, m.editor.DownHalfPage)},

@@ -4,6 +4,9 @@
 package textarea
 
 import (
+	"bellbird-notes/app/debug"
+	"slices"
+
 	"github.com/charmbracelet/bubbles/v2/cursor"
 	"github.com/charmbracelet/lipgloss/v2"
 )
@@ -197,6 +200,23 @@ func (m *Model) UpHalfPage() {
 
 func (m *Model) ReplaceRune(replaceWith rune) {
 	m.value[m.row][m.col] = replaceWith
+}
+
+func (m *Model) DeleteRune(row int, col int) {
+	sel := m.SelectionContent()
+	if sel.Content != "" {
+		debug.LogDebug(sel.Content)
+		for i := range []rune(sel.Content) {
+			debug.LogDebug(i)
+			m.value[row] = slices.Delete(m.value[row], i, i+1)
+		}
+
+	} else {
+		if col+1 <= len(m.value[row]) {
+			m.value[row] = slices.Delete(m.value[row], col, col+1)
+		}
+	}
+	//m.SetCursorColumn(0)
 }
 
 func (m *Model) FirstVisibleLine() int {

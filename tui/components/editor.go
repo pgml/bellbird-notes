@@ -725,6 +725,14 @@ func (e *Editor) DeleteWordRight() message.StatusBarMsg {
 	return message.StatusBarMsg{}
 }
 
+func (e *Editor) DeleteRune() message.StatusBarMsg {
+	origCnt := e.Textarea.Value()
+	c := e.CurrentBuffer.CursorPos
+	e.Textarea.DeleteRune(c.Row, c.ColumnOffset)
+	e.checkDirty(origCnt)
+	return message.StatusBarMsg{}
+}
+
 // undo sets the buffer content to the previous history entry
 func (e *Editor) Undo() message.StatusBarMsg {
 	val, cursorPos := e.CurrentBuffer.undo()
