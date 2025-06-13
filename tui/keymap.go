@@ -1,10 +1,12 @@
 package tui
 
 import (
+	"bellbird-notes/app/utils"
 	"bellbird-notes/tui/components"
 	ki "bellbird-notes/tui/keyinput"
 	"bellbird-notes/tui/message"
 	"bellbird-notes/tui/mode"
+	"bellbird-notes/tui/theme"
 	sbc "bellbird-notes/tui/types/statusbar_column"
 )
 
@@ -12,6 +14,11 @@ type c = ki.FocusedComponent
 type keyAction = ki.KeyAction
 type keyCond = ki.KeyCondition
 type binding = ki.KeyBinding
+
+const (
+	n = mode.Normal
+	v = mode.Visual
+)
 
 func (m *Model) KeyInputFn() []ki.KeyAction {
 	return []keyAction{
@@ -24,7 +31,8 @@ func (m *Model) KeyInputFn() []ki.KeyAction {
 					Components: []c{m.dirTree, m.notesList},
 					Action:     m.lineDown,
 				},
-				m.editorInputAction(m.editor.LineDown),
+				m.editorInputAction(n, m.editor.LineDown),
+				m.editorInputAction(v, m.editor.LineDown),
 			},
 		},
 
@@ -37,7 +45,8 @@ func (m *Model) KeyInputFn() []ki.KeyAction {
 					Components: []c{m.dirTree, m.notesList},
 					Action:     m.lineUp,
 				},
-				m.editorInputAction(m.editor.LineUp),
+				m.editorInputAction(n, m.editor.LineUp),
+				m.editorInputAction(v, m.editor.LineUp),
 			},
 		},
 
@@ -50,7 +59,8 @@ func (m *Model) KeyInputFn() []ki.KeyAction {
 					Components: []c{m.dirTree},
 					Action:     m.dirTree.Collapse,
 				},
-				m.editorInputAction(m.editor.MoveCharacterLeft),
+				m.editorInputAction(n, m.editor.MoveCharacterLeft),
+				m.editorInputAction(v, m.editor.MoveCharacterLeft),
 			},
 		},
 
@@ -63,7 +73,8 @@ func (m *Model) KeyInputFn() []ki.KeyAction {
 					Components: []c{m.dirTree},
 					Action:     m.dirTree.Expand,
 				},
-				m.editorInputAction(m.editor.MoveCharacterRight),
+				m.editorInputAction(n, m.editor.MoveCharacterRight),
+				m.editorInputAction(v, m.editor.MoveCharacterRight),
 			},
 		},
 
@@ -115,7 +126,7 @@ func (m *Model) KeyInputFn() []ki.KeyAction {
 					Components: []c{m.dirTree, m.notesList},
 					Action:     m.goToTop,
 				},
-				m.editorInputAction(m.editor.GoToTop),
+				m.editorInputAction(mode.Normal, m.editor.GoToTop),
 			},
 		},
 		{
@@ -126,78 +137,82 @@ func (m *Model) KeyInputFn() []ki.KeyAction {
 					Components: []c{m.dirTree, m.notesList},
 					Action:     m.goToBottom,
 				},
-				m.editorInputAction(m.editor.GoToBottom),
+				m.editorInputAction(mode.Normal, m.editor.GoToBottom),
 			},
 		},
 
 		{
 			Bindings: ki.KeyBindings("i"),
-			Cond:     []keyCond{m.editorInputAction(m.editor.EnterInsertMode)},
+			Cond:     []keyCond{m.editorInputAction(n, m.editor.EnterInsertMode)},
 		},
 		{
 			Bindings: ki.KeyBindings("I"),
-			Cond:     []keyCond{m.editorInputAction(m.editor.InsertLineStart)},
+			Cond:     []keyCond{m.editorInputAction(n, m.editor.InsertLineStart)},
 		},
 		{
 			Bindings: ki.KeyBindings("a"),
-			Cond:     []keyCond{m.editorInputAction(m.editor.InsertAfter)},
+			Cond:     []keyCond{m.editorInputAction(n, m.editor.InsertAfter)},
 		},
 		{
 			Bindings: ki.KeyBindings("A"),
-			Cond:     []keyCond{m.editorInputAction(m.editor.InsertLineEnd)},
+			Cond:     []keyCond{m.editorInputAction(n, m.editor.InsertLineEnd)},
 		},
 		{
 			Bindings: ki.KeyBindings("r"),
-			Cond:     []keyCond{m.editorInputAction(m.editor.EnterReplaceMode)},
+			Cond:     []keyCond{m.editorInputAction(n, m.editor.EnterReplaceMode)},
+		},
+		{
+			Bindings: ki.KeyBindings("v"),
+			Cond:     []keyCond{m.editorInputAction(n, m.editor.EnterVisualMode)},
 		},
 		{
 			Bindings: ki.KeyBindings("u"),
-			Cond:     []keyCond{m.editorInputAction(m.editor.Undo)},
+			Cond:     []keyCond{m.editorInputAction(n, m.editor.Undo)},
 		},
 		{
 			Bindings: ki.KeyBindings("ctrl+r"),
-			Cond:     []keyCond{m.editorInputAction(m.editor.Redo)},
+			Cond:     []keyCond{m.editorInputAction(n, m.editor.Redo)},
 		},
 		{
 			Bindings: ki.KeyBindings("w"),
-			Cond:     []keyCond{m.editorInputAction(m.editor.WordRightStart)},
+			Cond:     []keyCond{m.editorInputAction(n, m.editor.WordRightStart)},
 		},
 		{
 			Bindings: ki.KeyBindings("e"),
-			Cond:     []keyCond{m.editorInputAction(m.editor.WordRightEnd)},
+			Cond:     []keyCond{m.editorInputAction(n, m.editor.WordRightEnd)},
 		},
 		{
 			Bindings: ki.KeyBindings("b"),
-			Cond:     []keyCond{m.editorInputAction(m.editor.WordBack)},
+			Cond:     []keyCond{m.editorInputAction(n, m.editor.WordBack)},
 		},
 		{
 			Bindings: ki.KeyBindings("^", "_"),
-			Cond:     []keyCond{m.editorInputAction(m.editor.GoToInputStart)},
+			Cond:     []keyCond{m.editorInputAction(n, m.editor.GoToInputStart)},
 		},
 		{
 			Bindings: ki.KeyBindings("0"),
-			Cond:     []keyCond{m.editorInputAction(m.editor.GoToLineStart)},
+			Cond:     []keyCond{m.editorInputAction(n, m.editor.GoToLineStart)},
 		},
 		{
 			Bindings: ki.KeyBindings("$"),
-			Cond:     []keyCond{m.editorInputAction(m.editor.GoToLineEnd)},
+			Cond:     []keyCond{m.editorInputAction(n, m.editor.GoToLineEnd)},
 		},
 		{
 			Bindings: ki.KeyBindings("o"),
-			Cond:     []keyCond{m.editorInputAction(m.editor.InsertLineBelow)},
+			Cond:     []keyCond{m.editorInputAction(n, m.editor.InsertLineBelow)},
 		},
 		{
 			Bindings: ki.KeyBindings("O"),
-			Cond:     []keyCond{m.editorInputAction(m.editor.InsertLineAbove)},
+			Cond:     []keyCond{m.editorInputAction(n, m.editor.InsertLineAbove)},
 		},
 		{
 			Bindings: ki.KeyBindings("dd"),
-			Cond:     []keyCond{m.editorInputAction(m.editor.DeleteLine)},
+			Cond:     []keyCond{m.editorInputAction(n, m.editor.DeleteLine)},
 		},
 		{
 			Bindings: ki.KeyBindings("dj"),
 			Cond: []keyCond{{
-				Mode:       mode.Normal,
+				Mode:       n,
 				Components: []c{m.editor},
 				Action: func() message.StatusBarMsg {
 					return m.editor.DeleteNLines(2, false)
@@ -207,7 +222,7 @@ func (m *Model) KeyInputFn() []ki.KeyAction {
 		{
 			Bindings: ki.KeyBindings("dk"),
 			Cond: []keyCond{{
-				Mode:       mode.Normal,
+				Mode:       n,
 				Components: []c{m.editor},
 				Action: func() message.StatusBarMsg {
 					return m.editor.DeleteNLines(2, true)
@@ -216,19 +231,19 @@ func (m *Model) KeyInputFn() []ki.KeyAction {
 		},
 		{
 			Bindings: ki.KeyBindings("dw"),
-			Cond:     []keyCond{m.editorInputAction(m.editor.DeleteWordRight)},
+			Cond:     []keyCond{m.editorInputAction(n, m.editor.DeleteWordRight)},
 		},
 		{
 			Bindings: ki.KeyBindings("D"),
-			Cond:     []keyCond{m.editorInputAction(m.editor.DeleteAfterCursor)},
+			Cond:     []keyCond{m.editorInputAction(n, m.editor.DeleteAfterCursor)},
 		},
 		{
 			Bindings: ki.KeyBindings("ctrl+d"),
-			Cond:     []keyCond{m.editorInputAction(m.editor.DownHalfPage)},
+			Cond:     []keyCond{m.editorInputAction(n, m.editor.DownHalfPage)},
 		},
 		{
 			Bindings: ki.KeyBindings("ctrl+u"),
-			Cond:     []keyCond{m.editorInputAction(m.editor.UpHalfPage)},
+			Cond:     []keyCond{m.editorInputAction(n, m.editor.UpHalfPage)},
 		},
 
 		// ENTER CMD MODE
@@ -323,9 +338,9 @@ func (m *Model) KeyInputFn() []ki.KeyAction {
 	}
 }
 
-func (m *Model) editorInputAction(fn func() message.StatusBarMsg) keyCond {
+func (m *Model) editorInputAction(mode mode.Mode, fn func() message.StatusBarMsg) keyCond {
 	return keyCond{
-		Mode:       mode.Normal,
+		Mode:       mode,
 		Components: []c{m.editor},
 		Action:     fn,
 	}
@@ -343,6 +358,15 @@ func (m *Model) focusColumn(index int) message.StatusBarMsg {
 	m.editor.SetFocus(index == 3)
 	m.currColFocus = index
 	m.keyInput.FetchKeyMap(true)
+
+	if index == 3 {
+		relPath := utils.RelativePath(m.editor.CurrentBuffer.Path, true)
+		icon := theme.Icon(theme.IconNote)
+		return message.StatusBarMsg{
+			Content: icon + " " + relPath,
+			Column:  sbc.FileInfo,
+		}
+	}
 
 	return message.StatusBarMsg{}
 }
@@ -399,6 +423,9 @@ func (m *Model) lineUp() message.StatusBarMsg {
 
 	if f := m.focusedComponent(); f != nil {
 		statusMsg = f.LineUp()
+		if f == m.dirTree {
+			statusMsg = m.dirTree.ContentInfo()
+		}
 	}
 
 	return statusMsg
@@ -411,6 +438,10 @@ func (m *Model) lineDown() message.StatusBarMsg {
 
 	if f := m.focusedComponent(); f != nil {
 		statusMsg = f.LineDown()
+
+		if f == m.dirTree {
+			statusMsg = m.dirTree.ContentInfo()
+		}
 	}
 
 	return statusMsg
@@ -575,12 +606,9 @@ func (m *Model) enterCmdMode() message.StatusBarMsg {
 	m.editor.Vim.Mode.Current = mode.Command
 	m.mode.Current = mode.Command
 	m.statusBar.Focused = true
-	m.statusBar.Type = message.Prompt
-	statusMsg := message.StatusBar.CmdPrompt
 
 	return message.StatusBarMsg{
-		Content: statusMsg,
-		Type:    message.Prompt,
-		Column:  sbc.General,
+		Type:   message.Prompt,
+		Column: sbc.General,
 	}
 }

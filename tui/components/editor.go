@@ -18,6 +18,7 @@ import (
 	"bellbird-notes/tui/theme"
 	sbc "bellbird-notes/tui/types/statusbar_column"
 
+	"github.com/charmbracelet/bubbles/v2/cursor"
 	tea "github.com/charmbracelet/bubbletea/v2"
 	"github.com/charmbracelet/lipgloss/v2"
 )
@@ -41,6 +42,11 @@ var (
 			BorderTop(false).
 			Padding(0, 1).
 			BorderForeground(theme.ColourBorder)
+
+	highlightStyle = lipgloss.NewStyle().
+			Background(lipgloss.Color("57")). // Green background
+			Foreground(lipgloss.Color("0")).  // Black text
+			Bold(true)
 )
 
 type Editor struct {
@@ -124,6 +130,7 @@ func NewEditor() *Editor {
 	}
 
 	editor.Textarea.ShowLineNumbers = editor.ShowLineNumbers
+	editor.Textarea.ResetSelection()
 
 	return editor
 }
@@ -139,6 +146,8 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds []tea.Cmd
 		cmd  tea.Cmd
 	)
+
+	e.Textarea.Selection.Cursor.Blur()
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
@@ -157,19 +166,25 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case mode.Command:
 			cmd = e.handleCommandMode(msg)
+
+		case mode.Visual:
+			cmd = e.handleVisualMode(msg)
 		}
 
 		e.checkDirty(origCnt)
 
 	case tea.WindowSizeMsg:
-		e.Size.Width = msg.Width
-		e.Size.Height = msg.Height - 1
+		termWidth, termHeight := theme.GetTerminalSize()
+		e.Size.Width = termWidth
+		e.Size.Height = termHeight
 	case errMsg:
 		e.err = msg
 		return e, nil
 	}
 
 	e.setTextareaSize()
+	//_, selectionCmd := e.Textarea.Cursor.Update(msg)
+	//cmds = append(cmds, cmd, selectionCmd)
 	cmds = append(cmds, cmd)
 
 	return e, tea.Batch(cmds...)
@@ -179,6 +194,12 @@ func (e *Editor) View() string {
 	if !e.Focused() {
 		e.Textarea.Blur()
 	}
+
+	e.Textarea.Selection.Cursor.SetMode(cursor.CursorStatic)
+	e.Textarea.Selection.Cursor.TextStyle = e.Textarea.SelectionStyle()
+	e.Textarea.Selection.Cursor.Style = e.Textarea.SelectionStyle()
+	//e.Textarea.Cursor.UpdateStyle()
+
 	return e.build()
 }
 
@@ -380,6 +401,14 @@ func (e *Editor) EnterInsertMode() message.StatusBarMsg {
 func (e *Editor) EnterReplaceMode() message.StatusBarMsg {
 	e.Vim.Mode.Current = mode.Replace
 	e.CurrentBuffer.History.NewEntry(e.Textarea.CursorPos())
+	return message.StatusBarMsg{}
+}
+
+// EnterVisualMode() sets the current editor mode to replace
+// and creates a new history entry
+func (e *Editor) EnterVisualMode() message.StatusBarMsg {
+	e.Vim.Mode.Current = mode.Visual
+	e.Textarea.StartSelection()
 	return message.StatusBarMsg{}
 }
 

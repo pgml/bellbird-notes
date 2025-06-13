@@ -4,9 +4,8 @@
 package textarea
 
 import (
+	"github.com/charmbracelet/bubbles/v2/cursor"
 	"github.com/charmbracelet/lipgloss/v2"
-
-	"bellbird-notes/tui/components/cursor"
 )
 
 type CursorPos struct {
@@ -19,7 +18,15 @@ type Selection struct {
 	Start    CursorPos
 	StartRow int
 	StartCol int
-	//Characters [][]rune
+
+	wrappedLline []rune
+	lineIndex    int
+}
+
+type SelectionContent struct {
+	Before  string
+	Content string
+	After   string
 }
 
 // characterLeft moves the cursor one character to the left.
@@ -194,4 +201,197 @@ func (m *Model) ReplaceRune(replaceWith rune) {
 
 func (m *Model) FirstVisibleLine() int {
 	return m.viewport.YOffset
+}
+
+func (m *Model) StartSelection() {
+	m.Selection.Cursor.Focus()
+	m.Selection.StartRow = m.row
+	m.Selection.StartCol = m.LineInfo().ColumnOffset
+}
+
+func (m *Model) SelectionRange() (CursorPos, CursorPos) {
+	selectionStart := CursorPos{
+		m.Selection.StartRow,
+		m.Selection.StartCol,
+	}
+
+	cursor := CursorPos{
+		m.row,
+		m.LineInfo().ColumnOffset,
+	}
+
+	if selectionStart.GreaterThan(cursor) {
+		return cursor, selectionStart
+	}
+
+	return selectionStart, cursor
+}
+
+func (p CursorPos) GreaterThan(other CursorPos) bool {
+	return p.Row > other.Row || (p.Row == other.Row && p.ColumnOffset > other.ColumnOffset)
+}
+
+func (p CursorPos) InRange(minPos, maxPos CursorPos) bool {
+	if minPos.ColumnOffset == -1 || minPos.Row == -1 {
+		return false
+	}
+
+	maxColOffset := max(minPos.ColumnOffset, maxPos.ColumnOffset)
+	minColOffset := min(minPos.ColumnOffset, maxPos.ColumnOffset)
+
+	return p.Row >= minPos.Row && p.Row <= maxPos.Row &&
+		p.ColumnOffset >= minColOffset && p.ColumnOffset <= maxColOffset
+}
+
+func (m *Model) SelectionStyle() lipgloss.Style {
+	return m.activeStyle().computedCursorLine()
+}
+
+func (m *Model) ResetSelection() {
+	m.Selection.StartRow = -1
+	m.Selection.StartCol = -1
+}
+
+func (m *Model) SelectionContent() SelectionContent {
+	line := m.Selection.wrappedLline
+	l := m.Selection.lineIndex
+
+	colOffset := m.LineInfo().ColumnOffset
+	minRange, maxRange := m.SelectionRange()
+	cursor := CursorPos{m.row, colOffset}
+	isInRange := cursor.InRange(minRange, maxRange)
+	wrappedStr := string(line)
+
+	var (
+		before    string
+		selection string
+		after     string
+	)
+
+	cursorOffset := colOffset
+	if minRange.ColumnOffset < m.Selection.StartCol {
+		cursorOffset = minRange.ColumnOffset
+	}
+
+	isCursorBeforeSel := l == minRange.Row && cursorOffset < maxRange.ColumnOffset
+
+	// slice for unicode safety
+	runes := []rune(wrappedStr)
+	lineLen := len(runes)
+
+	if isInRange {
+		minCol := clamp(minRange.ColumnOffset, 0, lineLen)
+		maxCol := clamp(maxRange.ColumnOffset, 0, lineLen)
+		minRow, maxRow := minRange.Row, maxRange.Row
+
+		if colOffset == minCol {
+			colOffset = maxCol
+		}
+
+		switch {
+		// single line selection
+		case minRow == l && maxRow == l:
+			before = string(runes[:minCol])
+
+			if isCursorBeforeSel {
+				minCol = clamp(minCol+1, 0, lineLen)
+				colOffset = clamp(m.Selection.StartCol+1, 0, lineLen)
+			}
+
+			if colOffset <= lineLen {
+				selection = string(runes[minCol:colOffset])
+			}
+
+			if maxCol < lineLen {
+				after = string(runes[maxCol+1:])
+			}
+
+		// first line of multi selection
+		case minRow == l:
+			beforePos := minCol
+
+			if m.Selection.StartRow > minRow {
+				if minCol < m.Selection.StartCol {
+					minCol = clamp(minCol+1, 0, lineLen)
+				} else {
+					beforePos = minCol - 1
+					cursorOffset = minCol
+				}
+			}
+
+			if beforePos <= lineLen {
+				before = string(runes[:beforePos])
+			}
+
+			if minCol <= lineLen {
+				selection = string(runes[minCol:])
+			}
+
+		// last line of multi selection
+		case maxRow == l:
+			beforePos := clamp(maxCol+1, 0, lineLen)
+			afterPos := maxCol
+
+			if m.Selection.StartRow > minRow {
+				afterPos = clamp(maxCol+1, 0, lineLen)
+			}
+
+			if afterPos <= lineLen {
+				selection = string(runes[:afterPos])
+			}
+
+			if beforePos <= lineLen {
+				after = string(runes[beforePos:])
+			}
+
+		// full line within selection
+		case l > minRow && l < maxRow:
+			selection = string(runes)
+		}
+	}
+
+	return SelectionContent{
+		Before:  before,
+		Content: selection,
+		After:   after,
+	}
+}
+
+func (m *Model) CursorBeforeSelection() string {
+	wrappedLine := m.Selection.wrappedLline
+	lineIndex := m.Selection.lineIndex
+	cursorOffset := m.LineInfo().ColumnOffset
+	minRange, maxRange := m.SelectionRange()
+
+	if lineIndex == minRange.Row &&
+		maxRange.Row <= m.Selection.StartRow &&
+		cursorOffset < len(wrappedLine) {
+
+		if cursorOffset < maxRange.ColumnOffset {
+			m.virtualCursor.SetChar(string(wrappedLine[cursorOffset]))
+		} else if lineIndex < m.Selection.StartRow {
+			m.virtualCursor.SetChar(string(wrappedLine[cursorOffset-1]))
+		}
+		return m.virtualCursor.View()
+	}
+
+	return ""
+}
+
+func (m *Model) CursorAfterSelection() string {
+	wrappedLine := m.Selection.wrappedLline
+	cursorOffset := m.LineInfo().ColumnOffset
+
+	minRange, maxRange := m.SelectionRange()
+
+	if m.Selection.lineIndex == maxRange.Row &&
+		minRange.Row >= m.Selection.StartRow &&
+		cursorOffset < len(wrappedLine) &&
+		cursorOffset == maxRange.ColumnOffset {
+
+		m.virtualCursor.SetChar(string(wrappedLine[cursorOffset]))
+		return m.virtualCursor.View()
+	}
+
+	return ""
 }

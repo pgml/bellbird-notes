@@ -10,6 +10,7 @@ import (
 	"unicode"
 
 	"github.com/atotto/clipboard"
+	"github.com/charmbracelet/bubbles/v2/cursor"
 	"github.com/charmbracelet/bubbles/v2/key"
 	"github.com/charmbracelet/bubbles/v2/viewport"
 	tea "github.com/charmbracelet/bubbletea/v2"
@@ -18,7 +19,6 @@ import (
 	rw "github.com/mattn/go-runewidth"
 	"github.com/rivo/uniseg"
 
-	"bellbird-notes/tui/components/cursor"
 	"bellbird-notes/tui/components/textarea/memoization"
 	"bellbird-notes/tui/components/textarea/runeutil"
 )
@@ -1254,18 +1254,35 @@ func (m Model) View() string {
 				wrappedLine = []rune(strings.TrimSuffix(string(wrappedLine), " "))
 				padding -= m.width - strwidth
 			}
-			if m.row == l && lineInfo.RowOffset == wl {
-				s.WriteString(style.Render(string(wrappedLine[:lineInfo.ColumnOffset])))
-				if m.col >= len(line) && lineInfo.CharOffset >= m.width {
-					m.virtualCursor.SetChar(" ")
-					s.WriteString(m.virtualCursor.View())
-				} else {
-					m.virtualCursor.SetChar(string(wrappedLine[lineInfo.ColumnOffset]))
-					s.WriteString(style.Render(m.virtualCursor.View()))
-					s.WriteString(style.Render(string(wrappedLine[lineInfo.ColumnOffset+1:])))
-				}
+
+			// --- visual selection
+			// ---- NEEDS TO BE MERGED WHEN UPDATING BUBBLES!
+			m.Selection.wrappedLline = wrappedLine
+			m.Selection.lineIndex = l
+			selection := m.SelectionContent()
+
+			if selection.Content != "" {
+				selectionColour := lipgloss.Color("#666")
+				s.WriteString(style.Render(selection.Before))
+				s.WriteString(style.Render(m.CursorBeforeSelection()))
+				s.WriteString(style.Background(selectionColour).Render(selection.Content))
+				s.WriteString(style.Render(m.CursorAfterSelection()))
+				s.WriteString(selection.After)
+				// --- MERGE END
 			} else {
-				s.WriteString(style.Render(string(wrappedLine)))
+				if m.row == l && lineInfo.RowOffset == wl {
+					s.WriteString(style.Render(string(wrappedLine[:lineInfo.ColumnOffset])))
+					if m.col >= len(line) && lineInfo.CharOffset >= m.width {
+						m.virtualCursor.SetChar(" ")
+						s.WriteString(m.virtualCursor.View())
+					} else {
+						m.virtualCursor.SetChar(string(wrappedLine[lineInfo.ColumnOffset]))
+						s.WriteString(style.Render(m.virtualCursor.View()))
+						s.WriteString(style.Render(string(wrappedLine[lineInfo.ColumnOffset+1:])))
+					}
+				} else {
+					s.WriteString(style.Render(string(wrappedLine)))
+				}
 			}
 			s.WriteString(style.Render(strings.Repeat(" ", max(0, padding))))
 			s.WriteRune('\n')
@@ -1275,7 +1292,7 @@ func (m Model) View() string {
 
 	// Always show at least `m.Height` lines at all times.
 	// To do this we can simply pad out a few extra new lines in the view.
-	for i := 0; i < m.height; i++ {
+	for range m.height {
 		s.WriteString(m.promptView(displayLine))
 		displayLine++
 
