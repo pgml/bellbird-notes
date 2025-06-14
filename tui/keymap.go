@@ -126,7 +126,8 @@ func (m *Model) KeyInputFn() []ki.KeyAction {
 					Components: []c{m.dirTree, m.notesList},
 					Action:     m.goToTop,
 				},
-				m.editorInputAction(mode.Normal, m.editor.GoToTop),
+				m.editorInputAction(n, m.editor.GoToTop),
+				m.editorInputAction(v, m.editor.GoToTop),
 			},
 		},
 		{
@@ -137,7 +138,8 @@ func (m *Model) KeyInputFn() []ki.KeyAction {
 					Components: []c{m.dirTree, m.notesList},
 					Action:     m.goToBottom,
 				},
-				m.editorInputAction(mode.Normal, m.editor.GoToBottom),
+				m.editorInputAction(n, m.editor.GoToBottom),
+				m.editorInputAction(v, m.editor.GoToBottom),
 			},
 		},
 
@@ -175,15 +177,24 @@ func (m *Model) KeyInputFn() []ki.KeyAction {
 		},
 		{
 			Bindings: ki.KeyBindings("w"),
-			Cond:     []keyCond{m.editorInputAction(n, m.editor.WordRightStart)},
+			Cond: []keyCond{
+				m.editorInputAction(n, m.editor.WordRightStart),
+				m.editorInputAction(v, m.editor.WordRightStart),
+			},
 		},
 		{
 			Bindings: ki.KeyBindings("e"),
-			Cond:     []keyCond{m.editorInputAction(n, m.editor.WordRightEnd)},
+			Cond: []keyCond{
+				m.editorInputAction(n, m.editor.WordRightEnd),
+				m.editorInputAction(v, m.editor.WordRightEnd),
+			},
 		},
 		{
 			Bindings: ki.KeyBindings("b"),
-			Cond:     []keyCond{m.editorInputAction(n, m.editor.WordBack)},
+			Cond: []keyCond{
+				m.editorInputAction(n, m.editor.WordBack),
+				m.editorInputAction(v, m.editor.WordBack),
+			},
 		},
 		{
 			Bindings: ki.KeyBindings("^", "_"),
@@ -250,11 +261,17 @@ func (m *Model) KeyInputFn() []ki.KeyAction {
 		},
 		{
 			Bindings: ki.KeyBindings("ctrl+d"),
-			Cond:     []keyCond{m.editorInputAction(n, m.editor.DownHalfPage)},
+			Cond: []keyCond{
+				m.editorInputAction(n, m.editor.DownHalfPage),
+				m.editorInputAction(v, m.editor.DownHalfPage),
+			},
 		},
 		{
 			Bindings: ki.KeyBindings("ctrl+u"),
-			Cond:     []keyCond{m.editorInputAction(n, m.editor.UpHalfPage)},
+			Cond: []keyCond{
+				m.editorInputAction(n, m.editor.UpHalfPage),
+				m.editorInputAction(v, m.editor.UpHalfPage),
+			},
 		},
 
 		// ENTER CMD MODE
