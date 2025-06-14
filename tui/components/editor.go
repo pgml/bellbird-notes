@@ -171,7 +171,7 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			cmd = e.handleVisualMode(msg)
 		}
 
-		e.checkDirty(origCnt)
+		e.checkDirtySince(origCnt)
 
 	case tea.WindowSizeMsg:
 		termWidth, termHeight := theme.GetTerminalSize()
@@ -414,10 +414,21 @@ func (e *Editor) EnterVisualMode() message.StatusBarMsg {
 
 // checkDirty marks the current buffer as dirty if the current
 // buffer is unsaved and the content differs from the saved content's file
-func (e *Editor) checkDirty(origCnt string) {
-	val := e.Textarea.Value()
-	if origCnt != val {
-		e.CurrentBuffer.Content = val
+func (e *Editor) checkDirty(fn func()) {
+	before := e.Textarea.Value()
+	fn()
+	after := e.Textarea.Value()
+
+	if before != after {
+		e.CurrentBuffer.Content = after
+		e.CurrentBuffer.Dirty = true
+	}
+}
+
+func (e *Editor) checkDirtySince(previous string) {
+	current := e.Textarea.Value()
+	if previous != current {
+		e.CurrentBuffer.Content = current
 		e.CurrentBuffer.Dirty = true
 	}
 }
@@ -698,46 +709,37 @@ func (e *Editor) UpHalfPage() message.StatusBarMsg {
 }
 
 func (e *Editor) DeleteLine() message.StatusBarMsg {
-	origCnt := e.Textarea.Value()
-	e.Textarea.DeleteLine()
-	e.checkDirty(origCnt)
+	e.checkDirty(e.Textarea.DeleteLine)
 	return message.StatusBarMsg{}
 }
 
 func (e *Editor) DeleteAfterCursor() message.StatusBarMsg {
-	origCnt := e.Textarea.Value()
-	e.Textarea.DeleteAfterCursor()
-	e.checkDirty(origCnt)
+	e.checkDirty(e.Textarea.DeleteAfterCursor)
 	return message.StatusBarMsg{}
 }
 
 func (e *Editor) DeleteNLines(lines int, up bool) message.StatusBarMsg {
-	origCnt := e.Textarea.Value()
-	e.Textarea.DeleteLines(lines, up)
-	e.checkDirty(origCnt)
+	e.checkDirty(func() {
+		e.Textarea.DeleteLines(lines, up)
+	})
 	return message.StatusBarMsg{}
 }
 
 func (e *Editor) DeleteWordRight() message.StatusBarMsg {
-	origCnt := e.Textarea.Value()
-	e.Textarea.DeleteWordRight()
-	e.checkDirty(origCnt)
+	e.checkDirty(e.Textarea.DeleteWordRight)
 	return message.StatusBarMsg{}
 }
 
 func (e *Editor) DeleteRune() message.StatusBarMsg {
-	e.CurrentBuffer.History.NewEntry(e.Textarea.CursorPos())
-	origCnt := e.Textarea.Value()
-	c := e.CurrentBuffer.CursorPos
-
-	if minRange, maxRange := e.Textarea.SelectionRange(); minRange.Row > -1 {
-		e.Textarea.DeleteRunesInRange(minRange, maxRange)
-	} else {
-		e.Textarea.DeleteRune(c.Row, c.ColumnOffset)
-	}
-
-	e.checkDirty(origCnt)
-	e.EnterNormalMode()
+	e.checkDirty(func() {
+		c := e.CurrentBuffer.CursorPos
+		if minRange, maxRange := e.Textarea.SelectionRange(); minRange.Row > -1 {
+			e.Textarea.DeleteRunesInRange(minRange, maxRange)
+		} else {
+			e.Textarea.DeleteRune(c.Row, c.ColumnOffset)
+		}
+	})
+	//e.EnterNormalMode()
 	return message.StatusBarMsg{}
 }
 

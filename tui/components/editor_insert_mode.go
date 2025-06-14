@@ -14,7 +14,7 @@ func (e *Editor) handleInsertMode(msg tea.KeyMsg) tea.Cmd {
 	// See tui.updateComponents() for further explanation
 	if e.CanInsert {
 		e.Textarea, cmd = e.Textarea.Update(msg)
-		e.checkDirty(e.CurrentBuffer.Content)
+		e.checkDirtySince(e.CurrentBuffer.Content)
 	}
 
 	return cmd
