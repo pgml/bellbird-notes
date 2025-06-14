@@ -10,6 +10,7 @@ import (
 
 var NoNerdFonts = flag.Bool("no-nerd-fonts", false, "Nerd fonts disabled")
 var Debug = flag.Bool("debug", false, "Debug mode")
+var DirTreeInfo = flag.Bool("tree-info", false, "Debug mode")
 
 func IsSnapshot() bool {
 	return os.Getenv("CHANNEL") == "snapshot"

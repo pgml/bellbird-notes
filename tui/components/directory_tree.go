@@ -89,9 +89,15 @@ func (d *TreeItem) String() string {
 	indentChar := d.Indent(false) // @todo make this a config option
 	indentStr := strings.Repeat(indentChar, d.level)
 	indentWidth := lipgloss.Width(indentStr)
+	infoWidth := 0
+	dirInfo := ""
+	if *app.DirTreeInfo {
+		dirInfo = d.ContentInfo()
+		infoWidth = lipgloss.Width(dirInfo)
+	}
 
 	//baseWidth := 21 - d.styles.iconWidth - indentWidth
-	baseWidth := 26 - d.styles.iconWidth - indentWidth
+	baseWidth := 26 - d.styles.iconWidth - indentWidth - infoWidth
 	base = base.Width(baseWidth)
 	indent := lipgloss.NewStyle().Width(indentWidth)
 	name := utils.TruncateText(d.Name(), baseWidth)
@@ -133,7 +139,7 @@ func (d *TreeItem) String() string {
 		toggle.Render(iconArrow),
 		icn.Render(iconDir),
 		base.Render(name),
-		//d.ContentInfo(),
+		dirInfo,
 	)
 }
 
