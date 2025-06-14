@@ -254,10 +254,13 @@ func (m *Model) SelectionStr() string {
 }
 
 // DeleteRune deletes the rune at `col` on `row`.
-func (m *Model) DeleteRune(row int, col int) {
+func (m *Model) DeleteRune(row int, col int) string {
+	deletedChar := ""
 	if col+1 <= len(m.value[row]) {
+		deletedChar = string(m.value[row][col])
 		m.value[row] = slices.Delete(m.value[row], col, col+1)
 	}
+	return deletedChar
 }
 
 // DeleteRunesInRange deletes all runes from the buffer between

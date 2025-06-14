@@ -736,11 +736,16 @@ func (e *Editor) DeleteWordRight() message.StatusBarMsg {
 func (e *Editor) DeleteRune() message.StatusBarMsg {
 	e.checkDirty(func() {
 		c := e.CurrentBuffer.CursorPos
+		char := ""
+
 		if minRange, maxRange := e.Textarea.SelectionRange(); minRange.Row > -1 {
+			char = e.Textarea.SelectionStr()
 			e.Textarea.DeleteRunesInRange(minRange, maxRange)
 		} else {
-			e.Textarea.DeleteRune(c.Row, c.ColumnOffset)
+			char = e.Textarea.DeleteRune(c.Row, c.ColumnOffset)
 		}
+
+		e.Yank(char)
 	})
 	//e.EnterNormalMode()
 	return message.StatusBarMsg{}
@@ -762,7 +767,12 @@ func (e *Editor) Redo() message.StatusBarMsg {
 	return message.StatusBarMsg{}
 }
 
-func (e *Editor) Yank() message.StatusBarMsg {
+func (e *Editor) Yank(str string) message.StatusBarMsg {
+	clipboard.WriteAll(str)
+	return message.StatusBarMsg{}
+}
+
+func (e *Editor) YankSelection() message.StatusBarMsg {
 	sel := e.Textarea.SelectionStr()
 	clipboard.WriteAll(sel)
 	e.Textarea.ResetSelection()
