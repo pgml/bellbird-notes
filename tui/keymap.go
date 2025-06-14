@@ -198,15 +198,24 @@ func (m *Model) KeyInputFn() []ki.KeyAction {
 		},
 		{
 			Bindings: ki.KeyBindings("^", "_"),
-			Cond:     []keyCond{m.editorInputAction(n, m.editor.GoToInputStart)},
+			Cond: []keyCond{
+				m.editorInputAction(n, m.editor.GoToInputStart),
+				m.editorInputAction(v, m.editor.GoToInputStart),
+			},
 		},
 		{
 			Bindings: ki.KeyBindings("0"),
-			Cond:     []keyCond{m.editorInputAction(n, m.editor.GoToLineStart)},
+			Cond: []keyCond{
+				m.editorInputAction(n, m.editor.GoToLineStart),
+				m.editorInputAction(v, m.editor.GoToLineStart),
+			},
 		},
 		{
 			Bindings: ki.KeyBindings("$"),
-			Cond:     []keyCond{m.editorInputAction(n, m.editor.GoToLineEnd)},
+			Cond: []keyCond{
+				m.editorInputAction(n, m.editor.GoToLineEnd),
+				m.editorInputAction(v, m.editor.GoToLineEnd),
+			},
 		},
 		{
 			Bindings: ki.KeyBindings("o"),

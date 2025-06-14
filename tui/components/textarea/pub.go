@@ -4,7 +4,6 @@
 package textarea
 
 import (
-	"bellbird-notes/app/debug"
 	"slices"
 
 	"github.com/charmbracelet/bubbles/v2/cursor"
@@ -198,48 +197,111 @@ func (m *Model) UpHalfPage() {
 	}
 }
 
+// ReplaceRune replaces the rune the cursor is currently
+// on with `replaceRune` rune
 func (m *Model) ReplaceRune(replaceWith rune) {
 	m.value[m.row][m.col] = replaceWith
 }
 
+// DeleteRune deletes the rune at `col` on `row`.
 func (m *Model) DeleteRune(row int, col int) {
-	sel := m.SelectionContent()
-	if sel.Content != "" {
-		debug.LogDebug(sel.Content)
-		for i := range []rune(sel.Content) {
-			debug.LogDebug(i)
-			m.value[row] = slices.Delete(m.value[row], i, i+1)
-		}
-
-	} else {
-		if col+1 <= len(m.value[row]) {
-			m.value[row] = slices.Delete(m.value[row], col, col+1)
-		}
+	if col+1 <= len(m.value[row]) {
+		m.value[row] = slices.Delete(m.value[row], col, col+1)
 	}
-	//m.SetCursorColumn(0)
 }
 
+// DeleteRunesInRange deletes all runes from the buffer between
+// minRange and maxRange.
+func (m *Model) DeleteRunesInRange(minRange CursorPos, maxRange CursorPos) {
+	minRow, maxRow := minRange.Row, maxRange.Row
+
+	if minRow < 0 {
+		return
+	}
+
+	val := m.value
+	minCol := minRange.ColumnOffset
+	maxCol := maxRange.ColumnOffset
+
+	// ensure nothing is out of bounds
+	if minRow >= len(val) || maxRow >= len(val) {
+		return
+	}
+
+	if minCol > len(val[minRow]) {
+		minCol = len(val[minRow])
+	}
+
+	if maxCol > len(val[maxRow]) {
+		maxCol = len(val[maxRow])
+	}
+
+	if minRow == maxRow {
+		// selection on the same line
+		if minCol <= maxCol && maxCol <= len(val[minRow]) {
+			val[minRow] = slices.Delete(val[minRow], minCol, maxCol+1)
+		}
+	} else {
+		// multi line selection
+
+		// trim trailing runes from the first line
+		if minCol <= len(val[minRow]) {
+			// handles backward selection (if the selection starts at a lower
+			// line and ends on a higher line)
+			if m.row < maxRow {
+				minCol -= 1
+			}
+			val[minRow] = val[minRow][:minCol]
+		}
+
+		// trim trailing runes from the last line
+		if maxCol <= len(val[maxRow]) {
+			val[maxRow] = val[maxRow][maxCol+1:]
+		}
+
+		// remove any fully selected lines in between
+		if maxRow > minRow+1 {
+			val = slices.Delete(val, minRow+1, maxRow)
+		}
+
+		// merge first and last line
+		if len(val) > minRow+1 {
+			m.mergeLineBelow(minRow)
+		}
+	}
+
+	m.value = val
+	m.row = minRow
+	m.SetCursorColumn(minCol)
+	m.ResetSelection()
+}
+
+// FirstVisibleLine returns the first line of the viewport
 func (m *Model) FirstVisibleLine() int {
 	return m.viewport.YOffset
 }
 
+// StartSelection prepares a selection
 func (m *Model) StartSelection() {
 	m.Selection.Cursor.Focus()
 	m.Selection.StartRow = m.row
 	m.Selection.StartCol = m.LineInfo().ColumnOffset
 }
 
+// SelectionRange determines the range of the active selection
 func (m *Model) SelectionRange() (CursorPos, CursorPos) {
 	selectionStart := CursorPos{
 		m.Selection.StartRow,
 		m.Selection.StartCol,
 	}
 
+	// current cursor position which usually indicates the end of the selection
 	cursor := CursorPos{
 		m.row,
 		m.LineInfo().ColumnOffset,
 	}
 
+	// if it's a backward selection ensure the first CursorPos is always lower
 	if selectionStart.GreaterThan(cursor) {
 		return cursor, selectionStart
 	}
@@ -251,13 +313,14 @@ func (p CursorPos) GreaterThan(other CursorPos) bool {
 	return p.Row > other.Row || (p.Row == other.Row && p.ColumnOffset > other.ColumnOffset)
 }
 
+// InRange checks whether the current row is between `minPos` and `maxPos`
 func (p CursorPos) InRange(minPos, maxPos CursorPos) bool {
 	if minPos.ColumnOffset == -1 || minPos.Row == -1 {
 		return false
 	}
 
-	maxColOffset := max(minPos.ColumnOffset, maxPos.ColumnOffset)
 	minColOffset := min(minPos.ColumnOffset, maxPos.ColumnOffset)
+	maxColOffset := max(minPos.ColumnOffset, maxPos.ColumnOffset)
 
 	return p.Row >= minPos.Row && p.Row <= maxPos.Row &&
 		p.ColumnOffset >= minColOffset && p.ColumnOffset <= maxColOffset
@@ -267,11 +330,14 @@ func (m *Model) SelectionStyle() lipgloss.Style {
 	return m.activeStyle().computedCursorLine()
 }
 
+// ResetSelection clears a selection
 func (m *Model) ResetSelection() {
 	m.Selection.StartRow = -1
 	m.Selection.StartCol = -1
 }
 
+// SelectionContent returns the buffer content within the current selection
+// range, along with the unselected text before and after it.
 func (m *Model) SelectionContent() SelectionContent {
 	line := m.Selection.wrappedLline
 	l := m.Selection.lineIndex
@@ -377,6 +443,10 @@ func (m *Model) SelectionContent() SelectionContent {
 	}
 }
 
+// CursorBeforeSelection returns the cursor that is at the beginning
+// of a selection as a string.
+// Returns an empty string of the selection doesn't require a
+// cursor at the beginning (e.g. a forward selection)
 func (m *Model) CursorBeforeSelection() string {
 	wrappedLine := m.Selection.wrappedLline
 	lineIndex := m.Selection.lineIndex
@@ -398,6 +468,10 @@ func (m *Model) CursorBeforeSelection() string {
 	return ""
 }
 
+// CursorAfterSelection() returns the cursor that is at the end
+// of a selection as a string.
+// Returns an empty string of the selection doesn't require a
+// cursor at the beginning (e.g. a backward selection)
 func (m *Model) CursorAfterSelection() string {
 	wrappedLine := m.Selection.wrappedLline
 	cursorOffset := m.LineInfo().ColumnOffset

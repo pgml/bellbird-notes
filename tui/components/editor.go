@@ -726,10 +726,18 @@ func (e *Editor) DeleteWordRight() message.StatusBarMsg {
 }
 
 func (e *Editor) DeleteRune() message.StatusBarMsg {
+	e.CurrentBuffer.History.NewEntry(e.Textarea.CursorPos())
 	origCnt := e.Textarea.Value()
 	c := e.CurrentBuffer.CursorPos
-	e.Textarea.DeleteRune(c.Row, c.ColumnOffset)
+
+	if minRange, maxRange := e.Textarea.SelectionRange(); minRange.Row > -1 {
+		e.Textarea.DeleteRunesInRange(minRange, maxRange)
+	} else {
+		e.Textarea.DeleteRune(c.Row, c.ColumnOffset)
+	}
+
 	e.checkDirty(origCnt)
+	e.EnterNormalMode()
 	return message.StatusBarMsg{}
 }
 
