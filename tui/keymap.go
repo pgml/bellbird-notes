@@ -269,6 +269,19 @@ func (m *Model) KeyInputFn() []ki.KeyAction {
 			},
 		},
 		{
+			Bindings: ki.KeyBindings("y"),
+			Cond: []keyCond{
+				m.editorInputAction(v, m.editor.Yank),
+			},
+		},
+		{
+			Bindings: ki.KeyBindings("p"),
+			Cond: []keyCond{
+				m.editorInputAction(n, m.editor.Paste),
+				//m.editorInputAction(v, m.editor.DeleteRune),
+			},
+		},
+		{
 			Bindings: ki.KeyBindings("ctrl+d"),
 			Cond: []keyCond{
 				m.editorInputAction(n, m.editor.DownHalfPage),

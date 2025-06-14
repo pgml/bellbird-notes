@@ -18,6 +18,7 @@ import (
 	"bellbird-notes/tui/theme"
 	sbc "bellbird-notes/tui/types/statusbar_column"
 
+	"github.com/atotto/clipboard"
 	"github.com/charmbracelet/bubbles/v2/cursor"
 	tea "github.com/charmbracelet/bubbletea/v2"
 	"github.com/charmbracelet/lipgloss/v2"
@@ -730,6 +731,8 @@ func (e *Editor) DeleteWordRight() message.StatusBarMsg {
 	return message.StatusBarMsg{}
 }
 
+// DeleteRune the rune that the cursor is currently on.
+// If buffer is in visual mode it takes the selection into account
 func (e *Editor) DeleteRune() message.StatusBarMsg {
 	e.checkDirty(func() {
 		c := e.CurrentBuffer.CursorPos
@@ -756,5 +759,23 @@ func (e *Editor) Redo() message.StatusBarMsg {
 	val, cursorPos := e.CurrentBuffer.redo()
 	e.Textarea.SetValue(val)
 	e.Textarea.MoveCursor(cursorPos.Row, cursorPos.ColumnOffset)
+	return message.StatusBarMsg{}
+}
+
+func (e *Editor) Yank() message.StatusBarMsg {
+	sel := e.Textarea.SelectionStr()
+	clipboard.WriteAll(sel)
+	e.Textarea.ResetSelection()
+	e.EnterNormalMode()
+	return message.StatusBarMsg{}
+}
+
+func (e *Editor) Paste() message.StatusBarMsg {
+	e.checkDirty(func() {
+		if cnt, err := clipboard.ReadAll(); err == nil {
+			e.Textarea.InsertString(cnt)
+		}
+	})
+	e.Textarea.RepositionView()
 	return message.StatusBarMsg{}
 }
