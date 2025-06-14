@@ -405,7 +405,7 @@ func (m *Model) SelectionContent() SelectionContent {
 				}
 			}
 
-			if beforePos <= lineLen {
+			if beforePos <= lineLen && beforePos >= 0 {
 				before = string(runes[:beforePos])
 			}
 
@@ -459,7 +459,7 @@ func (m *Model) CursorBeforeSelection() string {
 
 		if cursorOffset < maxRange.ColumnOffset {
 			m.virtualCursor.SetChar(string(wrappedLine[cursorOffset]))
-		} else if lineIndex < m.Selection.StartRow {
+		} else if lineIndex < m.Selection.StartRow && cursorOffset-1 >= 0 {
 			m.virtualCursor.SetChar(string(wrappedLine[cursorOffset-1]))
 		}
 		return m.virtualCursor.View()
