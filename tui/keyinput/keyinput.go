@@ -5,6 +5,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"bellbird-notes/app/debug"
 	"bellbird-notes/tui/message"
 	"bellbird-notes/tui/mode"
 )
@@ -26,9 +27,9 @@ func KeyBindings(keys ...string) KeyBinding {
 	return KeyBinding{keys: keys}
 }
 
-// KeyAction is a set of of key bindings with one or more conditions
+// KeyFn is a set of of key bindings with one or more conditions
 // under which the action can be triggered
-type KeyAction struct {
+type KeyFn struct {
 	Bindings KeyBinding
 	Cond     []KeyCondition
 }
@@ -62,7 +63,7 @@ type Input struct {
 	Ctrl         bool
 	Alt          bool
 	Mode         mode.Mode
-	Functions    []KeyAction
+	Functions    []KeyFn
 }
 
 // Matches checks if the given matchContext satisfies the KeyCondition.
@@ -100,7 +101,7 @@ func New() *Input {
 		Mode:         mode.Normal,
 		KeySequence:  "",
 		sequenceKeys: []string{},
-		Functions:    []KeyAction{},
+		Functions:    []KeyFn{},
 		actions:      map[string]func() message.StatusBarMsg{},
 	}
 }
@@ -131,6 +132,7 @@ func (ki *Input) HandleSequences(key string) []message.StatusBarMsg {
 	if !ki.isBinding(key) {
 		mod, isModifier := ki.isModifier(key)
 
+		debug.LogDebug(key, ki.sequenceKeys)
 		if ki.KeySequence == "" &&
 			(slices.Contains(ki.sequenceKeys, key) || isModifier) {
 			ki.KeySequence = key
@@ -192,11 +194,9 @@ func (ki *Input) FetchKeyMap(resetSeq bool) {
 	for _, action := range ki.Functions {
 		for _, key := range action.Bindings.keys {
 			for _, cond := range action.Cond {
-				if cond.Mode != ki.Mode {
-					continue
-				}
+				if !ki.anyComponentFocused(cond.Components) ||
+					cond.Mode != ki.Mode {
 
-				if !ki.anyComponentFocused(cond.Components) {
 					continue
 				}
 
@@ -218,7 +218,7 @@ func (ki *Input) addSequenceKey(binding string) {
 
 // isBinding returns wether the given key string is a
 // known and valid key binding
-func (ki *Input) isBinding(key string) bool {
+func (ki *Input) isBinding(key string, exact bool) bool {
 	_, ok := ki.actions[key]
 	return ok
 }

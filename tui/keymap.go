@@ -11,7 +11,7 @@ import (
 )
 
 type c = ki.FocusedComponent
-type keyAction = ki.KeyAction
+type keyAction = ki.KeyFn
 type keyCond = ki.KeyCondition
 type binding = ki.KeyBinding
 
@@ -20,7 +20,7 @@ const (
 	v = mode.Visual
 )
 
-func (m *Model) KeyInputFn() []ki.KeyAction {
+func (m *Model) KeyInputFn() []ki.KeyFn {
 	return []keyAction{
 		// LINE DOWN
 		{
@@ -257,10 +257,10 @@ func (m *Model) KeyInputFn() []ki.KeyAction {
 			Bindings: ki.KeyBindings("D"),
 			Cond:     []keyCond{m.editorInputAction(n, m.editor.DeleteAfterCursor)},
 		},
-		//{
-		//	Bindings: ki.KeyBindings("d"),
-		//	Cond:     []keyCond{m.editorInputAction(v, m.editor.DeleteRune)},
-		//},
+		{
+			Bindings: ki.KeyBindings("d"),
+			Cond:     []keyCond{m.editorInputAction(v, m.editor.DeleteRune)},
+		},
 		{
 			Bindings: ki.KeyBindings("x"),
 			Cond: []keyCond{
@@ -271,7 +271,7 @@ func (m *Model) KeyInputFn() []ki.KeyAction {
 		{
 			Bindings: ki.KeyBindings("y"),
 			Cond: []keyCond{
-				m.editorInputAction(v, m.editor.Yank),
+				m.editorInputAction(v, m.editor.YankSelection),
 			},
 		},
 		{
