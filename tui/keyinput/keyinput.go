@@ -137,15 +137,23 @@ func (ki *Input) HandleSequences(key string) []message.StatusBarMsg {
 		return nil
 	}
 
-	ki.KeySequence += key
+	if ki.Ctrl || ki.Alt {
+		ki.KeySequence += " " + key
+	} else {
+		ki.KeySequence += key
+	}
 
 	if !ki.isBinding(ki.KeySequence) {
-		_, isModifier := ki.isModifier(key)
+		mod, isModifier := ki.isModifier(key)
 
 		if slices.Contains(ki.sequenceKeys, ki.KeySequence) || isModifier {
-			if ki.Ctrl || ki.Alt {
-				ki.KeySequence += " " + key
+			switch mod {
+			case "ctrl":
+				ki.Ctrl = true
+			case "alt":
+				ki.Alt = true
 			}
+
 			return nil
 		}
 	}
