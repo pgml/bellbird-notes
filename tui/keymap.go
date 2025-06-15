@@ -280,6 +280,31 @@ func (m *Model) KeyInputFn() []ki.KeyFn {
 			},
 		},
 		{
+			Bindings: ki.KeyBindings("c"),
+			Cond:     []keyCond{m.editorInputAction(v, func() message.StatusBarMsg { 
+				m.editor.DeleteRune()
+				m.editor.EnterInsertMode()
+				return message.StatusBarMsg{}
+			})},
+		},
+		{
+			Bindings: ki.KeyBindings("cc"),
+			Cond:     []keyCond{m.editorInputAction(n, func() message.StatusBarMsg { 
+				m.editor.GoToLineStart()
+				m.editor.DeleteAfterCursor()
+				m.editor.EnterInsertMode()
+				return message.StatusBarMsg{}
+			})},
+		},
+		{
+			Bindings: ki.KeyBindings("ciw"),
+			Cond:     []keyCond{m.editorInputAction(n, func() message.StatusBarMsg {
+				m.editor.DeleteInnerWord()
+				m.editor.EnterInsertMode()
+				return message.StatusBarMsg{}
+			})},
+		},
+		{
 			Bindings: ki.KeyBindings("y"),
 			Cond:     []keyCond{m.editorInputAction(v, m.editor.YankSelection)},
 		},
@@ -671,3 +696,5 @@ func (m *Model) enterCmdMode() message.StatusBarMsg {
 		Column: sbc.General,
 	}
 }
+
+
