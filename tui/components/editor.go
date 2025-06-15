@@ -244,7 +244,7 @@ func (e *Editor) NewBuffer(path string) message.StatusBarMsg {
 		content = e.CurrentBuffer.Content
 	}
 
-	e.CurrentBuffer.History.NewEntry(e.Textarea.CursorPos())
+	e.CurrentBuffer.History.NewEntry(e.CurrentBuffer.CursorPos)
 	e.CurrentBuffer.History.UpdateEntry(content, textarea.CursorPos{})
 
 	e.Textarea.SetValue(content)
@@ -385,6 +385,7 @@ func (e *Editor) EnterNormalMode() message.StatusBarMsg {
 		e.Textarea.Value(),
 		e.Textarea.CursorPos(),
 	)
+	e.Textarea.ResetSelection()
 
 	return statusMsg
 }
@@ -415,7 +416,7 @@ func (e *Editor) EnterVisualMode() message.StatusBarMsg {
 
 // checkDirty marks the current buffer as dirty if the current
 // buffer is unsaved and the content differs from the saved content's file
-func (e *Editor) checkDirty(fn func()) {
+func (e *Editor) checkDirty(fn func()) bool {
 	before := e.Textarea.Value()
 	fn()
 	after := e.Textarea.Value()
@@ -424,6 +425,8 @@ func (e *Editor) checkDirty(fn func()) {
 		e.CurrentBuffer.Content = after
 		e.CurrentBuffer.Dirty = true
 	}
+
+	return e.CurrentBuffer.Dirty
 }
 
 func (e *Editor) checkDirtySince(previous string) {
@@ -710,6 +713,7 @@ func (e *Editor) UpHalfPage() message.StatusBarMsg {
 }
 
 func (e *Editor) DeleteLine() message.StatusBarMsg {
+	e.EnterNormalMode()
 	e.checkDirty(e.Textarea.DeleteLine)
 	return message.StatusBarMsg{}
 }
@@ -734,7 +738,7 @@ func (e *Editor) DeleteWordRight() message.StatusBarMsg {
 // DeleteRune the rune that the cursor is currently on.
 // If buffer is in visual mode it takes the selection into account
 func (e *Editor) DeleteRune() message.StatusBarMsg {
-	e.checkDirty(func() {
+	isDirty := e.checkDirty(func() {
 		c := e.CurrentBuffer.CursorPos
 		char := ""
 
@@ -747,7 +751,12 @@ func (e *Editor) DeleteRune() message.StatusBarMsg {
 
 		e.Yank(char)
 	})
-	//e.EnterNormalMode()
+
+	if isDirty {
+		e.CurrentBuffer.History.NewEntry(e.CurrentBuffer.CursorPos)
+	}
+
+	e.EnterNormalMode()
 	return message.StatusBarMsg{}
 }
 

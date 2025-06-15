@@ -5,7 +5,6 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"bellbird-notes/app/debug"
 	"bellbird-notes/tui/message"
 	"bellbird-notes/tui/mode"
 )
@@ -59,11 +58,20 @@ type matchContext struct {
 type Input struct {
 	KeySequence  string
 	sequenceKeys []string
-	actions      map[string]func() message.StatusBarMsg
-	Ctrl         bool
-	Alt          bool
-	Mode         mode.Mode
-	Functions    []KeyFn
+	//actions      map[string]func() message.StatusBarMsg
+	Ctrl bool
+	Alt  bool
+	Mode mode.Mode
+	// contains the keymap of all availaböe functions
+	Functions []KeyFn
+	// contains all componentActions of the currently selected component
+	componentActions []Action
+}
+
+type Action struct {
+	binding string
+	fn      func() message.StatusBarMsg
+	mode    mode.Mode
 }
 
 // Matches checks if the given matchContext satisfies the KeyCondition.
@@ -96,13 +104,13 @@ func (kc KeyCondition) Matches(ctx matchContext) bool {
 // New creates and returns a new Input instance with default state.
 func New() *Input {
 	return &Input{
-		Ctrl:         false,
-		Alt:          false,
-		Mode:         mode.Normal,
-		KeySequence:  "",
-		sequenceKeys: []string{},
-		Functions:    []KeyFn{},
-		actions:      map[string]func() message.StatusBarMsg{},
+		Ctrl:             false,
+		Alt:              false,
+		Mode:             mode.Normal,
+		KeySequence:      "",
+		sequenceKeys:     []string{},
+		Functions:        []KeyFn{},
+		componentActions: []Action{},
 	}
 }
 
@@ -132,7 +140,6 @@ func (ki *Input) HandleSequences(key string) []message.StatusBarMsg {
 	if !ki.isBinding(key) {
 		mod, isModifier := ki.isModifier(key)
 
-		debug.LogDebug(key, ki.sequenceKeys)
 		if ki.KeySequence == "" &&
 			(slices.Contains(ki.sequenceKeys, key) || isModifier) {
 			ki.KeySequence = key
@@ -189,18 +196,21 @@ func (ki *Input) FetchKeyMap(resetSeq bool) {
 		ki.sequenceKeys = []string{}
 	}
 
-	ki.actions = map[string]func() message.StatusBarMsg{}
+	//ki.actions = map[string]func() message.StatusBarMsg{}
+	ki.componentActions = []Action{}
 
 	for _, action := range ki.Functions {
 		for _, key := range action.Bindings.keys {
 			for _, cond := range action.Cond {
-				if !ki.anyComponentFocused(cond.Components) ||
-					cond.Mode != ki.Mode {
-
+				if !ki.anyComponentFocused(cond.Components) {
 					continue
 				}
 
-				ki.actions[key] = cond.Action
+				ki.componentActions = append(ki.componentActions, Action{
+					binding: key,
+					fn:      cond.Action,
+					mode:    cond.Mode,
+				})
 				ki.addSequenceKey(key)
 			}
 		}
@@ -218,9 +228,14 @@ func (ki *Input) addSequenceKey(binding string) {
 
 // isBinding returns wether the given key string is a
 // known and valid key binding
-func (ki *Input) isBinding(key string, exact bool) bool {
-	_, ok := ki.actions[key]
-	return ok
+func (ki *Input) isBinding(key string) bool {
+	for i := range ki.componentActions {
+		a := ki.componentActions[i]
+		if a.binding == key && a.mode == ki.Mode {
+			return true
+		}
+	}
+	return false
 }
 
 // matchActions returns all matching actions for the given matchContext.
