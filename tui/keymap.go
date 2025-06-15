@@ -234,6 +234,10 @@ func (m *Model) KeyInputFn() []ki.KeyFn {
 			Cond:     []keyCond{m.editorInputAction(n, m.editor.DeleteLine)},
 		},
 		{
+			Bindings: ki.KeyBindings("diw"),
+			Cond:     []keyCond{m.editorInputAction(n, m.editor.DeleteInnerWord)},
+		},
+		{
 			Bindings: ki.KeyBindings("dj"),
 			Cond: []keyCond{{
 				Mode:       n,
