@@ -218,6 +218,10 @@ func (m *Model) KeyInputFn() []ki.KeyFn {
 			},
 		},
 		{
+			Bindings: ki.KeyBindings("J"),
+			Cond:     []keyCond{m.editorInputAction(n, m.editor.MergeLineBelow)},
+		},
+		{
 			Bindings: ki.KeyBindings("o"),
 			Cond:     []keyCond{m.editorInputAction(n, m.editor.InsertLineBelow)},
 		},
@@ -273,9 +277,7 @@ func (m *Model) KeyInputFn() []ki.KeyFn {
 		},
 		{
 			Bindings: ki.KeyBindings("y"),
-			Cond: []keyCond{
-				m.editorInputAction(v, m.editor.YankSelection),
-			},
+			Cond:     []keyCond{m.editorInputAction(v, m.editor.YankSelection)},
 		},
 		{
 			Bindings: ki.KeyBindings("p"),

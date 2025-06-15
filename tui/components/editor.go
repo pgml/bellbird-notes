@@ -101,17 +101,6 @@ func (b *Buffer) redo() (string, textarea.CursorPos) {
 	return b.History.Redo()
 }
 
-func (b *Buffer) newHistoryEntry() {
-	b.History.NewEntry(b.CursorPos)
-}
-
-func (b *Buffer) updateHistoryEntry() {
-	b.History.UpdateEntry(
-		b.Content,
-		b.CursorPos,
-	)
-}
-
 func NewEditor() *Editor {
 	ta := textarea.New()
 	ta.Prompt = ""
@@ -255,7 +244,7 @@ func (e *Editor) NewBuffer(path string) message.StatusBarMsg {
 		content = e.CurrentBuffer.Content
 	}
 
-	e.CurrentBuffer.newHistoryEntry()
+	e.newHistoryEntry()
 	e.CurrentBuffer.History.UpdateEntry(content, textarea.CursorPos{})
 
 	e.Textarea.SetValue(content)
@@ -381,7 +370,7 @@ func (e *Editor) EnterNormalMode() message.StatusBarMsg {
 	// when it's supposed to do so
 	e.isAtLineEnd = false
 	if e.Textarea.IsExceedingLine() {
-		e.Textarea.CursorVimEnd()
+		e.Textarea.CursorLineVimEnd()
 		e.isAtLineEnd = true
 	}
 
@@ -392,7 +381,7 @@ func (e *Editor) EnterNormalMode() message.StatusBarMsg {
 	e.saveCursorPos()
 
 	e.CurrentBuffer.Content = e.Textarea.Value()
-	e.CurrentBuffer.updateHistoryEntry()
+	e.updateHistoryEntry()
 	e.Textarea.ResetSelection()
 
 	return statusMsg
@@ -402,7 +391,7 @@ func (e *Editor) EnterNormalMode() message.StatusBarMsg {
 // and creates a new history entry
 func (e *Editor) EnterInsertMode() message.StatusBarMsg {
 	e.Vim.Mode.Current = mode.Insert
-	e.CurrentBuffer.newHistoryEntry()
+	e.newHistoryEntry()
 	return message.StatusBarMsg{}
 }
 
@@ -410,7 +399,7 @@ func (e *Editor) EnterInsertMode() message.StatusBarMsg {
 // and creates a new history entry
 func (e *Editor) EnterReplaceMode() message.StatusBarMsg {
 	e.Vim.Mode.Current = mode.Replace
-	e.CurrentBuffer.newHistoryEntry()
+	e.newHistoryEntry()
 	return message.StatusBarMsg{}
 }
 
@@ -420,6 +409,18 @@ func (e *Editor) EnterVisualMode() message.StatusBarMsg {
 	e.Vim.Mode.Current = mode.Visual
 	e.Textarea.StartSelection()
 	return message.StatusBarMsg{}
+}
+
+func (e *Editor) newHistoryEntry() {
+	e.CurrentBuffer.History.NewEntry(e.Textarea.CursorPos())
+}
+
+func (e *Editor) updateHistoryEntry() {
+	e.saveCursorPos()
+	e.CurrentBuffer.History.UpdateEntry(
+		e.Textarea.Value(),
+		e.Textarea.CursorPos(),
+	)
 }
 
 // checkDirty marks the current buffer as dirty if the current
@@ -608,7 +609,7 @@ func (e *Editor) LineUp() message.StatusBarMsg {
 	e.saveCursorRow()
 
 	if e.Textarea.IsExceedingLine() || e.isAtLineEnd {
-		e.Textarea.CursorVimEnd()
+		e.Textarea.CursorLineVimEnd()
 	}
 
 	return message.StatusBarMsg{}
@@ -635,7 +636,7 @@ func (e *Editor) LineDown() message.StatusBarMsg {
 	e.saveCursorRow()
 
 	if e.Textarea.IsExceedingLine() || e.isAtLineEnd {
-		e.Textarea.CursorVimEnd()
+		e.Textarea.CursorLineVimEnd()
 	}
 
 	return message.StatusBarMsg{}
@@ -665,7 +666,7 @@ func (e *Editor) GoToInputStart() message.StatusBarMsg {
 // goToLineEnd moves the cursor to the end of the line, sets isAtLineEnd
 // and saves the cursor position
 func (e *Editor) GoToLineEnd() message.StatusBarMsg {
-	e.Textarea.CursorVimEnd()
+	e.Textarea.CursorLineVimEnd()
 	e.isAtLineStart = e.Textarea.IsAtLineStart()
 	e.isAtLineEnd = e.Textarea.IsAtLineEnd()
 	e.saveCursorPos()
@@ -721,39 +722,49 @@ func (e *Editor) UpHalfPage() message.StatusBarMsg {
 }
 
 func (e *Editor) DeleteLine() message.StatusBarMsg {
-	e.CurrentBuffer.updateHistoryEntry()
-	e.CurrentBuffer.newHistoryEntry()
+	e.newHistoryEntry()
 	e.checkDirty(e.Textarea.DeleteLine)
+	e.updateHistoryEntry()
 	return message.StatusBarMsg{}
 }
 
 func (e *Editor) DeleteAfterCursor() message.StatusBarMsg {
-	e.CurrentBuffer.updateHistoryEntry()
-	e.CurrentBuffer.newHistoryEntry()
+	e.newHistoryEntry()
 	e.checkDirty(e.Textarea.DeleteAfterCursor)
+	e.updateHistoryEntry()
 	return message.StatusBarMsg{}
 }
 
 func (e *Editor) DeleteNLines(lines int, up bool) message.StatusBarMsg {
-	e.CurrentBuffer.updateHistoryEntry()
-	e.CurrentBuffer.newHistoryEntry()
+	e.newHistoryEntry()
 	e.checkDirty(func() {
 		e.Textarea.DeleteLines(lines, up)
 	})
+	e.updateHistoryEntry()
 	return message.StatusBarMsg{}
 }
 
 func (e *Editor) DeleteWordRight() message.StatusBarMsg {
-	e.CurrentBuffer.updateHistoryEntry()
-	e.CurrentBuffer.newHistoryEntry()
+	e.newHistoryEntry()
 	e.checkDirty(e.Textarea.DeleteWordRight)
+	e.updateHistoryEntry()
+	return message.StatusBarMsg{}
+}
+
+func (e *Editor) MergeLineBelow() message.StatusBarMsg {
+	e.newHistoryEntry()
+	e.checkDirty(func() {
+		e.Textarea.VimMergeLineBelow(e.CurrentBuffer.CursorPos.Row)
+	})
+	e.updateHistoryEntry()
 	return message.StatusBarMsg{}
 }
 
 // DeleteRune the rune that the cursor is currently on.
 // If buffer is in visual mode it takes the selection into account
 func (e *Editor) DeleteRune() message.StatusBarMsg {
-	isDirty := e.checkDirty(func() {
+	e.newHistoryEntry()
+	e.checkDirty(func() {
 		c := e.CurrentBuffer.CursorPos
 		char := ""
 
@@ -767,11 +778,6 @@ func (e *Editor) DeleteRune() message.StatusBarMsg {
 		e.Yank(char)
 	})
 
-	if isDirty {
-		e.CurrentBuffer.updateHistoryEntry()
-		e.CurrentBuffer.newHistoryEntry()
-	}
-
 	e.EnterNormalMode()
 	return message.StatusBarMsg{}
 }
@@ -781,6 +787,7 @@ func (e *Editor) Undo() message.StatusBarMsg {
 	val, cursorPos := e.CurrentBuffer.undo()
 	e.Textarea.SetValue(val)
 	e.Textarea.MoveCursor(cursorPos.Row, cursorPos.ColumnOffset)
+	e.Textarea.RepositionView()
 	return message.StatusBarMsg{}
 }
 
@@ -789,6 +796,7 @@ func (e *Editor) Redo() message.StatusBarMsg {
 	val, cursorPos := e.CurrentBuffer.redo()
 	e.Textarea.SetValue(val)
 	e.Textarea.MoveCursor(cursorPos.Row, cursorPos.ColumnOffset)
+	e.Textarea.RepositionView()
 	return message.StatusBarMsg{}
 }
 
@@ -806,11 +814,14 @@ func (e *Editor) YankSelection() message.StatusBarMsg {
 }
 
 func (e *Editor) Paste() message.StatusBarMsg {
+	e.newHistoryEntry()
 	e.checkDirty(func() {
 		if cnt, err := clipboard.ReadAll(); err == nil {
 			e.Textarea.InsertString(cnt)
 		}
 	})
+	e.updateHistoryEntry()
+	debug.LogDebug(e.Textarea.CursorPos())
 	e.Textarea.RepositionView()
 	return message.StatusBarMsg{}
 }

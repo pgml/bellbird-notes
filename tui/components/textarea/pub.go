@@ -108,7 +108,11 @@ func (m *Model) DeleteAfterCursor() {
 /// custom methods
 ///
 
-func (m *Model) CursorVimEnd() {
+func (m *Model) CursorLineEnd() {
+	m.SetCursorColumn(len(m.value[m.row]))
+}
+
+func (m *Model) CursorLineVimEnd() {
 	m.SetCursorColumn(len(m.value[m.row]) - 1)
 }
 
@@ -128,7 +132,7 @@ func (m *Model) IsAtLineEnd() bool {
 // out of bounds the cursor will be moved to the start or end accordingly.
 func (m *Model) MoveCursor(row int, col int) {
 	if row < len(m.value) {
-		m.row = clamp(row, 0, len(m.value[row]))
+		m.row = row
 	}
 
 	m.SetCursorColumn(col)
@@ -168,6 +172,13 @@ func (m *Model) DeleteLines(l int, up bool) {
 
 func (m *Model) DeleteWordRight() {
 	m.deleteWordRight()
+}
+
+func (m *Model) VimMergeLineBelow(row int) {
+	m.CursorLineEnd()
+	m.InsertRune(' ')
+	m.SetCursorColumn(m.LineInfo().ColumnOffset - 1)
+	m.mergeLineBelow(row)
 }
 
 // DownHalfPage move cursor and screen down 1/2 page
