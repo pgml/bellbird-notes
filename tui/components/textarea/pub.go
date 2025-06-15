@@ -158,14 +158,26 @@ func (m *Model) DeleteInnerWord() {
 		m.value[m.row] = slices.Delete(m.value[m.row], m.col, m.col+1)
 	} else {
 		for {
-			m.characterLeft(true)
-			isSpace := unicode.IsSpace(m.value[m.row][m.col])
+			m.characterLeft(false)
 
-			if m.col < len(m.value[m.row]) && isSpace {
+			// break early if we're at the first word and don't move
+			// to the previous row
+			if m.col == 0 {
+				break
+			}
+
+			// move left until we hit a space rune
+			if m.col < len(m.value[m.row]) &&
+				unicode.IsSpace(m.value[m.row][m.col]) {
+
+				// increment column offset so that the cursor
+				// isn't at the position where the space rune was
+				m.col++
 				break
 			}
 		}
-		m.SetCursorColumn(m.col + 1)
+
+		m.SetCursorColumn(m.col)
 		m.DeleteWordRight()
 	}
 }
