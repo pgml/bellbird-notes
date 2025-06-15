@@ -750,8 +750,7 @@ func (e *Editor) DeleteLine() message.StatusBarMsg {
 func (e *Editor) DeleteInnerWord() message.StatusBarMsg {
 	e.newHistoryEntry()
 	e.checkDirty(func() {
-		e.WordBack()
-		e.Textarea.DeleteWordRight()
+		e.Textarea.DeleteInnerWord()
 	})
 	e.updateHistoryEntry()
 	return message.StatusBarMsg{}

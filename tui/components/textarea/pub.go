@@ -6,6 +6,7 @@ package textarea
 import (
 	"slices"
 	"strings"
+	"unicode"
 
 	"github.com/charmbracelet/bubbles/v2/cursor"
 	"github.com/charmbracelet/lipgloss/v2"
@@ -145,6 +146,27 @@ func (m Model) CursorPos() CursorPos {
 	return CursorPos{
 		Row:          m.row,
 		ColumnOffset: m.LineInfo().ColumnOffset,
+	}
+}
+
+func (m *Model) DeleteInnerWord() {
+	col := m.value[m.row][m.col]
+
+	// if the current character is space then just delete the space
+	// and don't walk back
+	if unicode.IsSpace(col) {
+		m.value[m.row] = slices.Delete(m.value[m.row], m.col, m.col+1)
+	} else {
+		for {
+			m.characterLeft(true)
+			isSpace := unicode.IsSpace(m.value[m.row][m.col])
+
+			if m.col < len(m.value[m.row]) && isSpace {
+				break
+			}
+		}
+		m.SetCursorColumn(m.col + 1)
+		m.DeleteWordRight()
 	}
 }
 
