@@ -255,7 +255,10 @@ func (m *Model) KeyInputFn() []ki.KeyFn {
 		},
 		{
 			Bindings: ki.KeyBindings("D"),
-			Cond:     []keyCond{m.editorInputAction(n, m.editor.DeleteAfterCursor)},
+			Cond: []keyCond{
+				m.editorInputAction(n, m.editor.DeleteAfterCursor),
+				m.editorInputAction(v, m.editor.DeleteLine),
+			},
 		},
 		{
 			Bindings: ki.KeyBindings("d"),
