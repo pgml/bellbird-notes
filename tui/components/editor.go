@@ -408,9 +408,11 @@ func (e *Editor) EnterNormalMode() message.StatusBarMsg {
 
 // EnterInsertMode sets the current editor mode to insert
 // and creates a new history entry
-func (e *Editor) EnterInsertMode() message.StatusBarMsg {
+func (e *Editor) EnterInsertMode(withHistory bool) message.StatusBarMsg {
 	e.Vim.Mode.Current = mode.Insert
-	e.newHistoryEntry()
+	if withHistory {
+		e.newHistoryEntry()
+	}
 	return message.StatusBarMsg{}
 }
 
@@ -563,7 +565,7 @@ func (e *Editor) MoveCharacterRight() message.StatusBarMsg {
 // position and saves its position
 func (e *Editor) InsertAfter() message.StatusBarMsg {
 	e.Textarea.CharacterRight(true)
-	e.EnterInsertMode()
+	e.EnterInsertMode(true)
 	e.saveCursorPos()
 	return message.StatusBarMsg{}
 }
@@ -572,7 +574,7 @@ func (e *Editor) InsertAfter() message.StatusBarMsg {
 // enters insert mode and saves the cursor's position
 func (e *Editor) InsertLineStart() message.StatusBarMsg {
 	e.Textarea.CursorInputStart()
-	e.EnterInsertMode()
+	e.EnterInsertMode(true)
 	e.saveCursorPos()
 	return message.StatusBarMsg{}
 }
@@ -581,7 +583,7 @@ func (e *Editor) InsertLineStart() message.StatusBarMsg {
 // enters insert mode and saves the cursor's position
 func (e *Editor) InsertLineEnd() message.StatusBarMsg {
 	e.Textarea.CursorEnd()
-	e.EnterInsertMode()
+	e.EnterInsertMode(true)
 	e.saveCursorPos()
 	return message.StatusBarMsg{}
 }
@@ -593,7 +595,7 @@ func (e *Editor) InsertLineAbove() message.StatusBarMsg {
 	e.Textarea.CursorEnd()
 	e.Textarea.InsertRune('\n')
 	e.Textarea.RepositionView()
-	e.EnterInsertMode()
+	e.EnterInsertMode(true)
 	return message.StatusBarMsg{}
 }
 
@@ -603,7 +605,7 @@ func (e *Editor) InsertLineBelow() message.StatusBarMsg {
 	e.Textarea.CursorEnd()
 	e.Textarea.InsertRune('\n')
 	e.Textarea.RepositionView()
-	e.EnterInsertMode()
+	e.EnterInsertMode(true)
 	return message.StatusBarMsg{}
 }
 
@@ -747,12 +749,15 @@ func (e *Editor) DeleteLine() message.StatusBarMsg {
 	return message.StatusBarMsg{}
 }
 
-func (e *Editor) DeleteInnerWord() message.StatusBarMsg {
+func (e *Editor) DeleteInnerWord(enterInsertMode bool) message.StatusBarMsg {
 	e.newHistoryEntry()
 	e.checkDirty(func() {
 		e.Textarea.DeleteInnerWord()
 	})
 	e.updateHistoryEntry()
+	if enterInsertMode {
+		e.Vim.Mode.Current = mode.Insert
+	}
 	return message.StatusBarMsg{}
 }
 

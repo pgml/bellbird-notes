@@ -145,7 +145,9 @@ func (m *Model) KeyInputFn() []ki.KeyFn {
 
 		{
 			Bindings: ki.KeyBindings("i"),
-			Cond:     []keyCond{m.editorInputAction(n, m.editor.EnterInsertMode)},
+			Cond: []keyCond{m.editorInputAction(n, func() message.StatusBarMsg {
+				return m.editor.EnterInsertMode(true)
+			})},
 		},
 		{
 			Bindings: ki.KeyBindings("I"),
@@ -235,7 +237,9 @@ func (m *Model) KeyInputFn() []ki.KeyFn {
 		},
 		{
 			Bindings: ki.KeyBindings("diw"),
-			Cond:     []keyCond{m.editorInputAction(n, m.editor.DeleteInnerWord)},
+			Cond: []keyCond{m.editorInputAction(n, func() message.StatusBarMsg {
+				return m.editor.DeleteInnerWord(false)
+			})},
 		},
 		{
 			Bindings: ki.KeyBindings("dj"),
@@ -281,27 +285,25 @@ func (m *Model) KeyInputFn() []ki.KeyFn {
 		},
 		{
 			Bindings: ki.KeyBindings("c"),
-			Cond:     []keyCond{m.editorInputAction(v, func() message.StatusBarMsg { 
+			Cond: []keyCond{m.editorInputAction(v, func() message.StatusBarMsg {
 				m.editor.DeleteRune()
-				m.editor.EnterInsertMode()
+				m.editor.EnterInsertMode(false)
 				return message.StatusBarMsg{}
 			})},
 		},
 		{
 			Bindings: ki.KeyBindings("cc"),
-			Cond:     []keyCond{m.editorInputAction(n, func() message.StatusBarMsg { 
+			Cond: []keyCond{m.editorInputAction(n, func() message.StatusBarMsg {
 				m.editor.GoToLineStart()
 				m.editor.DeleteAfterCursor()
-				m.editor.EnterInsertMode()
+				m.editor.EnterInsertMode(false)
 				return message.StatusBarMsg{}
 			})},
 		},
 		{
 			Bindings: ki.KeyBindings("ciw"),
-			Cond:     []keyCond{m.editorInputAction(n, func() message.StatusBarMsg {
-				m.editor.DeleteInnerWord()
-				m.editor.EnterInsertMode()
-				return message.StatusBarMsg{}
+			Cond: []keyCond{m.editorInputAction(n, func() message.StatusBarMsg {
+				return m.editor.DeleteInnerWord(true)
 			})},
 		},
 		{
@@ -696,5 +698,3 @@ func (m *Model) enterCmdMode() message.StatusBarMsg {
 		Column: sbc.General,
 	}
 }
-
-
