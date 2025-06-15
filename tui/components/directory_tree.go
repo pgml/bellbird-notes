@@ -251,6 +251,7 @@ func NewDirectoryTree() *DirectoryTree {
 			EditState:     EditStates.None,
 			editor:        ti,
 			items:         make([]TreeItem, 0),
+			config:        *config.New(),
 		},
 		expandedDirs: make(map[string]bool),
 	}
@@ -283,11 +284,6 @@ func NewDirectoryTree() *DirectoryTree {
 // checking directory states etc.
 func (t *DirectoryTree) build() {
 	t.refreshFlatList()
-
-	//for _, dir := range t.dirsListFlat {
-	//	dir.expanded = t.isExpanded(dir.Path)
-	//}
-
 	t.length = len(t.dirsListFlat)
 	t.lastIndex = t.dirsListFlat[len(t.dirsListFlat)-1].index
 }
@@ -343,17 +339,15 @@ func (t *DirectoryTree) getChildren(path string, level int) []TreeItem {
 
 	for _, dir := range childDir {
 		dirItem := t.createDirectoryItem(dir, level)
-		dirItem.expanded = t.isExpanded(dir.Path)
+		if dir.IsExpanded {
+			t.expandedDirs[dir.Path] = dir.IsExpanded
+		}
+		dirItem.expanded = dir.IsExpanded
+		//dirItem.expanded = t.isExpanded(dir.Path)
 		dirs = append(dirs, dirItem)
 	}
 
 	return dirs
-}
-
-// isExpanded returns whether a Dir-Item is expanded
-func (t DirectoryTree) isExpanded(dirPath string) bool {
-	_, contains := t.expandedDirs[dirPath]
-	return contains
 }
 
 func (m *DirectoryTree) createDirectoryItem(
@@ -620,6 +614,7 @@ func (t *DirectoryTree) Collapse() message.StatusBarMsg {
 			dir.expanded = false
 			t.build()
 		}
+		t.config.SetMetaValue(dir.path, config.Expanded, "false")
 	}
 
 	return statusMsg
@@ -643,6 +638,7 @@ func (t *DirectoryTree) Expand() message.StatusBarMsg {
 			dir.children = t.getChildren(dir.path, dir.level+1)
 			dir.expanded = true
 			t.build()
+			t.config.SetMetaValue(dir.path, config.Expanded, "true")
 		}
 	}
 

@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"bellbird-notes/app"
+	"bellbird-notes/app/config"
 	"bellbird-notes/app/debug"
 	"bellbird-notes/app/notes"
 	"bellbird-notes/app/utils"
@@ -65,9 +66,10 @@ type Editor struct {
 
 	StatusBarMsg message.StatusBarMsg
 
-	err error
-
 	ShowLineNumbers bool
+
+	config config.Config
+	err    error
 }
 
 type errMsg error
@@ -124,10 +126,11 @@ func NewEditor() *Editor {
 		Component:       Component{},
 		Buffers:         []Buffer{},
 		CurrentBuffer:   &Buffer{},
-		err:             nil,
 		isAtLineEnd:     false,
 		isAtLineStart:   false,
 		ShowLineNumbers: false,
+		err:             nil,
+		config:          *config.New(),
 	}
 
 	editor.Textarea.ShowLineNumbers = editor.ShowLineNumbers
@@ -172,6 +175,12 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			cmd = e.handleVisualMode(msg)
 		}
 
+		pos := e.Textarea.CursorPos()
+		e.config.SetMetaValue(
+			e.CurrentBuffer.Path,
+			config.CursorPosition,
+			strconv.Itoa(pos.Row)+","+strconv.Itoa(pos.ColumnOffset),
+		)
 		e.checkDirtySince(origCnt)
 
 	case tea.WindowSizeMsg:
@@ -227,13 +236,21 @@ func (e *Editor) NewBuffer(path string) message.StatusBarMsg {
 
 	noteContent := string(note)
 
+	cursorPos := textarea.CursorPos{}
+	if pos := e.config.MetaValue(path, config.CursorPosition); pos != "" {
+		p := strings.Split(pos, ",")
+		row, _ := strconv.Atoi(p[0])
+		col, _ := strconv.Atoi(p[1])
+		cursorPos = textarea.CursorPos{Row: row, ColumnOffset: col}
+	}
+
 	buf := Buffer{
 		Index:       len(e.Buffers) + 1,
 		Path:        path,
 		Content:     noteContent,
 		History:     textarea.NewHistory(),
 		CurrentLine: 0,
-		CursorPos:   textarea.CursorPos{},
+		CursorPos:   cursorPos,
 	}
 
 	e.Buffers = append(e.Buffers, buf)
@@ -245,10 +262,11 @@ func (e *Editor) NewBuffer(path string) message.StatusBarMsg {
 	}
 
 	e.newHistoryEntry()
-	e.CurrentBuffer.History.UpdateEntry(content, textarea.CursorPos{})
+	e.CurrentBuffer.History.UpdateEntry(content, buf.CursorPos)
 
 	e.Textarea.SetValue(content)
-	e.Textarea.MoveToBegin()
+	e.Textarea.MoveCursor(cursorPos.Row, cursorPos.ColumnOffset)
+	e.Textarea.RepositionView()
 
 	return message.StatusBarMsg{}
 }
@@ -275,6 +293,7 @@ func (e *Editor) OpenBuffer(path string) message.StatusBarMsg {
 
 	e.Textarea.SetValue(buf.Content)
 	e.Textarea.MoveCursor(buf.CursorPos.Row, buf.CursorPos.ColumnOffset)
+	e.Textarea.RepositionView()
 
 	return statusMsg
 }

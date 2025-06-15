@@ -40,8 +40,9 @@ const (
 	OpenNotes
 	Visible
 	Width
-	CaretPosition
+	CursorPosition
 	Pinned
+	Expanded
 )
 
 var options = map[Option]string{
@@ -53,8 +54,9 @@ var options = map[Option]string{
 	OpenNotes:             "OpenNotes",
 	Visible:               "Visible",
 	Width:                 "Width",
-	CaretPosition:         "CaretPosition",
+	CursorPosition:        "CursorPosition",
 	Pinned:                "Pinned",
+	Expanded:              "Expanded",
 }
 
 func (o Option) String() string {
@@ -71,13 +73,13 @@ type Config struct {
 func New() *Config {
 	config := &Config{}
 
-	filePath, err := app.ConfigFile()
+	filePath, err := app.ConfigFile(false)
 	if err != nil {
 		debug.LogErr(err)
 		return config
 	}
 
-	metaFilePath, err := app.ConfigFile()
+	metaFilePath, err := app.ConfigFile(true)
 	if err != nil {
 		debug.LogErr(err)
 		return config
@@ -131,12 +133,12 @@ func (c *Config) Value(section Section, option Option) string {
 		String()
 }
 
-//func (c *Config) MetaValue(section Section, option Option) string {
-//	return c.metaFile.
-//		Section(section.String()).
-//		Key(option.String()).
-//		String()
-//}
+func (c *Config) MetaValue(path string, option Option) string {
+	return c.metaFile.
+		Section(path).
+		Key(option.String()).
+		String()
+}
 
 func (c *Config) SetValue(section Section, option Option, value string) {
 	c.file.
@@ -147,11 +149,11 @@ func (c *Config) SetValue(section Section, option Option, value string) {
 	c.file.SaveTo(c.filePath)
 }
 
-//func (c *Config) SetMetaValue(section Section, option Option, value string) {
-//	c.file.
-//		Section(section.String()).
-//		Key(option.String()).
-//		SetValue(value)
-//
-//	c.file.SaveTo(c.metaFilePath)
-//}
+func (c *Config) SetMetaValue(path string, option Option, value string) {
+	c.metaFile.
+		Section(path).
+		Key(option.String()).
+		SetValue(value)
+
+	c.metaFile.SaveTo(c.metaFilePath)
+}

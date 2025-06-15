@@ -27,13 +27,13 @@ func Name() string {
 }
 
 // Huh?
-func ModuleName() (string, error) {
+func ModuleName() string {
 	moduleName := "bellbird-notes"
 	if IsSnapshot() {
 		moduleName += "-snapshot"
 	}
 
-	return moduleName, nil
+	return moduleName
 }
 
 func NotesRootDir() (string, error) {
@@ -43,7 +43,7 @@ func NotesRootDir() (string, error) {
 		return "", err
 	}
 
-	appName, _ := ModuleName()
+	appName := ModuleName()
 	notesDir := filepath.Join(Home, "."+appName)
 
 	if _, err := os.Stat(notesDir); err != nil {
@@ -66,13 +66,7 @@ func ConfigDir() (string, error) {
 		configDir += "-snapshot"
 	}
 
-	appName, err := ModuleName()
-	if err != nil {
-		msg := "Could not get config file in config.go/ConfigFile()"
-		debug.LogErr(msg, err)
-		return "", err
-	}
-
+	appName := ModuleName()
 	confDir := filepath.Join(ConfigDir, appName)
 
 	if _, err := os.Stat(confDir); err != nil {
@@ -82,12 +76,12 @@ func ConfigDir() (string, error) {
 	return confDir, nil
 }
 
-func ConfigFile() (string, error) {
-	appName, err := ModuleName()
-	if err != nil {
-		msg := "Could not get config file in config.go/ConfigFile()"
-		debug.LogErr(msg, err)
-		return "", err
+func ConfigFile(isMetaInfo bool) (string, error) {
+	filename := ModuleName()
+	if isMetaInfo {
+		filename += "_metainfos"
+	} else {
+		filename += ".conf"
 	}
 
 	configDir, err := ConfigDir()
@@ -97,7 +91,7 @@ func ConfigFile() (string, error) {
 		return "", err
 	}
 
-	configFile := filepath.Join(configDir, appName+".conf")
+	configFile := filepath.Join(configDir, filename)
 
 	return configFile, nil
 }

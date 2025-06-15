@@ -1,6 +1,7 @@
 package components
 
 import (
+	"bellbird-notes/app/config"
 	"bellbird-notes/tui/message"
 
 	"github.com/charmbracelet/bubbles/v2/textinput"
@@ -62,6 +63,8 @@ type List[T ListItem] struct {
 	firstVisibleLine int
 	lastVisibleLine  int
 	visibleLines     int
+
+	config config.Config
 }
 
 type Item struct {

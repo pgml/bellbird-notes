@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"bellbird-notes/app/config"
 	"bellbird-notes/app/debug"
 	"bellbird-notes/app/utils"
 	"bellbird-notes/tui/bb_errors"
@@ -30,6 +31,8 @@ func List(dirPath string) ([]Directory, error) {
 		return nil, err
 	}
 
+	conf := config.New()
+
 	for _, child := range dirs {
 		filePath := filepath.Join(dirPath, child.Name())
 		if !child.IsDir() || isHidden(filePath) {
@@ -43,12 +46,19 @@ func List(dirPath string) ([]Directory, error) {
 		}
 
 		nbrDirs, _ := List(filePath)
+		exp := conf.MetaValue(filePath, config.Expanded)
+		expanded := false
+
+		if exp == "true" {
+			expanded = true
+		}
+
 		Directories = append(Directories, Directory{
 			Name:       child.Name(),
 			Path:       filePath,
 			NbrNotes:   nbrNotes,
 			NbrFolders: len(nbrDirs),
-			IsExpanded: false,
+			IsExpanded: expanded,
 		})
 	}
 
