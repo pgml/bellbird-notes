@@ -137,37 +137,21 @@ func (ki *Input) HandleSequences(key string) []message.StatusBarMsg {
 		return nil
 	}
 
-	if !ki.isBinding(key) {
-		mod, isModifier := ki.isModifier(key)
+	ki.KeySequence += key
 
-		if ki.KeySequence == "" &&
-			(slices.Contains(ki.sequenceKeys, key) || isModifier) {
-			ki.KeySequence = key
+	if !ki.isBinding(ki.KeySequence) {
+		_, isModifier := ki.isModifier(key)
 
+		if slices.Contains(ki.sequenceKeys, ki.KeySequence) || isModifier {
 			if ki.Ctrl || ki.Alt {
 				ki.KeySequence += " " + key
 			}
-
-			switch mod {
-			case "ctrl":
-				ki.Ctrl = true
-			case "alt":
-				ki.Alt = true
-			}
-
 			return nil
 		}
 	}
 
-	if ki.KeySequence != "" {
-		if ki.Ctrl || ki.Alt {
-			key = " " + key
-		}
-		key = ki.KeySequence + key
-	}
-
 	statusMsg := []message.StatusBarMsg{}
-	statusMsg = append(statusMsg, ki.executeAction(key))
+	statusMsg = append(statusMsg, ki.executeAction(ki.KeySequence))
 	ki.ResetKeysDown()
 
 	return statusMsg
@@ -196,7 +180,6 @@ func (ki *Input) FetchKeyMap(resetSeq bool) {
 		ki.sequenceKeys = []string{}
 	}
 
-	//ki.actions = map[string]func() message.StatusBarMsg{}
 	ki.componentActions = []Action{}
 
 	for _, action := range ki.Functions {
@@ -218,7 +201,15 @@ func (ki *Input) FetchKeyMap(resetSeq bool) {
 }
 
 func (ki *Input) addSequenceKey(binding string) {
-	if utf8.RuneCountInString(binding) == 2 {
+	runeCount := utf8.RuneCountInString(binding)
+
+	if runeCount == 3 && (binding != "esc" || binding != "alt") {
+		runes := []rune(binding)
+		r := string(runes[0]) + string(runes[1])
+		if !slices.Contains(ki.sequenceKeys, r) {
+			ki.sequenceKeys = append(ki.sequenceKeys, r)
+		}
+	} else if runeCount == 2 {
 		r := string([]rune(binding)[0])
 		if !slices.Contains(ki.sequenceKeys, r) {
 			ki.sequenceKeys = append(ki.sequenceKeys, r)
