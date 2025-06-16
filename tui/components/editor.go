@@ -258,6 +258,9 @@ func (e *Editor) NewBuffer(path string) message.StatusBarMsg {
 		content = e.CurrentBuffer.Content
 	}
 
+	e.newHistoryEntry()
+	e.CurrentBuffer.History.UpdateEntry(content, buf.CursorPos)
+
 	e.Textarea.SetValue(content)
 	e.Textarea.MoveCursor(cursorPos.Row, cursorPos.ColumnOffset)
 	e.Textarea.RepositionView()
