@@ -708,14 +708,14 @@ func (e *Editor) GoToLineEnd() message.StatusBarMsg {
 func (e *Editor) GoToTop() message.StatusBarMsg {
 	e.Textarea.MoveToBegin()
 	e.Textarea.RepositionView()
-	return message.StatusBarMsg{}
+	return e.UpdateSelectedRowsCount()
 }
 
 // goToTop moves the cursor to the bottom of the buffer
 func (e *Editor) GoToBottom() message.StatusBarMsg {
 	e.Textarea.MoveToEnd()
 	e.Textarea.RepositionView()
-	return message.StatusBarMsg{}
+	return e.UpdateSelectedRowsCount()
 }
 
 // wordRightEnd moves the cursor to the end of the next word
@@ -744,12 +744,12 @@ func (e *Editor) WordBack() message.StatusBarMsg {
 
 func (e *Editor) DownHalfPage() message.StatusBarMsg {
 	e.Textarea.DownHalfPage()
-	return message.StatusBarMsg{}
+	return e.UpdateSelectedRowsCount()
 }
 
 func (e *Editor) UpHalfPage() message.StatusBarMsg {
 	e.Textarea.UpHalfPage()
-	return message.StatusBarMsg{}
+	return e.UpdateSelectedRowsCount()
 }
 
 func (e *Editor) DeleteLine() message.StatusBarMsg {
