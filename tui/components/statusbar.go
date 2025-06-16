@@ -255,7 +255,9 @@ func (s *StatusBar) shouldShowMode() bool {
 	return s.Mode == mode.Insert ||
 		s.Mode == mode.Command ||
 		s.Mode == mode.Replace ||
-		s.Mode == mode.Visual
+		s.Mode == mode.Visual ||
+		s.Mode == mode.VisualLine ||
+		s.Mode == mode.VisualBlock
 }
 
 func style() lipgloss.Style {
