@@ -149,6 +149,19 @@ func (m Model) CursorPos() CursorPos {
 	}
 }
 
+func (m *Model) DeleteOuterWord() {
+	m.DeleteInnerWord()
+
+	if m.col < len(m.value[m.row]) && unicode.IsSpace(m.value[m.row][m.col]) {
+		m.value[m.row] = slices.Delete(m.value[m.row], m.col, m.col+1)
+	}
+
+	if m.col > 0 {
+		m.characterLeft(false)
+		m.SetCursorColumn(m.col + 1)
+	}
+}
+
 func (m *Model) DeleteInnerWord() {
 	col := m.value[m.row][m.col]
 

@@ -242,6 +242,12 @@ func (m *Model) KeyInputFn() []ki.KeyFn {
 			})},
 		},
 		{
+			Bindings: ki.KeyBindings("daw"),
+			Cond: []keyCond{m.editorInputAction(n, func() message.StatusBarMsg {
+				return m.editor.DeleteOuterWord(false)
+			})},
+		},
+		{
 			Bindings: ki.KeyBindings("dj"),
 			Cond: []keyCond{{
 				Mode:       n,
@@ -288,7 +294,7 @@ func (m *Model) KeyInputFn() []ki.KeyFn {
 			Cond: []keyCond{m.editorInputAction(v, func() message.StatusBarMsg {
 				m.editor.DeleteRune()
 				m.editor.EnterInsertMode(false)
-				return message.StatusBarMsg{}
+				return m.editor.ResetSelectedRowsCount()
 			})},
 		},
 		{
@@ -297,13 +303,19 @@ func (m *Model) KeyInputFn() []ki.KeyFn {
 				m.editor.GoToLineStart()
 				m.editor.DeleteAfterCursor()
 				m.editor.EnterInsertMode(false)
-				return message.StatusBarMsg{}
+				return m.editor.ResetSelectedRowsCount()
 			})},
 		},
 		{
 			Bindings: ki.KeyBindings("ciw"),
 			Cond: []keyCond{m.editorInputAction(n, func() message.StatusBarMsg {
 				return m.editor.DeleteInnerWord(true)
+			})},
+		},
+		{
+			Bindings: ki.KeyBindings("caw"),
+			Cond: []keyCond{m.editorInputAction(n, func() message.StatusBarMsg {
+				return m.editor.DeleteOuterWord(true)
 			})},
 		},
 		{

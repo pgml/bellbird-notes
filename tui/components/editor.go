@@ -756,7 +756,7 @@ func (e *Editor) DeleteLine() message.StatusBarMsg {
 	e.newHistoryEntry()
 	e.checkDirty(e.Textarea.DeleteLine)
 	e.updateHistoryEntry()
-	return message.StatusBarMsg{}
+	return e.UpdateSelectedRowsCount()
 }
 
 func (e *Editor) DeleteInnerWord(enterInsertMode bool) message.StatusBarMsg {
@@ -768,14 +768,26 @@ func (e *Editor) DeleteInnerWord(enterInsertMode bool) message.StatusBarMsg {
 	if enterInsertMode {
 		e.Vim.Mode.Current = mode.Insert
 	}
-	return message.StatusBarMsg{}
+	return e.UpdateSelectedRowsCount()
+}
+
+func (e *Editor) DeleteOuterWord(enterInsertMode bool) message.StatusBarMsg {
+	e.newHistoryEntry()
+	e.checkDirty(func() {
+		e.Textarea.DeleteOuterWord()
+	})
+	e.updateHistoryEntry()
+	if enterInsertMode {
+		e.Vim.Mode.Current = mode.Insert
+	}
+	return e.UpdateSelectedRowsCount()
 }
 
 func (e *Editor) DeleteAfterCursor() message.StatusBarMsg {
 	e.newHistoryEntry()
 	e.checkDirty(e.Textarea.DeleteAfterCursor)
 	e.updateHistoryEntry()
-	return message.StatusBarMsg{}
+	return e.ResetSelectedRowsCount()
 }
 
 func (e *Editor) DeleteNLines(lines int, up bool) message.StatusBarMsg {
@@ -784,7 +796,7 @@ func (e *Editor) DeleteNLines(lines int, up bool) message.StatusBarMsg {
 		e.Textarea.DeleteLines(lines, up)
 	})
 	e.updateHistoryEntry()
-	return message.StatusBarMsg{}
+	return e.ResetSelectedRowsCount()
 }
 
 func (e *Editor) DeleteWordRight() message.StatusBarMsg {
@@ -822,7 +834,14 @@ func (e *Editor) DeleteRune() message.StatusBarMsg {
 	})
 
 	e.EnterNormalMode()
-	return message.StatusBarMsg{}
+	return e.ResetSelectedRowsCount()
+}
+
+func (e *Editor) ResetSelectedRowsCount() message.StatusBarMsg {
+	return message.StatusBarMsg{
+		Content: "",
+		Column:  sbc.KeyInfo,
+	}
 }
 
 func (e *Editor) UpdateSelectedRowsCount() message.StatusBarMsg {
