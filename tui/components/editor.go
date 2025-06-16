@@ -75,13 +75,14 @@ type Editor struct {
 type errMsg error
 
 type Buffer struct {
-	Index       int
-	CurrentLine int
-	CursorPos   textarea.CursorPos
-	Path        string
-	Content     string
-	History     textarea.History
-	Dirty       bool
+	Index            int
+	CurrentLine      int
+	CursorPos        textarea.CursorPos
+	Path             string
+	Content          string
+	History          textarea.History
+	Dirty            bool
+	LastSavedContent *string
 }
 
 type Input struct {
@@ -261,6 +262,8 @@ func (e *Editor) NewBuffer(path string) message.StatusBarMsg {
 	e.newHistoryEntry()
 	e.CurrentBuffer.History.UpdateEntry(content, buf.CursorPos)
 
+	e.CurrentBuffer.LastSavedContent = &content
+
 	e.Textarea.SetValue(content)
 	e.Textarea.MoveCursor(cursorPos.Row, cursorPos.ColumnOffset)
 	e.Textarea.RepositionView()
@@ -306,7 +309,8 @@ func (e *Editor) SaveBuffer() message.StatusBarMsg {
 	rootDir, _ := app.NotesRootDir()
 	path := e.CurrentBuffer.Path
 	relative_path := strings.ReplaceAll(path, rootDir+"/", "")
-	bytes, err := notes.Write(path, e.Textarea.Value())
+	bufContent := e.Textarea.Value()
+	bytes, err := notes.Write(path, bufContent)
 
 	if err != nil {
 		debug.LogErr(err)
@@ -319,6 +323,8 @@ func (e *Editor) SaveBuffer() message.StatusBarMsg {
 		message.StatusBar.FileWritten,
 		relative_path, e.Textarea.LineCount(), bytes,
 	)
+
+	e.CurrentBuffer.LastSavedContent = &bufContent
 
 	statusMsg.Content = resultMsg
 	return statusMsg
@@ -865,16 +871,20 @@ func (e *Editor) SelectedRowsCount() int {
 
 // undo sets the buffer content to the previous history entry
 func (e *Editor) Undo() message.StatusBarMsg {
-	// EntryIndex 0 means the time in the buffer history where the buffer was
-	// opened to get the initial content of the buffer.
-	// We don't want to move there just accept it.
-	if e.CurrentBuffer.History.EntryIndex == 0 {
-		return message.StatusBarMsg{}
-	}
-
 	val, cursorPos := e.CurrentBuffer.undo()
 
+	// dirty check
+	e.CurrentBuffer.Dirty = val != *e.CurrentBuffer.LastSavedContent
 	e.Textarea.SetValue(val)
+
+	entryIndex := e.CurrentBuffer.History.EntryIndex
+	// EntryIndex 0 means the time in the buffer history where the buffer was
+	// opened to get the initial content of the buffer.
+	// We don't want to move the cursor there - just accept it.
+	if entryIndex == 0 {
+		cursorPos = e.CurrentBuffer.History.Entry(entryIndex + 1).UndoCursorPos
+	}
+
 	e.Textarea.MoveCursor(cursorPos.Row, cursorPos.ColumnOffset)
 	e.Textarea.RepositionView()
 	return message.StatusBarMsg{}
@@ -883,6 +893,8 @@ func (e *Editor) Undo() message.StatusBarMsg {
 // redo sets the buffer content to the next history entry
 func (e *Editor) Redo() message.StatusBarMsg {
 	val, cursorPos := e.CurrentBuffer.redo()
+	// dirty check
+	e.CurrentBuffer.Dirty = val != *e.CurrentBuffer.LastSavedContent
 	e.Textarea.SetValue(val)
 	e.Textarea.MoveCursor(cursorPos.Row, cursorPos.ColumnOffset)
 	e.Textarea.RepositionView()

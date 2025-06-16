@@ -64,6 +64,10 @@ func (h *History) UpdateEntry(s string, cursorPos CursorPos) error {
 	return nil
 }
 
+func (h *History) Entry(index int) Entry {
+	return h.entries[index]
+}
+
 func (h *History) Undo() (string, CursorPos) {
 	cursorPos := h.entries[h.EntryIndex].UndoCursorPos
 
