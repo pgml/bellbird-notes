@@ -294,6 +294,21 @@ func (m *Model) KeyInputFn() []ki.KeyFn {
 			})},
 		},
 		{
+			Bindings: ki.KeyBindings("s"),
+			Cond: []keyCond{
+				m.editorInputAction(n, func() message.StatusBarMsg {
+					msg := m.editor.DeleteRune(false, true)
+					m.editor.EnterInsertMode(true)
+					return msg
+				}),
+				m.editorInputAction(v, func() message.StatusBarMsg {
+					msg := m.editor.DeleteRune(false, true)
+					m.editor.EnterInsertMode(true)
+					return msg
+				}),
+			},
+		},
+		{
 			Bindings: ki.KeyBindings("x"),
 			Cond: []keyCond{
 				m.editorInputAction(n, func() message.StatusBarMsg {
