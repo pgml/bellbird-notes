@@ -865,7 +865,15 @@ func (e *Editor) SelectedRowsCount() int {
 
 // undo sets the buffer content to the previous history entry
 func (e *Editor) Undo() message.StatusBarMsg {
+	// EntryIndex 0 means the time in the buffer history where the buffer was
+	// opened to get the initial content of the buffer.
+	// We don't want to move there just accept it.
+	if e.CurrentBuffer.History.EntryIndex == 0 {
+		return message.StatusBarMsg{}
+	}
+
 	val, cursorPos := e.CurrentBuffer.undo()
+
 	e.Textarea.SetValue(val)
 	e.Textarea.MoveCursor(cursorPos.Row, cursorPos.ColumnOffset)
 	e.Textarea.RepositionView()

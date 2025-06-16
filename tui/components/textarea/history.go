@@ -9,7 +9,7 @@ import (
 
 type History struct {
 	index      uint
-	entryIndex int
+	EntryIndex int
 	entries    []Entry
 	maxItems   uint
 }
@@ -35,8 +35,8 @@ func (h *History) NewEntry(cursorPos CursorPos) {
 	// if the current index is lower the the length of all entries
 	// truncate the slice to the current index so the history doesn't
 	// get too confusing
-	if entryLen > 0 && h.entryIndex < entryLen {
-		diff := entryLen - h.entryIndex - 1
+	if entryLen > 0 && h.EntryIndex < entryLen {
+		diff := entryLen - h.EntryIndex - 1
 		h.entries = h.entries[:entryLen-diff]
 	}
 
@@ -46,7 +46,7 @@ func (h *History) NewEntry(cursorPos CursorPos) {
 		Content:       "",
 		UndoCursorPos: cursorPos,
 	})
-	h.entryIndex = len(h.entries) - 1
+	h.EntryIndex = len(h.entries) - 1
 }
 
 func (h *History) UpdateEntry(s string, cursorPos CursorPos) error {
@@ -54,34 +54,34 @@ func (h *History) UpdateEntry(s string, cursorPos CursorPos) error {
 		return errors.New("nope")
 	}
 
-	if len(h.entries) < h.entryIndex {
-		debug.LogErr("History entry index not found:", h.entryIndex)
-		return fmt.Errorf("History entry index %d not found", h.entryIndex)
+	if len(h.entries) < h.EntryIndex {
+		debug.LogErr("History entry index not found:", h.EntryIndex)
+		return fmt.Errorf("History entry index %d not found", h.EntryIndex)
 	}
 
-	h.entries[h.entryIndex].Content = s
-	h.entries[h.entryIndex].RedoCursorPos = cursorPos
+	h.entries[h.EntryIndex].Content = s
+	h.entries[h.EntryIndex].RedoCursorPos = cursorPos
 	return nil
 }
 
 func (h *History) Undo() (string, CursorPos) {
-	cursorPos := h.entries[h.entryIndex].UndoCursorPos
+	cursorPos := h.entries[h.EntryIndex].UndoCursorPos
 
-	h.entryIndex--
-	if h.entryIndex < 0 {
-		h.entryIndex = 0
+	h.EntryIndex--
+	if h.EntryIndex < 0 {
+		h.EntryIndex = 0
 	}
 
-	entry := h.entries[h.entryIndex]
+	entry := h.entries[h.EntryIndex]
 	return entry.Content, cursorPos
 }
 
 func (h *History) Redo() (string, CursorPos) {
-	h.entryIndex++
-	if h.entryIndex >= len(h.entries) {
-		h.entryIndex = len(h.entries) - 1
+	h.EntryIndex++
+	if h.EntryIndex >= len(h.entries) {
+		h.EntryIndex = len(h.entries) - 1
 	}
 
-	entry := h.entries[h.entryIndex]
+	entry := h.entries[h.EntryIndex]
 	return entry.Content, entry.RedoCursorPos
 }
