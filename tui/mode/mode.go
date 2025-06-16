@@ -67,3 +67,9 @@ func (m Mode) Colour() color.Color {
 type ModeInstance struct {
 	Current Mode
 }
+
+func (m *ModeInstance) IsAnyVisual() bool {
+	return m.Current == Visual ||
+		m.Current == VisualLine ||
+		m.Current == VisualBlock
+}

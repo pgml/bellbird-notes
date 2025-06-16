@@ -85,6 +85,14 @@ type Buffer struct {
 	LastSavedContent *string
 }
 
+func (b *Buffer) undo() (string, textarea.CursorPos) {
+	return b.History.Undo()
+}
+
+func (b *Buffer) redo() (string, textarea.CursorPos) {
+	return b.History.Redo()
+}
+
 type Input struct {
 	keyinput.Input
 	key      string
@@ -94,14 +102,6 @@ type Input struct {
 type Vim struct {
 	Mode    mode.ModeInstance
 	Pending Input
-}
-
-func (b *Buffer) undo() (string, textarea.CursorPos) {
-	return b.History.Undo()
-}
-
-func (b *Buffer) redo() (string, textarea.CursorPos) {
-	return b.History.Redo()
 }
 
 func NewEditor() *Editor {
@@ -642,7 +642,7 @@ func (e *Editor) LineUp() message.StatusBarMsg {
 		e.Textarea.CursorLineVimEnd()
 	}
 
-	if e.Vim.Mode.Current == mode.Visual {
+	if e.Vim.Mode.IsAnyVisual() {
 		return e.UpdateSelectedRowsCount()
 	}
 	return message.StatusBarMsg{}
@@ -672,7 +672,7 @@ func (e *Editor) LineDown() message.StatusBarMsg {
 		e.Textarea.CursorLineVimEnd()
 	}
 
-	if e.Vim.Mode.Current == mode.Visual {
+	if e.Vim.Mode.IsAnyVisual() {
 		return e.UpdateSelectedRowsCount()
 	}
 	return message.StatusBarMsg{}
