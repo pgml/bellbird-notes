@@ -388,10 +388,13 @@ func (e *Editor) EnterNormalMode() message.StatusBarMsg {
 	// We need to remember if the cursor is at the and of the line
 	// so that lineup and linedown moves the cursor to the end
 	// when it's supposed to do so
+	isInsertMode := e.Vim.Mode.Current == mode.Insert
 	e.isAtLineEnd = false
 	if e.Textarea.IsExceedingLine() {
 		e.Textarea.CursorLineVimEnd()
 		e.isAtLineEnd = true
+	} else if isInsertMode {
+		e.MoveCharacterLeft()
 	}
 
 	if e.Vim.Mode.Current == mode.Visual {
@@ -440,8 +443,10 @@ func (e *Editor) EnterReplaceMode() message.StatusBarMsg {
 func (e *Editor) EnterVisualMode(
 	selectionMode textarea.SelectionMode,
 ) message.StatusBarMsg {
+	if e.Vim.Mode.Current != mode.VisualLine {
+		e.Textarea.StartSelection(selectionMode)
+	}
 	e.Vim.Mode.Current = mode.Visual
-	e.Textarea.StartSelection(selectionMode)
 	e.Textarea.SetCursorColor(mode.VisualBlock.Colour())
 	return e.UpdateSelectedRowsCount()
 }

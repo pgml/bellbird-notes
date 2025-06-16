@@ -168,9 +168,17 @@ func (m *Model) KeyInputFn() []ki.KeyFn {
 		},
 		{
 			Bindings: ki.KeyBindings("v"),
-			Cond: []keyCond{m.editorInputAction(n, func() message.StatusBarMsg {
-				return m.editor.EnterVisualMode(textarea.SelectVisual)
-			})},
+			Cond: []keyCond{
+				m.editorInputAction(n, func() message.StatusBarMsg {
+					return m.editor.EnterVisualMode(textarea.SelectVisual)
+				}),
+				m.editorInputAction(v, func() message.StatusBarMsg {
+					if m.editor.Vim.Mode.Current == mode.VisualLine {
+						return m.editor.EnterVisualMode(textarea.SelectVisual)
+					}
+					return m.editor.EnterNormalMode()
+				}),
+			},
 		},
 		{
 			Bindings: ki.KeyBindings("V"),
@@ -429,7 +437,7 @@ func (m *Model) KeyInputFn() []ki.KeyFn {
 			}, {
 				Mode:       mode.Replace,
 				Components: []c{m.editor},
-				Action:     m.cancelAction,
+				Action:     m.editor.EnterNormalMode,
 			}, {
 				Mode:       mode.Visual,
 				Components: []c{m.editor},
