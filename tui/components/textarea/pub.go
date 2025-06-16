@@ -269,6 +269,12 @@ func (m *Model) DeleteLines(l int, up bool) {
 func (m *Model) DeleteSelectedLines() {
 	minRange, maxRange := m.SelectionRange()
 	for i := minRange.Row; i <= maxRange.Row; i++ {
+		// If there's only one line left don't delete this line, instead
+		// we just empty it
+		if len(m.value) == 1 {
+			m.value[0] = slices.Delete(m.value[0], 0, len(m.value[m.row]))
+			break
+		}
 		m.value = slices.Delete(m.value, m.row, m.row+1)
 		m.row = minRange.Row
 	}
@@ -358,7 +364,7 @@ func (m *Model) SelectionStr() string {
 		}
 
 		// get the selection of the last line
-		if maxCol <= len(m.value[maxRow]) {
+		if maxCol+1 < len(m.value[maxRow]) {
 			line := string(m.value[maxRow])
 			str.WriteString(line[:maxCol+1])
 		}

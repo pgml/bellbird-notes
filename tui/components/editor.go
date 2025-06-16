@@ -786,6 +786,7 @@ func (e *Editor) DeleteNLines(lines int, up bool) message.StatusBarMsg {
 	e.newHistoryEntry()
 	e.Textarea.DeleteLines(lines, up)
 	e.updateHistoryEntry()
+	e.Textarea.RepositionView()
 	return e.ResetSelectedRowsCount()
 }
 
@@ -830,6 +831,7 @@ func (e *Editor) DeleteRune(keepMode bool, withHistory bool) message.StatusBarMs
 	if !keepMode {
 		e.EnterNormalMode()
 	}
+	e.Textarea.RepositionView()
 	return e.ResetSelectedRowsCount()
 }
 
