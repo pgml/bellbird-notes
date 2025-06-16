@@ -3,6 +3,7 @@ package tui
 import (
 	"bellbird-notes/app/utils"
 	"bellbird-notes/tui/components"
+	"bellbird-notes/tui/components/textarea"
 	ki "bellbird-notes/tui/keyinput"
 	"bellbird-notes/tui/message"
 	"bellbird-notes/tui/mode"
@@ -167,7 +168,15 @@ func (m *Model) KeyInputFn() []ki.KeyFn {
 		},
 		{
 			Bindings: ki.KeyBindings("v"),
-			Cond:     []keyCond{m.editorInputAction(n, m.editor.EnterVisualMode)},
+			Cond: []keyCond{m.editorInputAction(n, func() message.StatusBarMsg {
+				return m.editor.EnterVisualMode(textarea.SelectVisual)
+			})},
+		},
+		{
+			Bindings: ki.KeyBindings("V"),
+			Cond: []keyCond{m.editorInputAction(n, func() message.StatusBarMsg {
+				return m.editor.EnterVisualMode(textarea.SelectVisualLine)
+			})},
 		},
 		{
 			Bindings: ki.KeyBindings("u"),
@@ -280,20 +289,35 @@ func (m *Model) KeyInputFn() []ki.KeyFn {
 		},
 		{
 			Bindings: ki.KeyBindings("d"),
-			Cond:     []keyCond{m.editorInputAction(v, m.editor.DeleteRune)},
+			Cond: []keyCond{m.editorInputAction(v, func() message.StatusBarMsg {
+				return m.editor.DeleteRune(false, true)
+			})},
 		},
 		{
 			Bindings: ki.KeyBindings("x"),
 			Cond: []keyCond{
-				m.editorInputAction(n, m.editor.DeleteRune),
-				m.editorInputAction(v, m.editor.DeleteRune),
+				m.editorInputAction(n, func() message.StatusBarMsg {
+					return m.editor.DeleteRune(false, true)
+				}),
+				m.editorInputAction(v, func() message.StatusBarMsg {
+					return m.editor.DeleteRune(false, true)
+				}),
 			},
 		},
 		{
 			Bindings: ki.KeyBindings("c"),
 			Cond: []keyCond{m.editorInputAction(v, func() message.StatusBarMsg {
-				m.editor.DeleteRune()
-				m.editor.EnterInsertMode(false)
+				curMode := m.editor.Textarea.Selection.Mode
+				isVisLine := curMode == textarea.SelectVisualLine
+
+				m.editor.DeleteRune(isVisLine, !isVisLine)
+
+				if isVisLine {
+					m.editor.InsertLineAbove()
+				} else {
+					m.editor.EnterInsertMode(false)
+				}
+
 				return m.editor.ResetSelectedRowsCount()
 			})},
 		},

@@ -1204,8 +1204,8 @@ func (m Model) View() string {
 		style            lipgloss.Style
 		newLines         int
 		widestLineNumber int
-		lineInfo         = m.LineInfo()
-		styles           = m.activeStyle()
+		//lineInfo         = m.LineInfo()
+		styles = m.activeStyle()
 	)
 
 	displayLine := 0
@@ -1264,26 +1264,22 @@ func (m Model) View() string {
 			if selection.Content != "" {
 				selectionColour := lipgloss.Color("#666")
 				s.WriteString(style.Render(selection.Before))
-				s.WriteString(style.Render(m.CursorBeforeSelection()))
-				s.WriteString(style.Background(selectionColour).Render(selection.Content))
-				s.WriteString(style.Render(m.CursorAfterSelection()))
-				s.WriteString(selection.After)
-				// --- MERGE END
-			} else {
-				if m.row == l && lineInfo.RowOffset == wl {
-					s.WriteString(style.Render(string(wrappedLine[:lineInfo.ColumnOffset])))
-					if m.col >= len(line) && lineInfo.CharOffset >= m.width {
-						m.virtualCursor.SetChar(" ")
-						s.WriteString(m.virtualCursor.View())
-					} else {
-						m.virtualCursor.SetChar(string(wrappedLine[lineInfo.ColumnOffset]))
-						s.WriteString(style.Render(m.virtualCursor.View()))
-						s.WriteString(style.Render(string(wrappedLine[lineInfo.ColumnOffset+1:])))
-					}
-				} else {
-					s.WriteString(style.Render(string(wrappedLine)))
+
+				switch m.Selection.Mode {
+				case SelectVisual:
+					s.WriteString(style.Render(m.CursorBeforeSelection()))
+					s.WriteString(style.Background(selectionColour).Render(selection.Content))
+					s.WriteString(style.Render(m.CursorAfterSelection()))
+
+				case SelectVisualLine:
+					st := style.Background(selectionColour)
+					m.RenderLine(&line, &wrappedLine, l, wl, &s, st)
 				}
+				s.WriteString(selection.After)
+			} else {
+				m.RenderLine(&line, &wrappedLine, l, wl, &s, style)
 			}
+			// --- MERGE END
 			s.WriteString(style.Render(strings.Repeat(" ", max(0, padding))))
 			s.WriteRune('\n')
 			newLines++

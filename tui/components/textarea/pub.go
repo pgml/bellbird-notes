@@ -25,9 +25,20 @@ type Selection struct {
 	StartRow int
 	StartCol int
 
+	Mode SelectionMode
+
 	wrappedLline []rune
 	lineIndex    int
 }
+
+type SelectionMode int
+
+const (
+	SelectNone SelectionMode = iota
+	SelectVisual
+	SelectVisualLine
+	SelectVisualBlock
+)
 
 type SelectionContent struct {
 	Before  string
@@ -110,6 +121,32 @@ func (m *Model) DeleteAfterCursor() {
 ///
 /// custom methods
 ///
+
+func (m *Model) RenderLine(
+	line *[]rune,
+	wrappedLine *[]rune,
+	l int,
+	wl int,
+	s *strings.Builder,
+	style lipgloss.Style,
+) {
+	lineInfo := m.LineInfo()
+
+	wrLine := *wrappedLine
+	if m.row == l && lineInfo.RowOffset == wl {
+		s.WriteString(style.Render(string(wrLine[:lineInfo.ColumnOffset])))
+		if m.col >= len(*line) && lineInfo.CharOffset >= m.width {
+			m.virtualCursor.SetChar(" ")
+			s.WriteString(m.virtualCursor.View())
+		} else {
+			m.virtualCursor.SetChar(string(wrLine[lineInfo.ColumnOffset]))
+			s.WriteString(style.Render(m.virtualCursor.View()))
+			s.WriteString(style.Render(string(wrLine[lineInfo.ColumnOffset+1:])))
+		}
+	} else {
+		s.WriteString(style.Render(string(wrLine)))
+	}
+}
 
 func (m *Model) CursorLineEnd() {
 	m.SetCursorColumn(len(m.value[m.row]))
@@ -225,8 +262,15 @@ func (m *Model) DeleteLines(l int, up bool) {
 		m.CursorUp()
 	}
 	for range l {
-		m.SetCursorColumn(l)
 		m.DeleteLine()
+	}
+}
+
+func (m *Model) DeleteSelectedLines() {
+	minRange, maxRange := m.SelectionRange()
+	for i := minRange.Row; i <= maxRange.Row; i++ {
+		m.value = slices.Delete(m.value, m.row, m.row+1)
+		m.row = minRange.Row
 	}
 }
 
@@ -405,10 +449,11 @@ func (m *Model) FirstVisibleLine() int {
 }
 
 // StartSelection prepares a selection
-func (m *Model) StartSelection() {
+func (m *Model) StartSelection(selectionMode SelectionMode) {
 	m.Selection.Cursor.Focus()
 	m.Selection.StartRow = m.row
 	m.Selection.StartCol = m.LineInfo().ColumnOffset
+	m.Selection.Mode = selectionMode
 }
 
 // SelectionRange determines the range of the active selection
@@ -457,6 +502,7 @@ func (m *Model) SelectionStyle() lipgloss.Style {
 func (m *Model) ResetSelection() {
 	m.Selection.StartRow = -1
 	m.Selection.StartCol = -1
+	m.Selection.Mode = SelectNone
 }
 
 // SelectionContent returns the buffer content within the current selection
@@ -489,73 +535,84 @@ func (m *Model) SelectionContent() SelectionContent {
 	lineLen := len(runes)
 
 	if isInRange {
-		minCol := clamp(minRange.ColumnOffset, 0, lineLen)
-		maxCol := clamp(maxRange.ColumnOffset, 0, lineLen)
-		minRow, maxRow := minRange.Row, maxRange.Row
+		if m.Selection.Mode == SelectVisualLine {
+			before = ""
+			if l >= minRange.Row && l <= maxRange.Row {
+				selection = string(runes)
+			}
+			//if m.row >= minRange.Row && m.row <= maxRange.Row {
+			//	selection = wrappedStr
+			//}
+			after = ""
+		} else {
+			minCol := clamp(minRange.ColumnOffset, 0, lineLen)
+			maxCol := clamp(maxRange.ColumnOffset, 0, lineLen)
+			minRow, maxRow := minRange.Row, maxRange.Row
 
-		if colOffset == minCol {
-			colOffset = maxCol
-		}
-
-		switch {
-		// single line selection
-		case minRow == l && maxRow == l:
-			before = string(runes[:minCol])
-
-			if isCursorBeforeSel {
-				minCol = clamp(minCol+1, 0, lineLen)
-				colOffset = clamp(m.Selection.StartCol+1, 0, lineLen)
+			if colOffset == minCol {
+				colOffset = maxCol
 			}
 
-			if colOffset <= lineLen {
-				selection = string(runes[minCol:colOffset])
-			}
+			switch {
+			// single line selection
+			case minRow == l && maxRow == l:
+				before = string(runes[:minCol])
 
-			if maxCol < lineLen {
-				after = string(runes[maxCol+1:])
-			}
-
-		// first line of multi selection
-		case minRow == l:
-			beforePos := minCol
-
-			if m.Selection.StartRow > minRow {
-				if minCol < m.Selection.StartCol {
+				if isCursorBeforeSel {
 					minCol = clamp(minCol+1, 0, lineLen)
-				} else {
-					beforePos = minCol - 1
-					cursorOffset = minCol
+					colOffset = clamp(m.Selection.StartCol+1, 0, lineLen)
 				}
+
+				if colOffset <= lineLen {
+					selection = string(runes[minCol:colOffset])
+				}
+
+				if maxCol < lineLen {
+					after = string(runes[maxCol+1:])
+				}
+
+			// first line of multi selection
+			case minRow == l:
+				beforePos := minCol
+
+				if m.Selection.StartRow > minRow {
+					if minCol < m.Selection.StartCol {
+						minCol = clamp(minCol+1, 0, lineLen)
+					} else {
+						beforePos = minCol - 1
+						cursorOffset = minCol
+					}
+				}
+
+				if beforePos <= lineLen && beforePos >= 0 {
+					before = string(runes[:beforePos])
+				}
+
+				if minCol <= lineLen {
+					selection = string(runes[minCol:])
+				}
+
+			// last line of multi selection
+			case maxRow == l:
+				beforePos := clamp(maxCol+1, 0, lineLen)
+				afterPos := maxCol
+
+				if m.Selection.StartRow > minRow {
+					afterPos = clamp(maxCol+1, 0, lineLen)
+				}
+
+				if afterPos <= lineLen {
+					selection = string(runes[:afterPos])
+				}
+
+				if beforePos <= lineLen {
+					after = string(runes[beforePos:])
+				}
+
+			// full line within selection
+			case l > minRow && l < maxRow:
+				selection = string(runes)
 			}
-
-			if beforePos <= lineLen && beforePos >= 0 {
-				before = string(runes[:beforePos])
-			}
-
-			if minCol <= lineLen {
-				selection = string(runes[minCol:])
-			}
-
-		// last line of multi selection
-		case maxRow == l:
-			beforePos := clamp(maxCol+1, 0, lineLen)
-			afterPos := maxCol
-
-			if m.Selection.StartRow > minRow {
-				afterPos = clamp(maxCol+1, 0, lineLen)
-			}
-
-			if afterPos <= lineLen {
-				selection = string(runes[:afterPos])
-			}
-
-			if beforePos <= lineLen {
-				after = string(runes[beforePos:])
-			}
-
-		// full line within selection
-		case l > minRow && l < maxRow:
-			selection = string(runes)
 		}
 	}
 

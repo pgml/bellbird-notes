@@ -422,10 +422,11 @@ func (e *Editor) EnterInsertMode(withHistory bool) message.StatusBarMsg {
 		e.newHistoryEntry()
 	}
 	e.Textarea.SetCursorColor(mode.Insert.Colour())
+	e.Textarea.ResetSelection()
 	return message.StatusBarMsg{}
 }
 
-// EnterReplaceMode() sets the current editor mode to replace
+// EnterReplaceMode sets the current editor mode to replace
 // and creates a new history entry
 func (e *Editor) EnterReplaceMode() message.StatusBarMsg {
 	e.Vim.Mode.Current = mode.Replace
@@ -434,11 +435,13 @@ func (e *Editor) EnterReplaceMode() message.StatusBarMsg {
 	return message.StatusBarMsg{}
 }
 
-// EnterVisualMode() sets the current editor mode to replace
+// EnterVisualMode sets the current editor mode to replace
 // and creates a new history entry
-func (e *Editor) EnterVisualMode() message.StatusBarMsg {
+func (e *Editor) EnterVisualMode(
+	selectionMode textarea.SelectionMode,
+) message.StatusBarMsg {
 	e.Vim.Mode.Current = mode.Visual
-	e.Textarea.StartSelection()
+	e.Textarea.StartSelection(selectionMode)
 	e.Textarea.SetCursorColor(mode.VisualBlock.Colour())
 	return e.UpdateSelectedRowsCount()
 }
@@ -802,21 +805,31 @@ func (e *Editor) MergeLineBelow() message.StatusBarMsg {
 
 // DeleteRune the rune that the cursor is currently on.
 // If buffer is in visual mode it takes the selection into account
-func (e *Editor) DeleteRune() message.StatusBarMsg {
-	e.newHistoryEntry()
+// If keepMode is true this method doesn't enter normal mode
+func (e *Editor) DeleteRune(keepMode bool, withHistory bool) message.StatusBarMsg {
+	if withHistory {
+		e.newHistoryEntry()
+	}
+
 	c := e.CurrentBuffer.CursorPos
 	char := ""
 
 	if minRange, maxRange := e.Textarea.SelectionRange(); minRange.Row > -1 {
 		char = e.Textarea.SelectionStr()
-		e.Textarea.DeleteRunesInRange(minRange, maxRange)
+		if e.Textarea.Selection.Mode == textarea.SelectVisualLine {
+			e.Textarea.DeleteSelectedLines()
+		} else {
+			e.Textarea.DeleteRunesInRange(minRange, maxRange)
+		}
 	} else {
 		char = e.Textarea.DeleteRune(c.Row, c.ColumnOffset)
 	}
 
 	e.Yank(char)
 
-	e.EnterNormalMode()
+	if !keepMode {
+		e.EnterNormalMode()
+	}
 	return e.ResetSelectedRowsCount()
 }
 
