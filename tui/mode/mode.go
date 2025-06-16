@@ -23,7 +23,7 @@ var modeName = map[Mode]string{
 	Normal:      "n",
 	Insert:      "i",
 	Visual:      "v",
-	VisualLine:  "vi",
+	VisualLine:  "vl",
 	VisualBlock: "vb",
 	Operator:    "o",
 	Replace:     "r",

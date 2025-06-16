@@ -17,8 +17,10 @@ type keyCond = ki.KeyCondition
 type binding = ki.KeyBinding
 
 const (
-	n = mode.Normal
-	v = mode.Visual
+	n  = mode.Normal
+	v  = mode.Visual
+	vl = mode.VisualLine
+	vb = mode.VisualBlock
 )
 
 func (m *Model) KeyInputFn() []ki.KeyFn {
@@ -34,6 +36,8 @@ func (m *Model) KeyInputFn() []ki.KeyFn {
 				},
 				m.editorInputAction(n, m.editor.LineDown),
 				m.editorInputAction(v, m.editor.LineDown),
+				m.editorInputAction(vl, m.editor.LineDown),
+				m.editorInputAction(vb, m.editor.LineDown),
 			},
 		},
 
@@ -48,6 +52,8 @@ func (m *Model) KeyInputFn() []ki.KeyFn {
 				},
 				m.editorInputAction(n, m.editor.LineUp),
 				m.editorInputAction(v, m.editor.LineUp),
+				m.editorInputAction(vl, m.editor.LineUp),
+				m.editorInputAction(vb, m.editor.LineUp),
 			},
 		},
 
@@ -62,6 +68,8 @@ func (m *Model) KeyInputFn() []ki.KeyFn {
 				},
 				m.editorInputAction(n, m.editor.MoveCharacterLeft),
 				m.editorInputAction(v, m.editor.MoveCharacterLeft),
+				m.editorInputAction(vl, m.editor.MoveCharacterLeft),
+				m.editorInputAction(vb, m.editor.MoveCharacterLeft),
 			},
 		},
 
@@ -76,6 +84,8 @@ func (m *Model) KeyInputFn() []ki.KeyFn {
 				},
 				m.editorInputAction(n, m.editor.MoveCharacterRight),
 				m.editorInputAction(v, m.editor.MoveCharacterRight),
+				m.editorInputAction(vl, m.editor.MoveCharacterRight),
+				m.editorInputAction(vb, m.editor.MoveCharacterRight),
 			},
 		},
 
@@ -129,6 +139,8 @@ func (m *Model) KeyInputFn() []ki.KeyFn {
 				},
 				m.editorInputAction(n, m.editor.GoToTop),
 				m.editorInputAction(v, m.editor.GoToTop),
+				m.editorInputAction(vl, m.editor.GoToTop),
+				m.editorInputAction(vb, m.editor.GoToTop),
 			},
 		},
 		{
@@ -141,6 +153,8 @@ func (m *Model) KeyInputFn() []ki.KeyFn {
 				},
 				m.editorInputAction(n, m.editor.GoToBottom),
 				m.editorInputAction(v, m.editor.GoToBottom),
+				m.editorInputAction(vl, m.editor.GoToBottom),
+				m.editorInputAction(vb, m.editor.GoToBottom),
 			},
 		},
 
@@ -173,10 +187,13 @@ func (m *Model) KeyInputFn() []ki.KeyFn {
 					return m.editor.EnterVisualMode(textarea.SelectVisual)
 				}),
 				m.editorInputAction(v, func() message.StatusBarMsg {
-					if m.editor.Vim.Mode.Current == mode.VisualLine {
-						return m.editor.EnterVisualMode(textarea.SelectVisual)
-					}
 					return m.editor.EnterNormalMode()
+				}),
+				m.editorInputAction(vl, func() message.StatusBarMsg {
+					return m.editor.EnterVisualMode(textarea.SelectVisual)
+				}),
+				m.editorInputAction(vb, func() message.StatusBarMsg {
+					return m.editor.EnterVisualMode(textarea.SelectVisual)
 				}),
 			},
 		},
@@ -367,7 +384,11 @@ func (m *Model) KeyInputFn() []ki.KeyFn {
 		},
 		{
 			Bindings: ki.KeyBindings("y"),
-			Cond:     []keyCond{m.editorInputAction(v, m.editor.YankSelection)},
+			Cond: []keyCond{
+				m.editorInputAction(v, m.editor.YankSelection),
+				m.editorInputAction(vl, m.editor.YankSelection),
+				m.editorInputAction(vb, m.editor.YankSelection),
+			},
 		},
 		{
 			Bindings: ki.KeyBindings("p"),
@@ -381,6 +402,8 @@ func (m *Model) KeyInputFn() []ki.KeyFn {
 			Cond: []keyCond{
 				m.editorInputAction(n, m.editor.DownHalfPage),
 				m.editorInputAction(v, m.editor.DownHalfPage),
+				m.editorInputAction(vl, m.editor.DownHalfPage),
+				m.editorInputAction(vb, m.editor.DownHalfPage),
 			},
 		},
 		{
@@ -388,6 +411,8 @@ func (m *Model) KeyInputFn() []ki.KeyFn {
 			Cond: []keyCond{
 				m.editorInputAction(n, m.editor.UpHalfPage),
 				m.editorInputAction(v, m.editor.UpHalfPage),
+				m.editorInputAction(vl, m.editor.UpHalfPage),
+				m.editorInputAction(vb, m.editor.UpHalfPage),
 			},
 		},
 
@@ -440,6 +465,14 @@ func (m *Model) KeyInputFn() []ki.KeyFn {
 				Action:     m.editor.EnterNormalMode,
 			}, {
 				Mode:       mode.Visual,
+				Components: []c{m.editor},
+				Action:     m.editor.EnterNormalMode,
+			}, {
+				Mode:       mode.VisualLine,
+				Components: []c{m.editor},
+				Action:     m.editor.EnterNormalMode,
+			}, {
+				Mode:       mode.VisualBlock,
 				Components: []c{m.editor},
 				Action:     m.editor.EnterNormalMode,
 			}},

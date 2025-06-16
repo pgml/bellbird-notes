@@ -457,8 +457,10 @@ func (m *Model) FirstVisibleLine() int {
 // StartSelection prepares a selection
 func (m *Model) StartSelection(selectionMode SelectionMode) {
 	m.Selection.Cursor.Focus()
-	m.Selection.StartRow = m.row
-	m.Selection.StartCol = m.LineInfo().ColumnOffset
+	if m.Selection.StartRow < 0 {
+		m.Selection.StartRow = m.row
+		m.Selection.StartCol = m.LineInfo().ColumnOffset
+	}
 	m.Selection.Mode = selectionMode
 }
 

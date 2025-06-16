@@ -443,10 +443,14 @@ func (e *Editor) EnterReplaceMode() message.StatusBarMsg {
 func (e *Editor) EnterVisualMode(
 	selectionMode textarea.SelectionMode,
 ) message.StatusBarMsg {
-	if e.Vim.Mode.Current != mode.VisualLine {
-		e.Textarea.StartSelection(selectionMode)
+	e.Textarea.StartSelection(selectionMode)
+
+	vimMode := mode.Visual
+	if selectionMode == textarea.SelectVisualLine {
+		vimMode = mode.VisualLine
 	}
-	e.Vim.Mode.Current = mode.Visual
+
+	e.Vim.Mode.Current = vimMode
 	e.Textarea.SetCursorColor(mode.VisualBlock.Colour())
 	return e.UpdateSelectedRowsCount()
 }
