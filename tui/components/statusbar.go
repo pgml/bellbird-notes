@@ -69,11 +69,16 @@ func (s *StatusBar) Update(
 ) *StatusBar {
 	for i := range msgs {
 		msg := msgs[i]
+
+		if s.ColContent(msg.Column) == msg.Content && msg.Column != sbc.General {
+			continue
+		}
+
 		// only update content if there is
 		// no kind of input focused since we don't want to overwrite
 		// the original message of the prompt
 		if s.Type != message.PromptError {
-			s.SetColContent(msg.Column, msg.Content)
+			s.SetColContent(msg.Column, &msg.Content)
 		}
 
 		// we only really need the type for displaying messages in the
@@ -212,7 +217,7 @@ func (s *StatusBar) ConfirmAction(
 		e.SetNoNumbers()
 	}
 
-	s.SetColContent(statusMsg.Column, statusMsg.Content)
+	s.SetColContent(statusMsg.Column, &statusMsg.Content)
 	s.BlurPrompt()
 
 	return statusMsg
@@ -228,8 +233,8 @@ func (s *StatusBar) ColContent(col sbc.Column) string {
 	return s.Columns[col]
 }
 
-func (s *StatusBar) SetColContent(col sbc.Column, cnt string) {
-	s.Columns[col] = cnt
+func (s *StatusBar) SetColContent(col sbc.Column, cnt *string) {
+	s.Columns[col] = *cnt
 }
 
 func (s *StatusBar) FocusPrompt() {
