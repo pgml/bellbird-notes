@@ -4,11 +4,13 @@
 package textarea
 
 import (
+	"image/color"
 	"slices"
 	"strings"
 	"unicode"
 
 	"github.com/charmbracelet/bubbles/v2/cursor"
+	tea "github.com/charmbracelet/bubbletea/v2"
 	"github.com/charmbracelet/lipgloss/v2"
 )
 
@@ -142,11 +144,22 @@ func (m *Model) MoveCursor(row int, col int) {
 	//m.lastCharOffset = 0
 }
 
-func (m Model) CursorPos() CursorPos {
+func (m *Model) CursorPos() CursorPos {
 	return CursorPos{
 		Row:          m.row,
 		ColumnOffset: m.LineInfo().ColumnOffset,
 	}
+}
+
+func (m *Model) SetCursorColor(color color.Color) {
+	style := CursorStyle{
+		Color:      color,
+		Shape:      tea.CursorBlock,
+		Blink:      false,
+		BlinkSpeed: 0,
+	}
+	m.Styles.Cursor = style
+	m.updateVirtualCursorStyle()
 }
 
 func (m *Model) DeleteOuterWord() {

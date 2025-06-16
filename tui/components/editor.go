@@ -405,8 +405,8 @@ func (e *Editor) EnterNormalMode() message.StatusBarMsg {
 	e.CurrentBuffer.Content = e.Textarea.Value()
 	e.updateHistoryEntry()
 	e.Textarea.ResetSelection()
+	e.Textarea.SetCursorColor(mode.Normal.Colour())
 
-	debug.LogDebug(statusMsg)
 	return statusMsg
 }
 
@@ -417,6 +417,7 @@ func (e *Editor) EnterInsertMode(withHistory bool) message.StatusBarMsg {
 	if withHistory {
 		e.newHistoryEntry()
 	}
+	e.Textarea.SetCursorColor(mode.Insert.Colour())
 	return message.StatusBarMsg{}
 }
 
@@ -425,6 +426,7 @@ func (e *Editor) EnterInsertMode(withHistory bool) message.StatusBarMsg {
 func (e *Editor) EnterReplaceMode() message.StatusBarMsg {
 	e.Vim.Mode.Current = mode.Replace
 	e.newHistoryEntry()
+	e.Textarea.SetCursorColor(mode.Replace.Colour())
 	return message.StatusBarMsg{}
 }
 
@@ -433,6 +435,7 @@ func (e *Editor) EnterReplaceMode() message.StatusBarMsg {
 func (e *Editor) EnterVisualMode() message.StatusBarMsg {
 	e.Vim.Mode.Current = mode.Visual
 	e.Textarea.StartSelection()
+	e.Textarea.SetCursorColor(mode.VisualBlock.Colour())
 	return e.UpdateSelectedRowsCount()
 }
 
