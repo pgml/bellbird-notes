@@ -170,9 +170,6 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case mode.Command:
 			cmd = e.handleCommandMode(msg)
-
-		case mode.Visual:
-			cmd = e.handleVisualMode(msg)
 		}
 
 		pos := e.Textarea.CursorPos()
@@ -377,12 +374,12 @@ func (e *Editor) bufferExists(path string) (*Buffer, bool) {
 // saves the cursor position.
 // It also updates the current history entry
 func (e *Editor) EnterNormalMode() message.StatusBarMsg {
-	e.Vim.Mode.Current = mode.Normal
-
 	statusMsg := message.StatusBarMsg{
 		Content: "",
 		Column:  sbc.General,
 	}
+
+	e.Textarea.ResetSelection()
 
 	// We need to remember if the cursor is at the and of the line
 	// so that lineup and linedown moves the cursor to the end
@@ -392,6 +389,12 @@ func (e *Editor) EnterNormalMode() message.StatusBarMsg {
 		e.Textarea.CursorLineVimEnd()
 		e.isAtLineEnd = true
 	}
+
+	if e.Vim.Mode.Current == mode.Visual {
+		statusMsg.Column = sbc.KeyInfo
+	}
+
+	e.Vim.Mode.Current = mode.Normal
 
 	if e.CurrentBuffer == nil {
 		return statusMsg
@@ -403,6 +406,7 @@ func (e *Editor) EnterNormalMode() message.StatusBarMsg {
 	e.updateHistoryEntry()
 	e.Textarea.ResetSelection()
 
+	debug.LogDebug(statusMsg)
 	return statusMsg
 }
 
@@ -429,7 +433,7 @@ func (e *Editor) EnterReplaceMode() message.StatusBarMsg {
 func (e *Editor) EnterVisualMode() message.StatusBarMsg {
 	e.Vim.Mode.Current = mode.Visual
 	e.Textarea.StartSelection()
-	return message.StatusBarMsg{}
+	return e.UpdateSelectedRowsCount()
 }
 
 func (e *Editor) newHistoryEntry() {
@@ -633,6 +637,9 @@ func (e *Editor) LineUp() message.StatusBarMsg {
 		e.Textarea.CursorLineVimEnd()
 	}
 
+	if e.Vim.Mode.Current == mode.Visual {
+		return e.UpdateSelectedRowsCount()
+	}
 	return message.StatusBarMsg{}
 }
 
@@ -660,6 +667,9 @@ func (e *Editor) LineDown() message.StatusBarMsg {
 		e.Textarea.CursorLineVimEnd()
 	}
 
+	if e.Vim.Mode.Current == mode.Visual {
+		return e.UpdateSelectedRowsCount()
+	}
 	return message.StatusBarMsg{}
 }
 
@@ -815,6 +825,22 @@ func (e *Editor) DeleteRune() message.StatusBarMsg {
 	return message.StatusBarMsg{}
 }
 
+func (e *Editor) UpdateSelectedRowsCount() message.StatusBarMsg {
+	return message.StatusBarMsg{
+		Content: strconv.Itoa(e.SelectedRowsCount()),
+		Column:  sbc.KeyInfo,
+	}
+}
+
+func (e *Editor) SelectedRowsCount() int {
+	startRow := e.Textarea.Selection.StartRow
+	cursorRow := e.Textarea.CursorPos().Row
+	minRow := min(startRow, cursorRow)
+	maxRow := max(startRow, cursorRow)
+
+	return (maxRow - minRow) + 1
+}
+
 // undo sets the buffer content to the previous history entry
 func (e *Editor) Undo() message.StatusBarMsg {
 	val, cursorPos := e.CurrentBuffer.undo()
@@ -854,7 +880,6 @@ func (e *Editor) Paste() message.StatusBarMsg {
 		}
 	})
 	e.updateHistoryEntry()
-	debug.LogDebug(e.Textarea.CursorPos())
 	e.Textarea.RepositionView()
 	return message.StatusBarMsg{}
 }

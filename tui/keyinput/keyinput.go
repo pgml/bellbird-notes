@@ -211,7 +211,7 @@ func (ki *Input) FetchKeyMap(resetSeq bool) {
 func (ki *Input) addSequenceKey(binding string) {
 	runeCount := utf8.RuneCountInString(binding)
 
-	if runeCount == 3 && (binding != "esc" || binding != "alt") {
+	if runeCount == 3 && binding != "esc" && binding != "alt" {
 		runes := []rune(binding)
 		r := string(runes[0]) + string(runes[1])
 		if !slices.Contains(ki.sequenceKeys, r) {

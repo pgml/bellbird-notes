@@ -379,6 +379,10 @@ func (m *Model) KeyInputFn() []ki.KeyFn {
 				Mode:       mode.Replace,
 				Components: []c{m.editor},
 				Action:     m.cancelAction,
+			}, {
+				Mode:       mode.Visual,
+				Components: []c{m.editor},
+				Action:     m.editor.EnterNormalMode,
 			}},
 		},
 		{
