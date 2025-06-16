@@ -160,8 +160,6 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			cmd = e.Textarea.Focus()
 		}
 
-		origCnt := e.Textarea.Value()
-
 		switch e.Vim.Mode.Current {
 		case mode.Insert:
 			cmd = e.handleInsertMode(msg)
@@ -179,7 +177,7 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			config.CursorPosition,
 			strconv.Itoa(pos.Row)+","+strconv.Itoa(pos.ColumnOffset),
 		)
-		e.checkDirtySince(origCnt)
+		e.checkDirty()
 
 	case tea.WindowSizeMsg:
 		termWidth, termHeight := theme.GetTerminalSize()
@@ -459,25 +457,11 @@ func (e *Editor) updateHistoryEntry() {
 
 // checkDirty marks the current buffer as dirty if the current
 // buffer is unsaved and the content differs from the saved content's file
-func (e *Editor) checkDirty(fn func()) bool {
-	before := e.Textarea.Value()
-	fn()
-	after := e.Textarea.Value()
-
-	if before != after {
-		e.CurrentBuffer.Content = after
-		e.CurrentBuffer.Dirty = true
-	}
-
-	return e.CurrentBuffer.Dirty
-}
-
-func (e *Editor) checkDirtySince(previous string) {
-	current := e.Textarea.Value()
-	if previous != current {
-		e.CurrentBuffer.Content = current
-		e.CurrentBuffer.Dirty = true
-	}
+// func (e *Editor) checkDirty(fn func()) bool {
+func (e *Editor) checkDirty() bool {
+	isDirty := e.Textarea.Value() != *e.CurrentBuffer.LastSavedContent
+	e.CurrentBuffer.Dirty = isDirty
+	return isDirty
 }
 
 func (e *Editor) fileProgress() int {
@@ -763,16 +747,14 @@ func (e *Editor) UpHalfPage() message.StatusBarMsg {
 
 func (e *Editor) DeleteLine() message.StatusBarMsg {
 	e.newHistoryEntry()
-	e.checkDirty(e.Textarea.DeleteLine)
+	e.Textarea.DeleteLine()
 	e.updateHistoryEntry()
 	return e.UpdateSelectedRowsCount()
 }
 
 func (e *Editor) DeleteInnerWord(enterInsertMode bool) message.StatusBarMsg {
 	e.newHistoryEntry()
-	e.checkDirty(func() {
-		e.Textarea.DeleteInnerWord()
-	})
+	e.Textarea.DeleteInnerWord()
 	e.updateHistoryEntry()
 	if enterInsertMode {
 		e.Vim.Mode.Current = mode.Insert
@@ -782,9 +764,7 @@ func (e *Editor) DeleteInnerWord(enterInsertMode bool) message.StatusBarMsg {
 
 func (e *Editor) DeleteOuterWord(enterInsertMode bool) message.StatusBarMsg {
 	e.newHistoryEntry()
-	e.checkDirty(func() {
-		e.Textarea.DeleteOuterWord()
-	})
+	e.Textarea.DeleteOuterWord()
 	e.updateHistoryEntry()
 	if enterInsertMode {
 		e.Vim.Mode.Current = mode.Insert
@@ -794,32 +774,28 @@ func (e *Editor) DeleteOuterWord(enterInsertMode bool) message.StatusBarMsg {
 
 func (e *Editor) DeleteAfterCursor() message.StatusBarMsg {
 	e.newHistoryEntry()
-	e.checkDirty(e.Textarea.DeleteAfterCursor)
+	e.Textarea.DeleteAfterCursor()
 	e.updateHistoryEntry()
 	return e.ResetSelectedRowsCount()
 }
 
 func (e *Editor) DeleteNLines(lines int, up bool) message.StatusBarMsg {
 	e.newHistoryEntry()
-	e.checkDirty(func() {
-		e.Textarea.DeleteLines(lines, up)
-	})
+	e.Textarea.DeleteLines(lines, up)
 	e.updateHistoryEntry()
 	return e.ResetSelectedRowsCount()
 }
 
 func (e *Editor) DeleteWordRight() message.StatusBarMsg {
 	e.newHistoryEntry()
-	e.checkDirty(e.Textarea.DeleteWordRight)
+	e.Textarea.DeleteWordRight()
 	e.updateHistoryEntry()
 	return message.StatusBarMsg{}
 }
 
 func (e *Editor) MergeLineBelow() message.StatusBarMsg {
 	e.newHistoryEntry()
-	e.checkDirty(func() {
-		e.Textarea.VimMergeLineBelow(e.CurrentBuffer.CursorPos.Row)
-	})
+	e.Textarea.VimMergeLineBelow(e.CurrentBuffer.CursorPos.Row)
 	e.updateHistoryEntry()
 	return message.StatusBarMsg{}
 }
@@ -828,19 +804,17 @@ func (e *Editor) MergeLineBelow() message.StatusBarMsg {
 // If buffer is in visual mode it takes the selection into account
 func (e *Editor) DeleteRune() message.StatusBarMsg {
 	e.newHistoryEntry()
-	e.checkDirty(func() {
-		c := e.CurrentBuffer.CursorPos
-		char := ""
+	c := e.CurrentBuffer.CursorPos
+	char := ""
 
-		if minRange, maxRange := e.Textarea.SelectionRange(); minRange.Row > -1 {
-			char = e.Textarea.SelectionStr()
-			e.Textarea.DeleteRunesInRange(minRange, maxRange)
-		} else {
-			char = e.Textarea.DeleteRune(c.Row, c.ColumnOffset)
-		}
+	if minRange, maxRange := e.Textarea.SelectionRange(); minRange.Row > -1 {
+		char = e.Textarea.SelectionStr()
+		e.Textarea.DeleteRunesInRange(minRange, maxRange)
+	} else {
+		char = e.Textarea.DeleteRune(c.Row, c.ColumnOffset)
+	}
 
-		e.Yank(char)
-	})
+	e.Yank(char)
 
 	e.EnterNormalMode()
 	return e.ResetSelectedRowsCount()
@@ -916,11 +890,9 @@ func (e *Editor) YankSelection() message.StatusBarMsg {
 
 func (e *Editor) Paste() message.StatusBarMsg {
 	e.newHistoryEntry()
-	e.checkDirty(func() {
-		if cnt, err := clipboard.ReadAll(); err == nil {
-			e.Textarea.InsertString(cnt)
-		}
-	})
+	if cnt, err := clipboard.ReadAll(); err == nil {
+		e.Textarea.InsertString(cnt)
+	}
 	e.updateHistoryEntry()
 	e.Textarea.RepositionView()
 	return message.StatusBarMsg{}
