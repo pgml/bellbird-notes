@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"bellbird-notes/app/config"
 	"bellbird-notes/internal/interfaces"
 	"bellbird-notes/tui/components"
 	"bellbird-notes/tui/keyinput"
@@ -37,14 +38,17 @@ func InitialModel() *Model {
 		Current: mode.Normal,
 	}
 
+	conf := config.New()
+	conf.SetDefaults()
+
 	m := Model{
 		layout:       layout,
 		mode:         mode,
 		currColFocus: 1,
 		keyInput:     keyinput.New(),
-		dirTree:      components.NewDirectoryTree(),
-		notesList:    components.NewNotesList(),
-		editor:       components.NewEditor(),
+		dirTree:      components.NewDirectoryTree(conf),
+		notesList:    components.NewNotesList(conf),
+		editor:       components.NewEditor(conf),
 		statusBar:    components.NewStatusBar(),
 	}
 

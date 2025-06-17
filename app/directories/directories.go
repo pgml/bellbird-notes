@@ -46,7 +46,7 @@ func List(dirPath string) ([]Directory, error) {
 		}
 
 		nbrDirs, _ := List(filePath)
-		exp := conf.MetaValue(filePath, config.Expanded)
+		exp, _ := conf.MetaValue(filePath, config.Expanded)
 		expanded := false
 
 		if exp == "true" {

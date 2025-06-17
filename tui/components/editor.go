@@ -68,7 +68,7 @@ type Editor struct {
 
 	ShowLineNumbers bool
 
-	config config.Config
+	config *config.Config
 	err    error
 }
 
@@ -104,7 +104,7 @@ type Vim struct {
 	Pending Input
 }
 
-func NewEditor() *Editor {
+func NewEditor(conf *config.Config) *Editor {
 	ta := textarea.New()
 	ta.Prompt = ""
 	ta.Styles.Focused.CursorLine = cursorLine
@@ -131,7 +131,7 @@ func NewEditor() *Editor {
 		isAtLineStart:   false,
 		ShowLineNumbers: false,
 		err:             nil,
-		config:          *config.New(),
+		config:          conf,
 	}
 
 	editor.Textarea.ShowLineNumbers = editor.ShowLineNumbers

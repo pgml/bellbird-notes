@@ -140,14 +140,12 @@ func (l *NotesList) View() string {
 }
 
 // NewNotesList creates a new model with default settings.
-func NewNotesList() *NotesList {
+func NewNotesList(conf *config.Config) *NotesList {
 	ti := textinput.New()
 	ti.Prompt = " " + theme.Icon(theme.IconPen) + " "
 	ti.CharLimit = 100
 
-	conf := config.New()
-
-	notesDir, err := conf.Value(config.General, config.UserNotesDirectory)
+	notesDir, err := conf.Value(config.General, config.NotesDirectory)
 	if err != nil {
 		notesDir, _ = app.NotesRootDir()
 	}

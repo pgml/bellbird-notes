@@ -240,7 +240,7 @@ func (t *DirectoryTree) View() string {
 }
 
 // NewDirectoryTree creates a new model with default settings.
-func NewDirectoryTree() *DirectoryTree {
+func NewDirectoryTree(conf *config.Config) *DirectoryTree {
 	ti := textinput.New()
 	ti.Prompt = theme.Icon(theme.IconPen) + " "
 	ti.CharLimit = 100
@@ -252,15 +252,14 @@ func NewDirectoryTree() *DirectoryTree {
 			EditState:     EditStates.None,
 			editor:        ti,
 			items:         make([]TreeItem, 0),
-			config:        *config.New(),
+			config:        conf,
 		},
 		expandedDirs: make(map[string]bool),
 	}
 
-	conf := config.New()
 	notesDir, err := conf.Value(
 		config.General,
-		config.UserNotesDirectory,
+		config.NotesDirectory,
 	)
 
 	if err != nil {

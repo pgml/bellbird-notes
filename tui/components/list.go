@@ -64,7 +64,7 @@ type List[T ListItem] struct {
 	lastVisibleLine  int
 	visibleLines     int
 
-	config config.Config
+	config *config.Config
 }
 
 type Item struct {
