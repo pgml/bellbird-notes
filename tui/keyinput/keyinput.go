@@ -146,7 +146,7 @@ func (ki *Input) HandleSequences(key string) []message.StatusBarMsg {
 
 	keyInfoMsg := message.StatusBarMsg{Content: "", Column: sbc.KeyInfo}
 
-	if !ki.isBinding(ki.KeySequence) {
+	if ki.Mode != mode.Command && !ki.isBinding(ki.KeySequence) {
 		mod, isModifier := ki.isModifier(key)
 
 		if slices.Contains(ki.sequenceKeys, ki.KeySequence) || isModifier {
