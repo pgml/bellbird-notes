@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"bellbird-notes/app/utils"
 	"bellbird-notes/internal/interfaces"
 	"bellbird-notes/tui/message"
 	"bellbird-notes/tui/mode"
@@ -96,18 +97,7 @@ func (s *StatusBar) Update(
 			s.Prompt, _ = s.Prompt.Update(teaMsg)
 			return s
 		}
-		//if s.Mode == mode.Normal {
-		//	s.BlurPrompt()
-		//}
-
-		//case teaMsg.WindowSizeMsg:
-		//	// Convert WindowSizeMsg to BubbleLayoutMsg.
-		//	return s, func() teaMsg.(type) {
-		//		return s.layout.Resize(teaMsg.Width, teaMsg.Height)
-		//	}
 	}
-
-	//app.LogDebug(s.Columns[0].size.Width, s.Columns[1].size.Width)
 
 	return s
 }
@@ -141,6 +131,8 @@ func (s *StatusBar) View() string {
 	wColKeyInfo := 15
 	wColProgress := 15
 	wColGeneral := max(width-(wColFileInfo+wColKeyInfo+wColProgress), 1)
+
+	colFileInfo = utils.TruncateText(colFileInfo, wColFileInfo)
 
 	return lipgloss.JoinHorizontal(lipgloss.Right,
 		style.Width(wColGeneral).
