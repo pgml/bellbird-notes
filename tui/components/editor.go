@@ -914,20 +914,41 @@ func (e *Editor) Yank(str string) message.StatusBarMsg {
 	return message.StatusBarMsg{}
 }
 
-func (e *Editor) YankSelection() message.StatusBarMsg {
+func (e *Editor) YankSelection(keepCursorPos bool) message.StatusBarMsg {
 	sel := e.Textarea.SelectionStr()
 	clipboard.WriteAll(sel)
 
-	startRow := e.Textarea.Selection.StartRow
-	startCol := e.Textarea.Selection.StartCol
-	if e.Vim.Mode.Current == mode.VisualLine {
-		startCol = 0
+	if keepCursorPos {
+		e.Textarea.SetCursorColumn(e.CurrentBuffer.CursorPos.ColumnOffset)
+	} else {
+		startRow := e.Textarea.Selection.StartRow
+		startCol := e.Textarea.Selection.StartCol
+		if e.Vim.Mode.Current == mode.VisualLine {
+			startCol = 0
+		}
+		// move the cursor to the beginning of the selection
+		e.Textarea.MoveCursor(startRow, startCol)
 	}
-	// move the cursor to the beginning of the selection
-	e.Textarea.MoveCursor(startRow, startCol)
-	e.Textarea.ResetSelection()
+
 	e.EnterNormalMode()
 	return message.StatusBarMsg{}
+}
+
+func (e *Editor) YankLine() message.StatusBarMsg {
+	e.Textarea.CursorStart()
+	e.Textarea.StartSelection(textarea.SelectVisual)
+	e.Textarea.CursorLineVimEnd()
+	return e.YankSelection(true)
+}
+
+func (e *Editor) YankInnerWord() message.StatusBarMsg {
+	e.Textarea.SelectInnerWord()
+	return e.YankSelection(false)
+}
+
+func (e *Editor) YankOuterWord() message.StatusBarMsg {
+	e.Textarea.SelectOuterWord()
+	return e.YankSelection(false)
 }
 
 func (e *Editor) Paste() message.StatusBarMsg {

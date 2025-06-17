@@ -413,10 +413,22 @@ func (m *Model) KeyInputFn() []ki.KeyFn {
 		{
 			Bindings: ki.KeyBindings("y"),
 			Cond: []keyCond{
-				m.editorInputAction(v, m.editor.YankSelection),
-				m.editorInputAction(vl, m.editor.YankSelection),
-				m.editorInputAction(vb, m.editor.YankSelection),
+				m.editorInputAction(v, func() message.StatusBarMsg { return m.editor.YankSelection(false) }),
+				m.editorInputAction(vl, func() message.StatusBarMsg { return m.editor.YankSelection(false) }),
+				m.editorInputAction(vb, func() message.StatusBarMsg { return m.editor.YankSelection(false) }),
 			},
+		},
+		{
+			Bindings: ki.KeyBindings("yy"),
+			Cond:     []keyCond{m.editorInputAction(n, m.editor.YankLine)},
+		},
+		{
+			Bindings: ki.KeyBindings("yiw"),
+			Cond:     []keyCond{m.editorInputAction(n, m.editor.YankInnerWord)},
+		},
+		{
+			Bindings: ki.KeyBindings("yaw"),
+			Cond:     []keyCond{m.editorInputAction(n, m.editor.YankOuterWord)},
 		},
 		{
 			Bindings: ki.KeyBindings("p"),
