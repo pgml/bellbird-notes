@@ -207,6 +207,8 @@ func (s *StatusBar) ConfirmAction(
 		e.SetNumbers()
 	case "set nonumber":
 		e.SetNoNumbers()
+	case "config":
+		statusMsg = e.OpenConfig()
 	}
 
 	s.SetColContent(statusMsg.Column, &statusMsg.Content)

@@ -552,6 +552,13 @@ func (e *Editor) SetNoNumbers() {
 	e.build()
 }
 
+func (e *Editor) OpenConfig() message.StatusBarMsg {
+	if configFile, err := app.ConfigFile(false); err == nil {
+		return e.OpenBuffer(configFile)
+	}
+	return message.StatusBarMsg{}
+}
+
 // moveCharacterLeft moves the cursor one character to the left
 // and checks if the cursor is either at the end or the beginning
 // of the line and saves it's position
