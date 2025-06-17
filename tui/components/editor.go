@@ -757,6 +757,16 @@ func (e *Editor) UpHalfPage() message.StatusBarMsg {
 	return e.UpdateSelectedRowsCount()
 }
 
+func (e *Editor) SelectInnerWord() message.StatusBarMsg {
+	e.Textarea.SelectInnerWord()
+	return e.UpdateSelectedRowsCount()
+}
+
+func (e *Editor) SelectOuterWord() message.StatusBarMsg {
+	e.Textarea.SelectOuterWord()
+	return e.UpdateSelectedRowsCount()
+}
+
 func (e *Editor) DeleteLine() message.StatusBarMsg {
 	e.newHistoryEntry()
 	e.Textarea.DeleteLine()

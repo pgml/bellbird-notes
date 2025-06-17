@@ -324,6 +324,15 @@ func (m *Model) ReplaceRune(replaceWith rune) {
 	m.value[m.row][m.col] = replaceWith
 }
 
+// FirstVisibleLine returns the first line of the viewport
+func (m *Model) FirstVisibleLine() int {
+	return m.viewport.YOffset
+}
+
+func (p CursorPos) GreaterThan(other CursorPos) bool {
+	return p.Row > other.Row || (p.Row == other.Row && p.ColumnOffset > other.ColumnOffset)
+}
+
 func (m *Model) SelectionStr() string {
 	minRange, maxRange := m.SelectionRange()
 	minRow, maxRow := minRange.Row, maxRange.Row
@@ -457,11 +466,6 @@ func (m *Model) DeleteRunesInRange(minRange CursorPos, maxRange CursorPos) {
 	m.ResetSelection()
 }
 
-// FirstVisibleLine returns the first line of the viewport
-func (m *Model) FirstVisibleLine() int {
-	return m.viewport.YOffset
-}
-
 // StartSelection prepares a selection
 func (m *Model) StartSelection(selectionMode SelectionMode) {
 	m.Selection.Cursor.Focus()
@@ -470,6 +474,56 @@ func (m *Model) StartSelection(selectionMode SelectionMode) {
 		m.Selection.StartCol = m.LineInfo().ColumnOffset
 	}
 	m.Selection.Mode = selectionMode
+}
+
+func (m *Model) SelectInnerWord() {
+	// if the current character is space then just enter visual mode
+	if unicode.IsSpace(m.value[m.row][m.col]) {
+		m.StartSelection(SelectVisual)
+		return
+	}
+
+	m.col = clamp(m.col, 0, len(m.value[m.row])-1)
+
+	if m.col > 0 {
+		for {
+			m.characterLeft(false)
+			// break early if we're at the first word and don't move
+			// to the previous row
+			if m.col == 0 {
+				break
+			}
+			// move left until we hit a space rune
+			if m.col >= 0 && unicode.IsSpace(m.value[m.row][m.col]) {
+				// increment column offset so that the cursor
+				// isn't at the position where the space rune was
+				m.col++
+				break
+			}
+		}
+	}
+
+	// start selection at the first character of the word
+	m.Selection.StartRow = m.row
+	m.Selection.StartCol = m.col
+	m.Selection.Mode = SelectVisual
+
+	// move right until we find a space and break
+	for {
+		m.characterRight()
+		if m.col == len(m.value[m.row])-1 {
+			break
+		}
+		if unicode.IsSpace(m.value[m.row][m.col+1]) {
+			break
+		}
+	}
+}
+
+func (m *Model) SelectOuterWord() {
+	m.SelectInnerWord()
+	//m.SetCursorColumn(m.col + 1)
+	m.col = clamp(m.col+1, 0, len(m.value[m.row])-1)
 }
 
 // SelectionRange determines the range of the active selection
@@ -491,10 +545,6 @@ func (m *Model) SelectionRange() (CursorPos, CursorPos) {
 	}
 
 	return selectionStart, cursor
-}
-
-func (p CursorPos) GreaterThan(other CursorPos) bool {
-	return p.Row > other.Row || (p.Row == other.Row && p.ColumnOffset > other.ColumnOffset)
 }
 
 // InRange checks whether the current row is between `minPos` and `maxPos`

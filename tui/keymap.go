@@ -196,6 +196,14 @@ func (m *Model) KeyInputFn() []ki.KeyFn {
 			},
 		},
 		{
+			Bindings: ki.KeyBindings("iw"),
+			Cond:     []keyCond{m.editorInputAction(v, m.editor.SelectInnerWord)},
+		},
+		{
+			Bindings: ki.KeyBindings("aw"),
+			Cond:     []keyCond{m.editorInputAction(v, m.editor.SelectOuterWord)},
+		},
+		{
 			Bindings: ki.KeyBindings("V"),
 			Cond: []keyCond{
 				m.editorInputAction(n, func() message.StatusBarMsg {
