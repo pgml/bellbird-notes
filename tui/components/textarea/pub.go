@@ -231,7 +231,7 @@ func (m *Model) DeleteInnerWord() {
 
 			// move left until we hit a space rune
 			if m.col < len(m.value[m.row]) &&
-				unicode.IsSpace(m.value[m.row][m.col]) {
+				!unicode.IsLetter(m.value[m.row][m.col]) {
 
 				// increment column offset so that the cursor
 				// isn't at the position where the space rune was
@@ -280,8 +280,37 @@ func (m *Model) DeleteSelectedLines() {
 	}
 }
 
+// deleteWordRight deletes the word right to the cursor.
+// In contrast to m.deleteWordRight this method separates by non-letters
+// instead of space
 func (m *Model) DeleteWordRight() {
-	m.deleteWordRight()
+	if m.col >= len(m.value[m.row]) || len(m.value[m.row]) == 0 {
+		return
+	}
+
+	oldCol := m.col
+
+	for m.col < len(m.value[m.row]) && !unicode.IsLetter(m.value[m.row][m.col]) {
+		// ignore series of whitespace after cursor
+		m.SetCursorColumn(m.col + 1)
+	}
+
+	for m.col < len(m.value[m.row]) {
+		if unicode.IsLetter(m.value[m.row][m.col]) {
+			m.SetCursorColumn(m.col + 1)
+		} else {
+			break
+		}
+	}
+
+	if m.col > len(m.value[m.row]) {
+		m.value[m.row] = m.value[m.row][:oldCol]
+	} else {
+		m.value[m.row] = append(m.value[m.row][:oldCol], m.value[m.row][m.col:]...)
+	}
+
+	m.SetCursorColumn(oldCol)
+	//m.deleteWordRight()
 }
 
 func (m *Model) VimMergeLineBelow(row int) {
@@ -494,7 +523,7 @@ func (m *Model) SelectInnerWord() {
 				break
 			}
 			// move left until we hit a space rune
-			if m.col >= 0 && unicode.IsSpace(m.value[m.row][m.col]) {
+			if m.col >= 0 && !unicode.IsLetter(m.value[m.row][m.col]) {
 				// increment column offset so that the cursor
 				// isn't at the position where the space rune was
 				m.col++
@@ -514,7 +543,7 @@ func (m *Model) SelectInnerWord() {
 		if m.col == len(m.value[m.row])-1 {
 			break
 		}
-		if unicode.IsSpace(m.value[m.row][m.col+1]) {
+		if !unicode.IsLetter(m.value[m.row][m.col+1]) {
 			break
 		}
 	}
