@@ -907,6 +907,14 @@ func (e *Editor) Yank(str string) message.StatusBarMsg {
 func (e *Editor) YankSelection() message.StatusBarMsg {
 	sel := e.Textarea.SelectionStr()
 	clipboard.WriteAll(sel)
+
+	startRow := e.Textarea.Selection.StartRow
+	startCol := e.Textarea.Selection.StartCol
+	if e.Vim.Mode.Current == mode.VisualLine {
+		startCol = 0
+	}
+	// move the cursor to the beginning of the selection
+	e.Textarea.MoveCursor(startRow, startCol)
 	e.Textarea.ResetSelection()
 	e.EnterNormalMode()
 	return message.StatusBarMsg{}
@@ -915,6 +923,15 @@ func (e *Editor) YankSelection() message.StatusBarMsg {
 func (e *Editor) Paste() message.StatusBarMsg {
 	e.newHistoryEntry()
 	if cnt, err := clipboard.ReadAll(); err == nil {
+		// if the string contains a new line we should paste it
+		// on a new line as well
+		pasteBelow := strings.ContainsRune(cnt, '\n')
+		if pasteBelow {
+			e.Textarea.CursorDown()
+		} else {
+			// paste after the current character
+			e.Textarea.CharacterRight(false)
+		}
 		e.Textarea.InsertString(cnt)
 	}
 	e.updateHistoryEntry()

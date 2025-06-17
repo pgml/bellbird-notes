@@ -336,37 +336,45 @@ func (m *Model) SelectionStr() string {
 	minCol := minRange.ColumnOffset
 	maxCol := maxRange.ColumnOffset
 
-	if minRow == maxRow {
-		line := string(m.value[minRow])
-		// selection on the same line
-		if minCol <= maxCol && maxCol < len(m.value[minRow]) {
-			str.WriteString(line[minCol : maxCol+1])
-		}
-	} else {
-		// get the selected part of the first line
-		if minCol <= len(m.value[minRow]) {
-			line := string(m.value[minRow])
-			// handles backward selection (if the selection starts at a lower
-			// line and ends on a higher line)
-			if m.row < maxRow && minCol > 0 {
-				minCol -= 1
-			}
-			str.WriteString(line[minCol:])
+	// select whole lines in range in visual line mode
+	if m.Selection.Mode == SelectVisualLine {
+		for i := minRow; i <= maxRow; i++ {
+			str.WriteString(string(m.value[i]))
 			str.WriteRune('\n')
 		}
-
-		// get any fully selected lines in between
-		if maxRow > minRow+1 {
-			for i := minRow + 1; i < maxRow; i++ {
-				str.WriteString(string(m.value[i]))
+	} else {
+		if minRow == maxRow {
+			line := string(m.value[minRow])
+			// selection on the same line
+			if minCol <= maxCol && maxCol < len(m.value[minRow]) {
+				str.WriteString(line[minCol : maxCol+1])
+			}
+		} else {
+			// get the selected part of the first line
+			if minCol <= len(m.value[minRow]) {
+				line := string(m.value[minRow])
+				// handles backward selection (if the selection starts at a lower
+				// line and ends on a higher line)
+				if m.row < maxRow && minCol > 0 {
+					minCol -= 1
+				}
+				str.WriteString(line[minCol:])
 				str.WriteRune('\n')
 			}
-		}
 
-		// get the selection of the last line
-		if maxCol+1 < len(m.value[maxRow]) {
-			line := string(m.value[maxRow])
-			str.WriteString(line[:maxCol+1])
+			// get any fully selected lines in between
+			if maxRow > minRow+1 {
+				for i := minRow + 1; i < maxRow; i++ {
+					str.WriteString(string(m.value[i]))
+					str.WriteRune('\n')
+				}
+			}
+
+			// get the selection of the last line
+			if maxCol+1 < len(m.value[maxRow]) {
+				line := string(m.value[maxRow])
+				str.WriteString(line[:maxCol+1])
+			}
 		}
 	}
 

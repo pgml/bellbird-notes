@@ -314,13 +314,23 @@ func (m *Model) KeyInputFn() []ki.KeyFn {
 			Cond: []keyCond{
 				m.editorInputAction(n, m.editor.DeleteAfterCursor),
 				m.editorInputAction(v, m.editor.DeleteLine),
+				m.editorInputAction(vl, m.editor.DeleteLine),
+				m.editorInputAction(vb, m.editor.DeleteLine),
 			},
 		},
 		{
 			Bindings: ki.KeyBindings("d"),
-			Cond: []keyCond{m.editorInputAction(v, func() message.StatusBarMsg {
-				return m.editor.DeleteRune(false, true)
-			})},
+			Cond: []keyCond{
+				m.editorInputAction(v, func() message.StatusBarMsg {
+					return m.editor.DeleteRune(false, true)
+				}),
+				m.editorInputAction(vl, func() message.StatusBarMsg {
+					return m.editor.DeleteRune(false, true)
+				}),
+				m.editorInputAction(vb, func() message.StatusBarMsg {
+					return m.editor.DeleteRune(false, true)
+				}),
+			},
 		},
 		{
 			Bindings: ki.KeyBindings("s"),
@@ -344,6 +354,12 @@ func (m *Model) KeyInputFn() []ki.KeyFn {
 					return m.editor.DeleteRune(false, true)
 				}),
 				m.editorInputAction(v, func() message.StatusBarMsg {
+					return m.editor.DeleteRune(false, true)
+				}),
+				m.editorInputAction(vl, func() message.StatusBarMsg {
+					return m.editor.DeleteRune(false, true)
+				}),
+				m.editorInputAction(vb, func() message.StatusBarMsg {
 					return m.editor.DeleteRune(false, true)
 				}),
 			},
