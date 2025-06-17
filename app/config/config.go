@@ -135,8 +135,15 @@ func createFile(path string) (bool, error) {
 
 func (c *Config) SetDefaults() {
 	notesRootDir, _ := app.NotesRootDir()
-	c.SetValue(General, DefaultNotesDirectory, notesRootDir)
-	c.SetValue(General, UserNotesDirectory, notesRootDir)
+	c.SetValue(General, NotesDirectory, notesRootDir)
+
+	if n, err := c.MetaValue("", OpenNotes); err == nil && n == "" {
+		c.SetMetaValue("", OpenNotes, "")
+	}
+
+	if n, err := c.MetaValue("", CurrentNote); err == nil && n == "" {
+		c.SetMetaValue("", CurrentNote, "")
+	}
 }
 
 func (c *Config) Value(section Section, option Option) (string, error) {
