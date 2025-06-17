@@ -746,11 +746,13 @@ func (m *Model) confirmAction() message.StatusBarMsg {
 			f,
 			m.editor,
 		)
+		m.editor.Vim.Mode.Current = mode.Normal
 	}
 
 	if m.mode.Current != mode.Normal &&
 		!m.statusBar.Focused &&
 		!m.editor.Focused() {
+
 		statusMsg = f.ConfirmAction()
 	} else {
 		// only open stuff if we're in normal mode
