@@ -1,6 +1,8 @@
 package config
 
 import (
+	"errors"
+	"fmt"
 	"os"
 
 	"bellbird-notes/app"
@@ -126,11 +128,31 @@ func (c *Config) SetDefaults() {
 	c.SetValue(General, UserNotesDirectory, notesRootDir)
 }
 
-func (c *Config) Value(section Section, option Option) string {
+func (c *Config) Value(section Section, option Option) (string, error) {
+	if c.file == nil {
+		return "", errors.New("could not find config file")
+	}
+
+	sect := c.file.Section(section.String())
+
+	if sect == nil {
+		return "", fmt.Errorf("could not find config section: %s", section)
+	}
+
+	opt := c.file.Section(section.String()).Key(option.String())
+
+	if opt == nil {
+		return "", fmt.Errorf(
+			"could not find config option `%s` in section `%s`",
+			option,
+			section,
+		)
+	}
+
 	return c.file.
 		Section(section.String()).
 		Key(option.String()).
-		String()
+		String(), nil
 }
 
 func (c *Config) MetaValue(path string, option Option) string {

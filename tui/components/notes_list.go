@@ -146,6 +146,12 @@ func NewNotesList() *NotesList {
 	ti.CharLimit = 100
 
 	conf := config.New()
+
+	notesDir, err := conf.Value(config.General, config.UserNotesDirectory)
+	if err != nil {
+		notesDir, _ = app.NotesRootDir()
+	}
+
 	list := &NotesList{
 		List: List[NoteItem]{
 			selectedIndex:    0,
@@ -156,7 +162,7 @@ func NewNotesList() *NotesList {
 			firstVisibleLine: 0,
 			items:            make([]NoteItem, 0),
 		},
-		CurrentPath: conf.Value(config.General, config.UserNotesDirectory),
+		CurrentPath: notesDir,
 	}
 
 	list.Refresh(false)

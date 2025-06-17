@@ -9,6 +9,7 @@ import (
 
 	"bellbird-notes/app"
 	"bellbird-notes/app/config"
+	"bellbird-notes/app/debug"
 	"bellbird-notes/app/directories"
 	"bellbird-notes/app/utils"
 	"bellbird-notes/tui/message"
@@ -257,10 +258,14 @@ func NewDirectoryTree() *DirectoryTree {
 	}
 
 	conf := config.New()
-	notesDir := conf.Value(
+	notesDir, err := conf.Value(
 		config.General,
 		config.UserNotesDirectory,
 	)
+
+	if err != nil {
+		debug.LogErr(err)
+	}
 
 	// append root directory
 	tree.items = append(tree.items, TreeItem{
