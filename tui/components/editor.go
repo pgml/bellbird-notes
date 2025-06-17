@@ -161,6 +161,14 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		switch e.Vim.Mode.Current {
+		case mode.Normal:
+			pos := e.Textarea.CursorPos()
+			e.config.SetMetaValue(
+				e.CurrentBuffer.Path,
+				config.CursorPosition,
+				strconv.Itoa(pos.Row)+","+strconv.Itoa(pos.ColumnOffset),
+			)
+
 		case mode.Insert:
 			cmd = e.handleInsertMode(msg)
 
@@ -171,12 +179,6 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			cmd = e.handleCommandMode(msg)
 		}
 
-		pos := e.Textarea.CursorPos()
-		e.config.SetMetaValue(
-			e.CurrentBuffer.Path,
-			config.CursorPosition,
-			strconv.Itoa(pos.Row)+","+strconv.Itoa(pos.ColumnOffset),
-		)
 		e.checkDirty()
 
 	case tea.WindowSizeMsg:
@@ -233,7 +235,7 @@ func (e *Editor) NewBuffer(path string) message.StatusBarMsg {
 	noteContent := string(note)
 
 	cursorPos := textarea.CursorPos{}
-	if pos := e.config.MetaValue(path, config.CursorPosition); pos != "" {
+	if pos, err := e.config.MetaValue(path, config.CursorPosition); err == nil && pos != "" {
 		p := strings.Split(pos, ",")
 		row, _ := strconv.Atoi(p[0])
 		col, _ := strconv.Atoi(p[1])

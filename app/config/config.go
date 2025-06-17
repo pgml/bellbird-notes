@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"sync"
+	"time"
 
 	"bellbird-notes/app"
 	"bellbird-notes/app/debug"
@@ -34,9 +36,7 @@ func (s Section) String() string {
 type Option int
 
 const (
-	DefaultNotesDirectory Option = iota
-	UserNotesDirectory
-	DefaultFontSize
+	NotesDirectory Option = iota
 	CurrentDirectory
 	CurrentNote
 	OpenNotes
@@ -48,21 +48,25 @@ const (
 )
 
 var options = map[Option]string{
-	DefaultNotesDirectory: "DefaultNotesDirectory",
-	UserNotesDirectory:    "UserNotesDirectory",
-	DefaultFontSize:       "DefaultFontSize",
-	CurrentDirectory:      "CurrentDirectory",
-	CurrentNote:           "CurrentNote",
-	OpenNotes:             "OpenNotes",
-	Visible:               "Visible",
-	Width:                 "Width",
-	CursorPosition:        "CursorPosition",
-	Pinned:                "Pinned",
-	Expanded:              "Expanded",
+	NotesDirectory:   "NotesDirectory",
+	CurrentDirectory: "CurrentDirectory",
+	CurrentNote:      "CurrentNote",
+	OpenNotes:        "OpenNotes",
+	Visible:          "Visible",
+	Width:            "Width",
+	CursorPosition:   "CursorPosition",
+	Pinned:           "Pinned",
+	Expanded:         "Expanded",
 }
 
 func (o Option) String() string {
 	return options[o]
+}
+
+type MetaValue struct {
+	Path   string
+	Option Option
+	Value  string
 }
 
 type Config struct {
@@ -70,6 +74,10 @@ type Config struct {
 	metaFilePath string
 	file         *ini.File
 	metaFile     *ini.File
+
+	flushTimer *time.Timer
+	flushMu    sync.Mutex
+	flushDelay time.Duration
 }
 
 func New() *Config {
@@ -91,6 +99,9 @@ func New() *Config {
 		createFile(filePath)
 	}
 
+	ini.PrettyFormat = false
+	ini.PrettyEqual = true
+
 	conf, err := ini.Load(filePath)
 	if err != nil {
 		debug.LogErr("Failed to read config file:", err)
@@ -107,13 +118,13 @@ func New() *Config {
 		return config
 	}
 
-	config.filePath = filePath
-	config.metaFilePath = metaFilePath
-	config.file = conf
-	config.metaFile = metaConf
-	config.SetDefaults()
-
-	return config
+	return &Config{
+		filePath:     filePath,
+		metaFilePath: metaFilePath,
+		file:         conf,
+		metaFile:     metaConf,
+		flushDelay:   1 * time.Second,
+	}
 }
 
 func createFile(path string) (bool, error) {
@@ -155,11 +166,28 @@ func (c *Config) Value(section Section, option Option) (string, error) {
 		String(), nil
 }
 
-func (c *Config) MetaValue(path string, option Option) string {
-	return c.metaFile.
-		Section(path).
-		Key(option.String()).
-		String()
+func (c *Config) MetaValue(path string, option Option) (string, error) {
+	if c.file == nil {
+		return "", errors.New("could not find config file")
+	}
+
+	sect := c.file.Section(path)
+
+	if sect == nil {
+		return "", fmt.Errorf("could not find config section: %s", path)
+	}
+
+	opt := c.file.Section(path).Key(option.String())
+
+	if opt == nil {
+		return "", fmt.Errorf(
+			"could not find config option `%s` in section `%s`",
+			option,
+			path,
+		)
+	}
+
+	return c.metaFile.Section(path).Key(option.String()).String(), nil
 }
 
 func (c *Config) SetValue(section Section, option Option, value string) {
@@ -172,10 +200,31 @@ func (c *Config) SetValue(section Section, option Option, value string) {
 }
 
 func (c *Config) SetMetaValue(path string, option Option, value string) {
-	c.metaFile.
-		Section(path).
-		Key(option.String()).
-		SetValue(value)
+	sect := c.metaFile.Section(path)
+	opt := sect.Key(option.String())
 
-	c.metaFile.SaveTo(c.metaFilePath)
+	if opt.Value() == value {
+		return
+	}
+
+	opt.SetValue(value)
+
+	c.debounceFlush()
+}
+
+func (c *Config) debounceFlush() {
+	c.flushMu.Lock()
+	defer c.flushMu.Unlock()
+
+	// Cancel previous timer if it exists
+	if c.flushTimer != nil {
+		c.flushTimer.Stop()
+	}
+
+	// Set up a new delayed flush
+	c.flushTimer = time.AfterFunc(c.flushDelay, func() {
+		c.flushMu.Lock()
+		defer c.flushMu.Unlock()
+		c.metaFile.SaveTo(c.metaFilePath)
+	})
 }
