@@ -144,6 +144,8 @@ func (ki *Input) HandleSequences(key string) []message.StatusBarMsg {
 		ki.KeySequence += key
 	}
 
+	keyInfoMsg := message.StatusBarMsg{Content: "", Column: sbc.KeyInfo}
+
 	if !ki.isBinding(ki.KeySequence) {
 		mod, isModifier := ki.isModifier(key)
 
@@ -155,21 +157,21 @@ func (ki *Input) HandleSequences(key string) []message.StatusBarMsg {
 				ki.Alt = true
 			}
 
-			statusMsg := strings.ReplaceAll(ki.KeySequence, "ctrl", "^")
-			statusMsg = strings.ReplaceAll(statusMsg, "+", "")
+			keyInfo := keyInfoMsg.Content
+			if ki.Mode != mode.Insert {
+				keyInfo = strings.ReplaceAll(ki.KeySequence, "ctrl", "^")
+				keyInfo = strings.ReplaceAll(keyInfo, "+", "")
+			}
+
 			return []message.StatusBarMsg{{
-				Content: statusMsg,
+				Content: keyInfo,
 				Column:  sbc.KeyInfo,
 			}}
 		}
 	}
 
 	statusMsg := []message.StatusBarMsg{}
-	statusMsg = append(
-		statusMsg,
-		message.StatusBarMsg{Content: "", Column: sbc.KeyInfo},
-		ki.executeAction(ki.KeySequence),
-	)
+	statusMsg = append(statusMsg, keyInfoMsg, ki.executeAction(ki.KeySequence))
 	ki.ResetKeysDown()
 
 	return statusMsg
