@@ -7,6 +7,7 @@ import (
 
 	"bellbird-notes/tui/message"
 	"bellbird-notes/tui/mode"
+	sbc "bellbird-notes/tui/types/statusbar_column"
 )
 
 // FocusedComponent represents any UI component that can report whether
@@ -154,12 +155,21 @@ func (ki *Input) HandleSequences(key string) []message.StatusBarMsg {
 				ki.Alt = true
 			}
 
-			return nil
+			statusMsg := strings.ReplaceAll(ki.KeySequence, "ctrl", "^")
+			statusMsg = strings.ReplaceAll(statusMsg, "+", "")
+			return []message.StatusBarMsg{{
+				Content: statusMsg,
+				Column:  sbc.KeyInfo,
+			}}
 		}
 	}
 
 	statusMsg := []message.StatusBarMsg{}
-	statusMsg = append(statusMsg, ki.executeAction(ki.KeySequence))
+	statusMsg = append(
+		statusMsg,
+		message.StatusBarMsg{Content: "", Column: sbc.KeyInfo},
+		ki.executeAction(ki.KeySequence),
+	)
 	ki.ResetKeysDown()
 
 	return statusMsg

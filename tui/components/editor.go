@@ -860,10 +860,13 @@ func (e *Editor) ResetSelectedRowsCount() message.StatusBarMsg {
 }
 
 func (e *Editor) UpdateSelectedRowsCount() message.StatusBarMsg {
-	return message.StatusBarMsg{
-		Content: strconv.Itoa(e.SelectedRowsCount()),
-		Column:  sbc.KeyInfo,
+	if e.Vim.Mode.IsAnyVisual() {
+		return message.StatusBarMsg{
+			Content: strconv.Itoa(e.SelectedRowsCount()),
+			Column:  sbc.KeyInfo,
+		}
 	}
+	return message.StatusBarMsg{}
 }
 
 func (e *Editor) SelectedRowsCount() int {
