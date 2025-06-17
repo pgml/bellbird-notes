@@ -469,9 +469,13 @@ func (e *Editor) updateHistoryEntry() {
 // buffer is unsaved and the content differs from the saved content's file
 // func (e *Editor) checkDirty(fn func()) bool {
 func (e *Editor) checkDirty() bool {
-	isDirty := e.Textarea.Value() != *e.CurrentBuffer.LastSavedContent
-	e.CurrentBuffer.Dirty = isDirty
-	return isDirty
+	if saved := e.CurrentBuffer.LastSavedContent; saved != nil {
+		isDirty := e.Textarea.Value() != *saved
+		e.CurrentBuffer.Dirty = isDirty
+		return isDirty
+	}
+
+	return false
 }
 
 func (e *Editor) fileProgress() int {
@@ -881,17 +885,21 @@ func (e *Editor) SelectedRowsCount() int {
 // undo sets the buffer content to the previous history entry
 func (e *Editor) Undo() message.StatusBarMsg {
 	val, cursorPos := e.CurrentBuffer.undo()
+	curBuf := e.CurrentBuffer
 
 	// dirty check
-	e.CurrentBuffer.Dirty = val != *e.CurrentBuffer.LastSavedContent
+	curBuf.Dirty = val != *curBuf.LastSavedContent
 	e.Textarea.SetValue(val)
 
-	entryIndex := e.CurrentBuffer.History.EntryIndex
+	entryIndex := curBuf.History.EntryIndex
 	// EntryIndex 0 means the time in the buffer history where the buffer was
 	// opened to get the initial content of the buffer.
 	// We don't want to move the cursor there - just accept it.
 	if entryIndex == 0 {
-		cursorPos = e.CurrentBuffer.History.Entry(entryIndex + 1).UndoCursorPos
+		cursorPos = curBuf.CursorPos
+		if entry := curBuf.History.Entry(entryIndex + 1); entry != nil {
+			cursorPos = entry.UndoCursorPos
+		}
 	}
 
 	e.Textarea.MoveCursor(cursorPos.Row, cursorPos.ColumnOffset)

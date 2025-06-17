@@ -439,10 +439,11 @@ func (t *DirectoryTree) Refresh(resetIndex bool) message.StatusBarMsg {
 // If `selectAfter` is -1 the branch's parent is selected
 func (t *DirectoryTree) RefreshBranch(index int, selectAfter int) {
 	t.selectedIndex = index
-	path := t.SelectedDir().path
 
-	if dir := findDirInTree(t.items, path); dir != nil {
-		dir.children = t.getChildren(dir.path, dir.level+1)
+	if sel := t.SelectedDir(); sel != nil {
+		if dir := findDirInTree(t.items, sel.path); dir != nil {
+			dir.children = t.getChildren(dir.path, dir.level+1)
+		}
 	}
 
 	if selectAfter == -1 {
