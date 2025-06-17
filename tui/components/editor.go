@@ -383,8 +383,6 @@ func (e *Editor) EnterNormalMode() message.StatusBarMsg {
 		Column:  sbc.General,
 	}
 
-	e.Textarea.ResetSelection()
-
 	// We need to remember if the cursor is at the and of the line
 	// so that lineup and linedown moves the cursor to the end
 	// when it's supposed to do so
@@ -397,7 +395,7 @@ func (e *Editor) EnterNormalMode() message.StatusBarMsg {
 		e.MoveCharacterLeft()
 	}
 
-	if e.Vim.Mode.Current == mode.Visual {
+	if e.Vim.Mode.IsAnyVisual() {
 		statusMsg.Column = sbc.KeyInfo
 	}
 
