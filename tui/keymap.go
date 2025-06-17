@@ -228,6 +228,8 @@ func (m *Model) KeyInputFn() []ki.KeyFn {
 			Cond: []keyCond{
 				m.editorInputAction(n, m.editor.WordRightStart),
 				m.editorInputAction(v, m.editor.WordRightStart),
+				m.editorInputAction(vl, m.editor.WordRightStart),
+				m.editorInputAction(vb, m.editor.WordRightStart),
 			},
 		},
 		{
@@ -235,6 +237,8 @@ func (m *Model) KeyInputFn() []ki.KeyFn {
 			Cond: []keyCond{
 				m.editorInputAction(n, m.editor.WordRightEnd),
 				m.editorInputAction(v, m.editor.WordRightEnd),
+				m.editorInputAction(vl, m.editor.WordRightEnd),
+				m.editorInputAction(vb, m.editor.WordRightEnd),
 			},
 		},
 		{
@@ -242,6 +246,8 @@ func (m *Model) KeyInputFn() []ki.KeyFn {
 			Cond: []keyCond{
 				m.editorInputAction(n, m.editor.WordBack),
 				m.editorInputAction(v, m.editor.WordBack),
+				m.editorInputAction(vl, m.editor.WordBack),
+				m.editorInputAction(vb, m.editor.WordBack),
 			},
 		},
 		{
@@ -249,6 +255,8 @@ func (m *Model) KeyInputFn() []ki.KeyFn {
 			Cond: []keyCond{
 				m.editorInputAction(n, m.editor.GoToInputStart),
 				m.editorInputAction(v, m.editor.GoToInputStart),
+				m.editorInputAction(vl, m.editor.GoToInputStart),
+				m.editorInputAction(vb, m.editor.GoToInputStart),
 			},
 		},
 		{
@@ -256,6 +264,8 @@ func (m *Model) KeyInputFn() []ki.KeyFn {
 			Cond: []keyCond{
 				m.editorInputAction(n, m.editor.GoToLineStart),
 				m.editorInputAction(v, m.editor.GoToLineStart),
+				m.editorInputAction(vl, m.editor.GoToLineStart),
+				m.editorInputAction(vb, m.editor.GoToLineStart),
 			},
 		},
 		{
@@ -263,6 +273,8 @@ func (m *Model) KeyInputFn() []ki.KeyFn {
 			Cond: []keyCond{
 				m.editorInputAction(n, m.editor.GoToLineEnd),
 				m.editorInputAction(v, m.editor.GoToLineEnd),
+				m.editorInputAction(vl, m.editor.GoToLineEnd),
+				m.editorInputAction(vb, m.editor.GoToLineEnd),
 			},
 		},
 		{
