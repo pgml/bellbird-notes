@@ -12,16 +12,12 @@ var NoNerdFonts = flag.Bool("no-nerd-fonts", false, "Nerd fonts disabled")
 var Debug = flag.Bool("debug", false, "Debug mode")
 var DirTreeInfo = flag.Bool("tree-info", false, "Debug mode")
 
-func IsSnapshot() bool {
-	return os.Getenv("CHANNEL") == "snapshot"
+func IsDev() bool {
+	return os.Getenv("CHANNEL") == "dev"
 }
 
 func Name() string {
 	name := "Bellbird Notes"
-
-	//if IsSnapshot() {
-	//	name += " Snapshot"
-	//}
 
 	return name
 }
@@ -29,8 +25,8 @@ func Name() string {
 // Huh?
 func ModuleName() string {
 	moduleName := "bellbird-notes"
-	if IsSnapshot() {
-		moduleName += "-snapshot"
+	if IsDev() {
+		moduleName += "-dev"
 	}
 
 	return moduleName
@@ -62,8 +58,8 @@ func ConfigDir() (string, error) {
 	}
 
 	configDir := ConfigDir
-	if IsSnapshot() {
-		configDir += "-snapshot"
+	if IsDev() {
+		configDir += "-dev"
 	}
 
 	appName := ModuleName()
