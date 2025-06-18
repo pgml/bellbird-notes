@@ -3,10 +3,12 @@ package debug
 import (
 	"log"
 	"os"
+	"path/filepath"
 	"time"
 )
 
-const logFile = "app.log"
+const appLogFile = "app.log"
+const errorLogFile = "error.log"
 
 type ErrorLvl int
 
@@ -45,8 +47,18 @@ func LogErr(args ...any) {
 }
 
 func logMsg(level ErrorLvl, args ...any) {
+	configDir, err := ConfigDir()
+	if err != nil {
+		return
+	}
+
+	logFile := appLogFile
+	if level == Error {
+		logFile = errorLogFile
+	}
+
 	file, err := os.OpenFile(
-		logFile,
+		configDir+"/"+logFile,
 		os.O_APPEND|os.O_CREATE|os.O_WRONLY,
 		0644,
 	)
@@ -61,4 +73,31 @@ func logMsg(level ErrorLvl, args ...any) {
 		time.Now().Format("00:00:00"),
 		level.String(), args,
 	)
+}
+
+// this is lazy and stupid because it's duplicate of the same method in config.go
+// but i am too tired to deal with import cycles right now.
+// @todo make it not stupid
+func ConfigDir() (string, error) {
+	ConfigDir, err := os.UserConfigDir()
+	if err != nil {
+		msg := "Could not get config directory in config.go/ConfigDir()"
+		LogErr(msg, err)
+		return "", err
+	}
+
+	configDir := ConfigDir
+	appName := "bellbird-notes"
+	if os.Getenv("CHANNEL") == "dev" {
+		configDir += "-dev"
+		appName += "-dev"
+	}
+
+	confDir := filepath.Join(ConfigDir, appName)
+
+	if _, err := os.Stat(confDir); err != nil {
+		os.Mkdir(confDir, 0755)
+	}
+
+	return confDir, nil
 }
