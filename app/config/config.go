@@ -41,6 +41,7 @@ const (
 	NotesDirectory Option = iota
 	CurrentDirectory
 	CurrentNote
+	CurrentComponent
 	OpenNotes
 	Visible
 	Width
@@ -55,6 +56,7 @@ var options = map[Option]string{
 	NotesDirectory:   "NotesDirectory",
 	CurrentDirectory: "CurrentDirectory",
 	CurrentNote:      "CurrentNote",
+	CurrentComponent: "CurrentComponent",
 	OpenNotes:        "OpenNotes",
 	Visible:          "Visible",
 	Width:            "Width",
@@ -131,7 +133,7 @@ func New() *Config {
 		metaFilePath: metaFilePath,
 		file:         conf,
 		metaFile:     metaConf,
-		flushDelay:   1 * time.Second,
+		flushDelay:   400 * time.Millisecond,
 	}
 }
 
@@ -264,7 +266,6 @@ func (c *Config) NerdFonts() bool {
 		nerdFonts = false
 	}
 
-	debug.LogDebug("nerd", nerdFonts)
 	c.nerdFonts = &nerdFonts
 	return nerdFonts
 }

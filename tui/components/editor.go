@@ -284,6 +284,8 @@ func (e *Editor) NewBuffer(path string) message.StatusBarMsg {
 	e.Textarea.MoveCursor(cursorPos.Row, cursorPos.ColumnOffset)
 	e.Textarea.RepositionView()
 
+	e.conf.SetMetaValue("", config.CurrentNote, path)
+
 	return message.StatusBarMsg{}
 }
 
@@ -310,6 +312,8 @@ func (e *Editor) OpenBuffer(path string) message.StatusBarMsg {
 	e.Textarea.SetValue(buf.Content)
 	e.Textarea.MoveCursor(buf.CursorPos.Row, buf.CursorPos.ColumnOffset)
 	e.Textarea.RepositionView()
+
+	e.conf.SetMetaValue("", config.CurrentNote, path)
 
 	return statusMsg
 }
@@ -357,6 +361,13 @@ func (e *Editor) DirtyBuffers() []Buffer {
 	}
 
 	return bufs
+}
+
+func (e *Editor) OpenLastNote() {
+	note, err := e.conf.MetaValue("", config.CurrentNote)
+	if err == nil && note != "" {
+		e.OpenBuffer(note)
+	}
 }
 
 func (e *Editor) Focused() bool {

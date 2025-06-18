@@ -1,6 +1,9 @@
 package tui
 
 import (
+	"strconv"
+
+	"bellbird-notes/app/config"
 	"bellbird-notes/app/utils"
 	"bellbird-notes/tui/components"
 	"bellbird-notes/tui/components/textarea"
@@ -587,6 +590,12 @@ func (m *Model) editorInputAction(mode mode.Mode, fn func() message.StatusBarMsg
 // focusColumn selects and higlights a column with index `index`
 // (1=dirTree, 2=notesList, 3=editor)
 func (m *Model) focusColumn(index int) message.StatusBarMsg {
+	m.conf.SetMetaValue("", config.CurrentComponent, strconv.Itoa(index))
+
+	if index == 3 && len(m.editor.Buffers) <= 0 {
+		index = 2
+	}
+
 	m.dirTree.SetFocus(index == 1)
 	m.notesList.SetFocus(index == 2)
 	m.editor.SetFocus(index == 3)
@@ -774,7 +783,9 @@ func (m *Model) confirmAction() message.StatusBarMsg {
 		}
 
 		if f == m.dirTree {
-			m.notesList.CurrentPath = m.dirTree.SelectedDir().Path()
+			path := m.dirTree.SelectedDir().Path()
+			m.notesList.CurrentPath = path
+			m.conf.SetMetaValue("", config.CurrentDirectory, path)
 			statusMsg = m.notesList.Refresh(true)
 		}
 

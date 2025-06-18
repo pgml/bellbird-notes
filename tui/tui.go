@@ -1,6 +1,8 @@
 package tui
 
 import (
+	"strconv"
+
 	"bellbird-notes/app/config"
 	"bellbird-notes/internal/interfaces"
 	"bellbird-notes/tui/components"
@@ -56,6 +58,7 @@ func InitialModel() *Model {
 
 	m.keyInput.Functions = m.KeyInputFn()
 	m.componentsInit()
+	m.restoreState()
 
 	return &m
 }
@@ -138,7 +141,6 @@ func (m *Model) componentsInit() {
 	m.dirTree.Id = m.layout.Add("w 30")
 	m.notesList.Id = m.layout.Add("w 30")
 	m.editor.Id = m.layout.Add("grow")
-	m.focusColumn(1)
 }
 
 // updateComponents dispatches updates to the focused components
@@ -194,4 +196,21 @@ func (m *Model) updateStatusBar() {
 	} else {
 		m.statusBar.Mode = m.mode.Current
 	}
+}
+
+func (m *Model) restoreState() {
+	m.editor.OpenLastNote()
+
+	path := m.dirTree.SelectLastDir()
+	m.notesList.CurrentPath = path
+	m.notesList.Refresh(true)
+
+	currComp, err := m.conf.MetaValue("", config.CurrentComponent)
+	colIndex := 1
+
+	if err == nil && currComp != "" {
+		index, _ := strconv.Atoi(currComp)
+		colIndex = index
+	}
+	m.focusColumn(colIndex)
 }

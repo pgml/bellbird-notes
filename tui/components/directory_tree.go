@@ -601,6 +601,22 @@ func findDirInTree(directories []TreeItem, path string) *TreeItem {
 	return nil
 }
 
+func (t *DirectoryTree) SelectLastDir() string {
+	dirPath, err := t.conf.MetaValue("", config.CurrentDirectory)
+	if err == nil && dirPath != "" {
+		for i := range t.dirsListFlat {
+			if t.dirsListFlat[i].path != dirPath {
+				continue
+			}
+
+			index := t.dirsListFlat[i].index
+			t.selectedIndex = index
+			return dirPath
+		}
+	}
+	return ""
+}
+
 ///
 /// keyboard shortcut commands
 ///
