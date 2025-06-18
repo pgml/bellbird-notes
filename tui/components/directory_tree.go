@@ -78,7 +78,7 @@ func (d TreeItem) Indent(indentLines bool) string {
 
 // The string representation of a Dir
 func (d *TreeItem) String() string {
-	if *app.NoNerdFonts {
+	if !d.nerdFonts {
 		d.styles.iconWidth = 0
 	}
 
@@ -92,6 +92,7 @@ func (d *TreeItem) String() string {
 	indentWidth := lipgloss.Width(indentStr)
 	infoWidth := 0
 	dirInfo := ""
+
 	if *app.DirTreeInfo {
 		dirInfo = d.ContentInfo()
 		infoWidth = lipgloss.Width(dirInfo)
@@ -116,12 +117,11 @@ func (d *TreeItem) String() string {
 	}
 	iconToggleDir := map[string]string{"open": "", "close": ""}
 
-	if !*app.NoNerdFonts {
+	if d.nerdFonts {
 		iconToggleDir = map[string]string{
 			"open":  theme.IconDirOpen.Nerd,
 			"close": theme.IconDirClosed.Nerd,
 		}
-	} else {
 	}
 
 	iconArrow := iconToggleArrow["close"]
@@ -242,7 +242,7 @@ func (t *DirectoryTree) View() string {
 // NewDirectoryTree creates a new model with default settings.
 func NewDirectoryTree(conf *config.Config) *DirectoryTree {
 	ti := textinput.New()
-	ti.Prompt = theme.Icon(theme.IconPen) + " "
+	ti.Prompt = theme.Icon(theme.IconPen, conf.NerdFonts()) + " "
 	ti.CharLimit = 100
 
 	tree := &DirectoryTree{
@@ -252,7 +252,7 @@ func NewDirectoryTree(conf *config.Config) *DirectoryTree {
 			EditState:     EditStates.None,
 			editor:        ti,
 			items:         make([]TreeItem, 0),
-			config:        conf,
+			conf:          conf,
 		},
 		expandedDirs: make(map[string]bool),
 	}
@@ -269,10 +269,11 @@ func NewDirectoryTree(conf *config.Config) *DirectoryTree {
 	// append root directory
 	tree.items = append(tree.items, TreeItem{
 		Item: Item{
-			index:  0,
-			name:   app.Name(),
-			path:   notesDir,
-			styles: DirTreeStyle(),
+			index:     0,
+			name:      app.Name(),
+			path:      notesDir,
+			styles:    DirTreeStyle(),
+			nerdFonts: conf.NerdFonts(),
 		},
 		expanded: true,
 		level:    0,
@@ -362,10 +363,11 @@ func (m *DirectoryTree) createDirectoryItem(
 
 	dirItem := TreeItem{
 		Item: Item{
-			index:  0,
-			name:   dir.Name,
-			path:   dir.Path,
-			styles: style,
+			index:     0,
+			name:      dir.Name,
+			path:      dir.Path,
+			styles:    style,
+			nerdFonts: m.conf.NerdFonts(),
 		},
 		expanded:   dir.IsExpanded,
 		parent:     0,
@@ -619,7 +621,7 @@ func (t *DirectoryTree) Collapse() message.StatusBarMsg {
 			dir.expanded = false
 			t.build()
 		}
-		t.config.SetMetaValue(dir.path, config.Expanded, "false")
+		t.conf.SetMetaValue(dir.path, config.Expanded, "false")
 	}
 
 	return statusMsg
@@ -643,7 +645,7 @@ func (t *DirectoryTree) Expand() message.StatusBarMsg {
 			dir.children = t.getChildren(dir.path, dir.level+1)
 			dir.expanded = true
 			t.build()
-			t.config.SetMetaValue(dir.path, config.Expanded, "true")
+			t.conf.SetMetaValue(dir.path, config.Expanded, "true")
 		}
 	}
 
@@ -782,8 +784,8 @@ func (t *DirectoryTree) ConfirmAction() message.StatusBarMsg {
 
 func (t *DirectoryTree) ContentInfo() message.StatusBarMsg {
 	sel := t.SelectedDir()
-	iconDir := theme.Icon(theme.IconDirClosed)
-	iconNotes := theme.Icon(theme.IconNote)
+	iconDir := theme.Icon(theme.IconDirClosed, t.conf.NerdFonts())
+	iconNotes := theme.Icon(theme.IconNote, t.conf.NerdFonts())
 	nbrFolders := iconDir + " " + strconv.Itoa(sel.NbrFolders) + " Folders"
 	nbrNotes := iconNotes + " " + strconv.Itoa(sel.NbrNotes) + " Notes"
 

@@ -5,8 +5,6 @@ import (
 	"os"
 	"strings"
 
-	"bellbird-notes/app"
-
 	"github.com/charmbracelet/lipgloss/v2"
 	bl "github.com/winder/bubblelayout"
 	"golang.org/x/term"
@@ -38,10 +36,10 @@ var (
 	IconDot       = icon{Nerd: "", Alt: "*"}
 )
 
-func Icon(icon icon) string {
-	icn := icon.Nerd
-	if *app.NoNerdFonts {
-		icn = icon.Alt
+func Icon(icon icon, nerdFont bool) string {
+	icn := icon.Alt
+	if nerdFont {
+		icn = icon.Nerd
 	}
 	return icn
 }

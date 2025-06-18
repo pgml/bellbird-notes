@@ -64,11 +64,11 @@ func (n NoteItem) String() string {
 		icn = sel.Width(n.styles.iconWidth)
 	}
 
-	icon := " " + theme.Icon(theme.IconNote)
+	icon := " " + theme.Icon(theme.IconNote, n.nerdFonts)
 
 	if n.IsDirty {
 		icn = icn.Foreground(theme.ColourDirty)
-		icon = " " + theme.Icon(theme.IconDot)
+		icon = " " + theme.Icon(theme.IconDot, n.nerdFonts)
 	}
 
 	return icn.Render(icon) + base.Render(name)
@@ -142,7 +142,7 @@ func (l *NotesList) View() string {
 // NewNotesList creates a new model with default settings.
 func NewNotesList(conf *config.Config) *NotesList {
 	ti := textinput.New()
-	ti.Prompt = " " + theme.Icon(theme.IconPen) + " "
+	ti.Prompt = " " + theme.Icon(theme.IconPen, conf.NerdFonts()) + " "
 	ti.CharLimit = 100
 
 	notesDir, err := conf.Value(config.General, config.NotesDirectory)
@@ -159,6 +159,7 @@ func NewNotesList(conf *config.Config) *NotesList {
 			lastVisibleLine:  0,
 			firstVisibleLine: 0,
 			items:            make([]NoteItem, 0),
+			conf:             conf,
 		},
 		CurrentPath: notesDir,
 	}
@@ -221,6 +222,7 @@ func (l *NotesList) Refresh(resetSelectedIndex bool) message.StatusBarMsg {
 	for i, note := range notes {
 		noteItem := l.createNoteItem(note)
 		noteItem.index = i
+		noteItem.nerdFonts = l.conf.NerdFonts()
 		l.items = append(l.items, noteItem)
 	}
 

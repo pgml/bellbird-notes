@@ -19,6 +19,7 @@ const (
 	General Section = iota
 	SideBar
 	NotesList
+	Editor
 	BreadCrumb
 )
 
@@ -26,6 +27,7 @@ var sections = map[Section]string{
 	General:    "General",
 	SideBar:    "Sidebar",
 	NotesList:  "NotesList",
+	Editor:     "Editor",
 	BreadCrumb: "Breadcrumb",
 }
 
@@ -45,6 +47,8 @@ const (
 	CursorPosition
 	Pinned
 	Expanded
+	ShowLineNumbers
+	NerdFonts
 )
 
 var options = map[Option]string{
@@ -57,6 +61,8 @@ var options = map[Option]string{
 	CursorPosition:   "CursorPosition",
 	Pinned:           "Pinned",
 	Expanded:         "Expanded",
+	ShowLineNumbers:  "ShowLineNumbers",
+	NerdFonts:        "NerdFonts",
 }
 
 func (o Option) String() string {
@@ -78,6 +84,8 @@ type Config struct {
 	flushTimer *time.Timer
 	flushMu    sync.Mutex
 	flushDelay time.Duration
+
+	nerdFonts *bool
 }
 
 func New() *Config {
@@ -234,4 +242,29 @@ func (c *Config) debounceFlush() {
 		defer c.flushMu.Unlock()
 		c.metaFile.SaveTo(c.metaFilePath)
 	})
+}
+
+func (c *Config) NerdFonts() bool {
+	if c.nerdFonts != nil {
+		return *c.nerdFonts
+	}
+
+	nf, err := c.Value(General, NerdFonts)
+
+	// default is true
+	nerdFonts := true
+
+	// if setting is found in config file use it
+	if err == nil && nf != "" {
+		nerdFonts = nf == "true"
+	}
+
+	// overwrite if cli flag is found
+	if app.IsFlagPassed("no-nerd-fonts") {
+		nerdFonts = false
+	}
+
+	debug.LogDebug("nerd", nerdFonts)
+	c.nerdFonts = &nerdFonts
+	return nerdFonts
 }

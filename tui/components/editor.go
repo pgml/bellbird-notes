@@ -68,8 +68,8 @@ type Editor struct {
 
 	ShowLineNumbers bool
 
-	config *config.Config
-	err    error
+	conf *config.Config
+	err  error
 }
 
 type errMsg error
@@ -122,22 +122,38 @@ func NewEditor(conf *config.Config) *Editor {
 				"",
 			},
 		},
-		CanInsert:       false,
-		Textarea:        ta,
-		Component:       Component{},
-		Buffers:         []Buffer{},
-		CurrentBuffer:   &Buffer{},
-		isAtLineEnd:     false,
-		isAtLineStart:   false,
-		ShowLineNumbers: false,
-		err:             nil,
-		config:          conf,
+		CanInsert:     false,
+		Textarea:      ta,
+		Component:     Component{},
+		Buffers:       []Buffer{},
+		CurrentBuffer: &Buffer{},
+		isAtLineEnd:   false,
+		isAtLineStart: false,
+		err:           nil,
+		conf:          conf,
 	}
 
+	editor.ShowLineNumbers = editor.LineNumbers()
 	editor.Textarea.ShowLineNumbers = editor.ShowLineNumbers
 	editor.Textarea.ResetSelection()
 
 	return editor
+}
+
+func (e *Editor) LineNumbers() bool {
+	n, err := e.conf.Value(config.Editor, config.ShowLineNumbers)
+
+	if err != nil {
+		return false
+	}
+
+	number := false
+
+	if n == "true" {
+		number = true
+	}
+
+	return number
 }
 
 // Init initialises the Model on program load.
@@ -163,7 +179,7 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch e.Vim.Mode.Current {
 		case mode.Normal:
 			pos := e.Textarea.CursorPos()
-			e.config.SetMetaValue(
+			e.conf.SetMetaValue(
 				e.CurrentBuffer.Path,
 				config.CursorPosition,
 				strconv.Itoa(pos.Row)+","+strconv.Itoa(pos.ColumnOffset),
@@ -235,7 +251,7 @@ func (e *Editor) NewBuffer(path string) message.StatusBarMsg {
 	noteContent := string(note)
 
 	cursorPos := textarea.CursorPos{}
-	if pos, err := e.config.MetaValue(path, config.CursorPosition); err == nil && pos != "" {
+	if pos, err := e.conf.MetaValue(path, config.CursorPosition); err == nil && pos != "" {
 		p := strings.Split(pos, ",")
 		row, _ := strconv.Atoi(p[0])
 		col, _ := strconv.Atoi(p[1])
@@ -275,7 +291,7 @@ func (e *Editor) NewBuffer(path string) message.StatusBarMsg {
 // If no buffer is found a new buffer is created
 func (e *Editor) OpenBuffer(path string) message.StatusBarMsg {
 	relPath := utils.RelativePath(path, true)
-	icon := theme.Icon(theme.IconNote)
+	icon := theme.Icon(theme.IconNote, e.conf.NerdFonts())
 
 	statusMsg := message.StatusBarMsg{
 		Content: icon + " " + relPath,
@@ -359,8 +375,8 @@ func (e *Editor) breadcrumb() string {
 	relPath = strings.ReplaceAll(relPath, pathSeparator, " › ")
 	breadcrumb := strings.ReplaceAll(relPath, noteName, "")
 
-	iconDir := theme.Icon(theme.IconDirClosed)
-	iconNote := theme.Icon(theme.IconNote)
+	iconDir := theme.Icon(theme.IconDirClosed, e.conf.NerdFonts())
+	iconNote := theme.Icon(theme.IconNote, e.conf.NerdFonts())
 
 	return iconDir + breadcrumb + iconNote + " " + noteName
 }

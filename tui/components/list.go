@@ -64,7 +64,7 @@ type List[T ListItem] struct {
 	lastVisibleLine  int
 	visibleLines     int
 
-	config *config.Config
+	conf *config.Config
 }
 
 type Item struct {
@@ -77,6 +77,8 @@ type Item struct {
 	selected bool
 
 	styles styles
+
+	nerdFonts bool
 }
 
 type statusMsg string

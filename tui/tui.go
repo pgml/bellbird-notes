@@ -29,6 +29,7 @@ type Model struct {
 	notesList *components.NotesList
 	editor    *components.Editor
 	statusBar *components.StatusBar
+	conf      *config.Config
 }
 
 func InitialModel() *Model {
@@ -50,6 +51,7 @@ func InitialModel() *Model {
 		notesList:    components.NewNotesList(conf),
 		editor:       components.NewEditor(conf),
 		statusBar:    components.NewStatusBar(),
+		conf:         conf,
 	}
 
 	m.keyInput.Functions = m.KeyInputFn()

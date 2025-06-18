@@ -595,7 +595,7 @@ func (m *Model) focusColumn(index int) message.StatusBarMsg {
 
 	if index == 3 {
 		relPath := utils.RelativePath(m.editor.CurrentBuffer.Path, true)
-		icon := theme.Icon(theme.IconNote)
+		icon := theme.Icon(theme.IconNote, m.conf.NerdFonts())
 		return message.StatusBarMsg{
 			Content: icon + " " + relPath,
 			Column:  sbc.FileInfo,
