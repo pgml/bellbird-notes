@@ -752,9 +752,7 @@ func (e *Editor) GoToBottom() message.StatusBarMsg {
 
 // wordRightEnd moves the cursor to the end of the next word
 func (e *Editor) WordRightEnd() message.StatusBarMsg {
-	e.Textarea.CharacterRight(false)
-	e.Textarea.WordRight()
-	e.Textarea.CharacterLeft(false)
+	e.Textarea.WordRightEnd()
 	e.saveCursorPos()
 	return message.StatusBarMsg{}
 }
@@ -762,7 +760,7 @@ func (e *Editor) WordRightEnd() message.StatusBarMsg {
 // WordRightStart moves the cursor to the beginning of the next word
 func (e *Editor) WordRightStart() message.StatusBarMsg {
 	e.Textarea.WordRight()
-	e.Textarea.CharacterRight(false)
+	//e.Textarea.CharacterRight(false)
 	e.saveCursorPos()
 	return message.StatusBarMsg{}
 }

@@ -76,18 +76,72 @@ func (m *Model) RepositionView() {
 	m.repositionView()
 }
 
-// wordLeft moves the cursor one word to the left. Returns whether or not the
-// cursor blink should be reset. If input is masked, move input to the start
-// so as not to reveal word breaks in the masked input.
+// same as m.wordLeft but checks for non-letters instead of just spaces
 func (m *Model) WordLeft() {
-	m.wordLeft()
+	for {
+		m.characterLeft(true /* insideLine */)
+		if m.col < len(m.value[m.row]) && unicode.IsLetter(m.value[m.row][m.col]) {
+			break
+		}
+	}
+
+	for m.col > 0 {
+		if !unicode.IsLetter(m.value[m.row][m.col-1]) {
+			break
+		}
+		m.SetCursorColumn(m.col - 1)
+	}
+
+	m.repositionView()
 }
 
-// wordRight moves the cursor one word to the right. Returns whether or not the
-// cursor blink should be reset. If the input is masked, move input to the end
-// so as not to reveal word breaks in the masked input.
+// WordRight moves the cursor to the start of the next word.
+// Skips any non-letter characters that follow.
 func (m *Model) WordRight() {
-	m.wordRight()
+	m.col = clamp(m.col, 0, len(m.value[m.row])-1)
+
+	if len(m.value[m.row]) == 0 {
+		m.MoveCursor(m.row+1, 0)
+		m.repositionView()
+		return
+	}
+
+	for {
+		m.characterRight()
+
+		if m.col >= len(m.value[m.row]) {
+			m.MoveCursor(m.row+1, 0)
+			break
+		}
+
+		if !unicode.IsLetter(m.value[m.row][m.col]) {
+			m.CharacterRight(false)
+			break
+		}
+	}
+
+	m.repositionView()
+}
+
+// WordRightEnd moves the cursor to the end of the next word.
+func (m *Model) WordRightEnd() {
+	if m.col >= len(m.value[m.row])-1 {
+		m.MoveCursor(m.row+1, 0)
+	}
+
+	for {
+		m.characterRight()
+
+		if m.col+1 >= len(m.value[m.row]) {
+			break
+		}
+
+		if !unicode.IsLetter(m.value[m.row][m.col+1]) {
+			break
+		}
+	}
+
+	m.repositionView()
 }
 
 // CursorStart moves the cursor to the first non-blank character of the line
