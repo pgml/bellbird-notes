@@ -170,7 +170,7 @@ func NewNotesList(conf *config.Config) *NotesList {
 
 // build prepares the notes list as a string
 func (l NotesList) build() string {
-	var list string
+	var list strings.Builder
 
 	for i, note := range l.items {
 		note.selected = (l.selectedIndex == i)
@@ -185,18 +185,20 @@ func (l NotesList) build() string {
 		if *app.Debug {
 			// prepend list item indices for debugging purposes
 			style := lipgloss.NewStyle().Foreground(lipgloss.Color("#999"))
-			list += style.Render(fmt.Sprintf("%02d", note.index)) + " "
+			list.WriteString(style.Render(fmt.Sprintf("%02d", note.index)))
+			list.WriteString(" ")
 		}
 
 		if l.editIndex != nil && i == *l.editIndex {
 			// Show input field instead of text
-			list += l.editor.View() + "\n"
+			list.WriteString(l.editor.View())
+			list.WriteRune('\n')
 		} else {
-			list += fmt.Sprintf("%-*s \n", l.viewport.Width(), note.String())
+			list.WriteString(fmt.Sprintf("%-*s \n", l.viewport.Width(), note.String()))
 		}
 	}
 
-	return list
+	return list.String()
 }
 
 // Refresh updates the notes list

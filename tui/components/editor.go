@@ -83,6 +83,7 @@ type Buffer struct {
 	History          textarea.History
 	Dirty            bool
 	LastSavedContent *string
+	header           *string
 }
 
 func (b *Buffer) undo() (string, textarea.CursorPos) {
@@ -112,6 +113,9 @@ func NewEditor(conf *config.Config) *Editor {
 	ta.Styles.Blurred.Base = blurredStyle
 	ta.CharLimit = charLimit
 	ta.MaxHeight = maxHeight
+	ta.Selection.Cursor.SetMode(cursor.CursorStatic)
+	ta.Selection.Cursor.TextStyle = ta.SelectionStyle()
+	ta.Selection.Cursor.Style = ta.SelectionStyle()
 
 	editor := &Editor{
 		Vim: Vim{
@@ -178,12 +182,7 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		switch e.Vim.Mode.Current {
 		case mode.Normal:
-			pos := e.Textarea.CursorPos()
-			e.conf.SetMetaValue(
-				e.CurrentBuffer.Path,
-				config.CursorPosition,
-				strconv.Itoa(pos.Row)+","+strconv.Itoa(pos.ColumnOffset),
-			)
+			e.saveCursorPosToConf()
 
 		case mode.Insert:
 			cmd = e.handleInsertMode(msg)
@@ -219,23 +218,14 @@ func (e *Editor) View() string {
 		e.Textarea.Blur()
 	}
 
-	e.Textarea.Selection.Cursor.SetMode(cursor.CursorStatic)
-	e.Textarea.Selection.Cursor.TextStyle = e.Textarea.SelectionStyle()
-	e.Textarea.Selection.Cursor.Style = e.Textarea.SelectionStyle()
-	//e.Textarea.Cursor.UpdateStyle()
-
 	return e.build()
 }
 
 func (e *Editor) build() string {
-	title := "EDITOR"
-
-	if e.CurrentBuffer.Path != "" {
-		title = e.breadcrumb()
-	}
-
-	e.header = theme.Header(title, e.Size.Width, e.Focused())
-	return fmt.Sprintf("%s\n%s", e.header, e.Textarea.View())
+	var view strings.Builder
+	view.WriteString(e.buildHeader(e.Size.Width))
+	view.WriteString(e.Textarea.View())
+	return view.String()
 }
 
 // NewBuffer creates a new buffer, sets the textareas content
@@ -361,6 +351,26 @@ func (e *Editor) DirtyBuffers() []Buffer {
 	}
 
 	return bufs
+}
+
+func (e *Editor) buildHeader(width int) string {
+	// return cached header
+	if e.CurrentBuffer.header != nil {
+		if width == lipgloss.Width(*e.CurrentBuffer.header) {
+			return *e.CurrentBuffer.header
+		}
+	}
+
+	title := "EDITOR"
+	if e.CurrentBuffer.Path != "" {
+		title = e.breadcrumb()
+	}
+
+	e.header = theme.Header(title, width, e.Focused())
+
+	header := e.header + "\n"
+	e.CurrentBuffer.header = &header
+	return header
 }
 
 func (e *Editor) OpenLastNote() {
@@ -563,8 +573,13 @@ func (e *Editor) UpdateStatusBarInfo() {
 }
 
 func (e *Editor) StatusBarInfo() message.StatusBarMsg {
+	var info strings.Builder
+	info.WriteString(e.cursorInfo())
+	info.WriteRune('\t')
+	info.WriteString(e.fileProgresStr())
+
 	return message.StatusBarMsg{
-		Content: e.cursorInfo() + "\t" + e.fileProgresStr(),
+		Content: info.String(),
 		Column:  sbc.Progress,
 	}
 }
@@ -1011,4 +1026,17 @@ func (e *Editor) Paste() message.StatusBarMsg {
 	e.updateHistoryEntry()
 	e.Textarea.RepositionView()
 	return message.StatusBarMsg{}
+}
+
+func (e *Editor) saveCursorPosToConf() {
+	pos := e.Textarea.CursorPos()
+	var curPos strings.Builder
+	curPos.WriteString(strconv.Itoa(pos.Row))
+	curPos.WriteRune(',')
+	curPos.WriteString(strconv.Itoa(pos.ColumnOffset))
+	e.conf.SetMetaValue(
+		e.CurrentBuffer.Path,
+		config.CursorPosition,
+		curPos.String(),
+	)
 }

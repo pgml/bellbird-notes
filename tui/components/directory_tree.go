@@ -294,7 +294,7 @@ func (t *DirectoryTree) build() {
 }
 
 func (t *DirectoryTree) render() string {
-	var tree string
+	var tree strings.Builder
 
 	for i, dir := range t.dirsListFlat {
 		// Removes invalid directory items
@@ -319,22 +319,21 @@ func (t *DirectoryTree) render() string {
 		if *app.Debug {
 			// prepend tree item indices for debugging purposes
 			style := lipgloss.NewStyle().Foreground(lipgloss.Color("#999"))
-			tree += style.Render(fmt.Sprintf("%02d", dir.index)) + " "
+			tree.WriteString(style.Render(fmt.Sprintf("%02d", dir.index)))
+			tree.WriteString(" ")
 		}
 
 		if t.editIndex != nil && i == *t.editIndex {
 			// Show input field instead of text
-			tree += indent + t.editor.View() + "\n"
+			tree.WriteString(indent)
+			tree.WriteString(t.editor.View())
+			tree.WriteRune('\n')
 		} else {
-			tree += fmt.Sprintf(
-				"%-*s \n",
-				t.viewport.Width(),
-				dir.String(),
-			)
+			tree.WriteString(fmt.Sprintf("%-*s \n", t.viewport.Width(), dir.String()))
 		}
 	}
 
-	return tree
+	return tree.String()
 }
 
 // getChildren reads a directory and returns a slice of a directory Dir
