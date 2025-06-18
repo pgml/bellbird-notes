@@ -363,7 +363,7 @@ func (m *DirectoryTree) createDirectoryItem(
 	dirItem := TreeItem{
 		Item: Item{
 			index:     0,
-			name:      dir.Name,
+			name:      dir.Name(),
 			path:      dir.Path,
 			styles:    style,
 			nerdFonts: m.conf.NerdFonts(),

@@ -11,15 +11,15 @@ import (
 )
 
 type Directory struct {
-	Name       string
+	name       string
 	Path       string
 	NbrNotes   int
 	NbrFolders int
 	IsExpanded bool
 }
 
-func (d Directory) GetName() string {
-	return d.Name
+func (d Directory) Name() string {
+	return d.name
 }
 
 func List(dirPath string) ([]Directory, error) {
@@ -54,7 +54,7 @@ func List(dirPath string) ([]Directory, error) {
 		}
 
 		Directories = append(Directories, Directory{
-			Name:       child.Name(),
+			name:       child.Name(),
 			Path:       filePath,
 			NbrNotes:   nbrNotes,
 			NbrFolders: len(nbrDirs),
@@ -95,7 +95,7 @@ func ContainsDir(path string, dirName string) (error, bool) {
 	}
 
 	for _, dir := range dirs {
-		if dir.Name == dirName {
+		if dir.Name() == dirName {
 			return nil, true
 		}
 	}

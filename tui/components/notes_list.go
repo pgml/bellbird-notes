@@ -244,7 +244,7 @@ func (l *NotesList) createNoteItem(note notes.Note) NoteItem {
 	childItem := NoteItem{
 		Item: Item{
 			index:  0,
-			name:   note.Name,
+			name:   note.Name(),
 			path:   note.Path,
 			styles: style,
 		},
@@ -266,11 +266,7 @@ func (l *NotesList) createVirtualNote() NoteItem {
 		name,
 	)
 
-	item := notes.Note{
-		Name: name,
-		Path: path,
-	}
-
+	item := notes.NewNote(name, path, false)
 	noteItem := l.createNoteItem(item)
 	noteItem.index = len(l.items)
 

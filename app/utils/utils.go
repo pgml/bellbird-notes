@@ -13,7 +13,7 @@ import (
 )
 
 type HasName interface {
-	GetName() string
+	Name() string
 }
 
 func TruncateText(text string, maxWidth int) string {
@@ -47,7 +47,7 @@ func SortSliceAsc[T HasName](slice []T, skipFirst bool, setIndex func(*T, int)) 
 	}
 
 	slices.SortFunc(slice[start:], func(i, j T) int {
-		return strings.Compare(strings.ToLower(i.GetName()), strings.ToLower(j.GetName()))
+		return strings.Compare(strings.ToLower(i.Name()), strings.ToLower(j.Name()))
 	})
 
 	if setIndex != nil {

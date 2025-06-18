@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"bellbird-notes/app/debug"
 	"bellbird-notes/app/utils"
@@ -12,13 +13,34 @@ import (
 )
 
 type Note struct {
-	Name     string
+	name     string
 	Path     string
 	IsPinned bool
 }
 
-func (n Note) GetName() string {
-	return n.Name
+func (n Note) Name() string {
+	return n.name
+}
+
+func (n Note) NameWithExt(ext bool) string {
+	var name strings.Builder
+	name.WriteString(n.name)
+	name.WriteString(n.Ext())
+	return name.String()
+}
+
+func (n Note) Ext() string { return ".txt" }
+
+// LegacyExt is the extension used in the old rust version
+// of bellbird notes and is just here for compatibility reasons
+func (n Note) LegacyExt() string { return ".note" }
+
+func NewNote(name string, path string, isPinned bool) Note {
+	return Note{
+		name:     name,
+		Path:     path,
+		IsPinned: isPinned,
+	}
 }
 
 func List(notePath string) ([]Note, error) {
@@ -37,7 +59,7 @@ func List(notePath string) ([]Note, error) {
 		}
 
 		notes = append(notes, Note{
-			Name:     child.Name(),
+			name:     child.Name(),
 			Path:     filePath,
 			IsPinned: false,
 		})
