@@ -27,6 +27,10 @@ func (n Note) Name() string {
 }
 
 func (n Note) NameWithExt() string {
+	if strings.HasSuffix(n.name, n.Ext()) {
+		return n.name
+	}
+
 	var name strings.Builder
 	name.WriteString(n.name)
 	name.WriteString(n.Ext())
@@ -64,7 +68,7 @@ func List(notePath string) ([]Note, error) {
 	for _, child := range dirsList {
 		filePath := filepath.Join(notePath, child.Name())
 
-		if child.IsDir() || isHidden(filePath) {
+		if child.IsDir() || isHidden(child.Name()) {
 			continue
 		}
 
