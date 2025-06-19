@@ -19,21 +19,30 @@ type Note struct {
 }
 
 func (n Note) Name() string {
-	return n.name
+	name := strings.TrimSuffix(
+		n.name,
+		filepath.Ext(n.name),
+	)
+	return name
 }
 
-func (n Note) NameWithExt(ext bool) string {
+func (n Note) NameWithExt() string {
 	var name strings.Builder
 	name.WriteString(n.name)
 	name.WriteString(n.Ext())
 	return name.String()
 }
 
-func (n Note) Ext() string { return ".txt" }
+const (
+	ext       = ".txt"
+	legacyExt = ".note"
+)
+
+func (n Note) Ext() string { return ext }
 
 // LegacyExt is the extension used in the old rust version
 // of bellbird notes and is just here for compatibility reasons
-func (n Note) LegacyExt() string { return ".note" }
+func (n Note) LegacyExt() string { return legacyExt }
 
 func NewNote(name string, path string, isPinned bool) Note {
 	return Note{
@@ -54,7 +63,15 @@ func List(notePath string) ([]Note, error) {
 
 	for _, child := range dirsList {
 		filePath := filepath.Join(notePath, child.Name())
+
 		if child.IsDir() || isHidden(filePath) {
+			continue
+		}
+
+		// skip not  allowed files
+		if !strings.HasSuffix(child.Name(), ext) &&
+			!strings.HasSuffix(child.Name(), legacyExt) {
+
 			continue
 		}
 
@@ -72,6 +89,8 @@ func List(notePath string) ([]Note, error) {
 }
 
 func Create(path string) error {
+	path = checkPath(path)
+
 	if Exists(path) {
 		return errors.New(message.StatusBar.NoteExists)
 	}
@@ -85,6 +104,8 @@ func Create(path string) error {
 }
 
 func Write(path string, content string) (int, error) {
+	path = checkPath(path)
+
 	if !Exists(path) {
 		return 0, errors.New(message.StatusBar.NoteExists)
 	}
@@ -107,6 +128,8 @@ func Write(path string, content string) (int, error) {
 }
 
 func Rename(oldPath string, newPath string) error {
+	newPath = checkPath(newPath)
+
 	if err := os.Rename(oldPath, newPath); err != nil {
 		debug.LogErr(err)
 		return err
@@ -115,6 +138,8 @@ func Rename(oldPath string, newPath string) error {
 }
 
 func Delete(path string) error {
+	path = checkPath(path)
+
 	if _, err := os.Stat(path); err != nil {
 		debug.LogErr(err)
 		return err
@@ -129,6 +154,8 @@ func Delete(path string) error {
 }
 
 func Exists(path string) bool {
+	path = checkPath(path)
+
 	if _, err := os.Stat(path); errors.Is(err, os.ErrNotExist) {
 		return false
 	}
@@ -137,4 +164,22 @@ func Exists(path string) bool {
 
 func isHidden(path string) bool {
 	return path[0] == 46
+}
+
+func checkPath(path string) string {
+	hasExt := strings.HasSuffix(path, ext)
+	hasLegayExt := strings.HasSuffix(path, legacyExt)
+	if !hasExt {
+		if hasLegayExt {
+			return path
+		}
+		return path + ext
+	}
+	if !hasLegayExt {
+		if hasExt {
+			return path
+		}
+		return path + legacyExt
+	}
+	return path
 }

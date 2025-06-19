@@ -54,10 +54,6 @@ func (n NoteItem) String() string {
 	sel := n.styles.selected
 
 	name := utils.TruncateText(n.Name(), 24)
-	name = strings.TrimSuffix(
-		name,
-		filepath.Ext(name),
-	)
 
 	if n.selected {
 		base = sel
