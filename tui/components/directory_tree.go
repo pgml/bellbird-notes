@@ -149,29 +149,33 @@ func (d TreeItem) ContentInfo() string {
 		Width(5).
 		Foreground(theme.ColourBorder).
 		Align(lipgloss.Right)
+
 	nbrDir := strconv.Itoa(d.NbrFolders)
 	nbrNotes := strconv.Itoa(d.NbrNotes)
-	dirInfo := ""
+
+	var dirInfo strings.Builder
 
 	if d.NbrNotes == 0 {
 		nbrNotes = ""
 	}
 
 	if d.NbrNotes == 0 && d.NbrFolders == 0 {
-		dirInfo = "0"
+		dirInfo.WriteByte('0')
 	} else if d.NbrFolders == 0 && d.NbrNotes > 0 {
-		dirInfo = nbrNotes
+		dirInfo.WriteString(nbrNotes)
 	} else if d.NbrFolders > 0 && d.NbrNotes == 0 {
-		dirInfo = nbrDir
+		dirInfo.WriteString(nbrDir)
 	} else {
-		dirInfo = nbrDir + "|" + nbrNotes
+		dirInfo.WriteString(nbrDir)
+		dirInfo.WriteByte('|')
+		dirInfo.WriteString(nbrNotes)
 	}
 
 	if d.selected {
 		dirStyle = d.styles.selected.Width(5).Align(lipgloss.Right)
 	}
 
-	return dirStyle.Render(dirInfo)
+	return dirStyle.Render(dirInfo.String())
 }
 
 // Init initialises the Model on program load.
@@ -344,7 +348,8 @@ func (t *DirectoryTree) render() string {
 			tree.WriteString(t.editor.View())
 			tree.WriteRune('\n')
 		} else {
-			tree.WriteString(fmt.Sprintf("%-*s \n", t.viewport.Width(), dir.String()))
+			tree.WriteString(dir.String())
+			tree.WriteByte('\n')
 		}
 	}
 
@@ -816,11 +821,26 @@ func (t *DirectoryTree) ContentInfo() message.StatusBarMsg {
 	sel := t.SelectedDir()
 	iconDir := theme.Icon(theme.IconDirClosed, t.conf.NerdFonts())
 	iconNotes := theme.Icon(theme.IconNote, t.conf.NerdFonts())
-	nbrFolders := iconDir + " " + strconv.Itoa(sel.NbrFolders) + " Folders"
-	nbrNotes := iconNotes + " " + strconv.Itoa(sel.NbrNotes) + " Notes"
+
+	var nbrFolders strings.Builder
+	nbrFolders.WriteString(iconDir)
+	nbrFolders.WriteByte(' ')
+	nbrFolders.WriteString(strconv.Itoa(sel.NbrFolders))
+	nbrFolders.WriteString(" Folders")
+
+	var nbrNotes strings.Builder
+	nbrNotes.WriteString(iconNotes)
+	nbrNotes.WriteByte(' ')
+	nbrNotes.WriteString(strconv.Itoa(sel.NbrNotes))
+	nbrNotes.WriteString(" Notes")
+
+	var msg strings.Builder
+	msg.WriteString(nbrFolders.String())
+	msg.WriteString(", ")
+	msg.WriteString(nbrFolders.String())
 
 	return message.StatusBarMsg{
 		Column:  sbc.FileInfo,
-		Content: nbrFolders + ", " + nbrNotes,
+		Content: msg.String(),
 	}
 }

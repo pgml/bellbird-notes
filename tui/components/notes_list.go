@@ -47,27 +47,26 @@ func (n NoteItem) Path() string { return n.path }
 // Name() returns the index of a Note-Item
 func (n NoteItem) Name() string { return n.name }
 
-// The string representation of a Dir
+// The string representation of a Note
 func (n NoteItem) String() string {
 	base := n.styles.base
 	icn := n.styles.icon
-	sel := n.styles.selected
-
 	name := utils.TruncateText(n.Name(), 24)
 
 	if n.selected {
-		base = sel
-		icn = sel.Width(n.styles.iconWidth)
+		base = n.styles.selected
+		icn = n.styles.iconSelected
 	}
 
-	icon := " " + theme.Icon(theme.IconNote, n.nerdFonts)
+	var icon strings.Builder
+	icon.WriteByte(' ')
 
 	if n.IsDirty {
 		icn = icn.Foreground(theme.ColourDirty)
-		icon = " " + theme.Icon(theme.IconDot, n.nerdFonts)
+		icon.WriteString(theme.Icon(theme.IconDot, n.nerdFonts))
 	}
 
-	return icn.Render(icon) + base.Render(name)
+	return icn.Render(icon.String()) + base.Render(name)
 }
 
 // Init initialises the Model on program load.
@@ -169,14 +168,16 @@ func NewNotesList(conf *config.Config) *NotesList {
 func (l NotesList) build() string {
 	var list strings.Builder
 
+	dirtyMap := make(map[string]struct{}, len(l.DirtyBuffers))
+	for _, buf := range l.DirtyBuffers {
+		dirtyMap[buf.Path] = struct{}{}
+	}
+
 	for i, note := range l.items {
 		note.selected = (l.selectedIndex == i)
 
-		for i := range l.DirtyBuffers {
-			buf := l.DirtyBuffers[i]
-			if buf.Path == note.path {
-				note.IsDirty = true
-			}
+		if _, ok := dirtyMap[note.path]; ok {
+			note.IsDirty = true
 		}
 
 		if *app.Debug {
@@ -189,9 +190,10 @@ func (l NotesList) build() string {
 		if l.editIndex != nil && i == *l.editIndex {
 			// Show input field instead of text
 			list.WriteString(l.editor.View())
-			list.WriteRune('\n')
+			list.WriteByte('\n')
 		} else {
-			list.WriteString(fmt.Sprintf("%-*s \n", l.viewport.Width(), note.String()))
+			list.WriteString(note.String())
+			list.WriteByte('\n')
 		}
 	}
 
@@ -229,7 +231,11 @@ func (l *NotesList) Refresh(resetSelectedIndex bool) message.StatusBarMsg {
 		}
 	}
 
-	l.items = make([]NoteItem, 0, len(notes))
+	if cap(l.items) >= len(notes) {
+		l.items = l.items[:0]
+	} else {
+		l.items = make([]NoteItem, 0, len(notes))
+	}
 
 	for i, note := range notes {
 		noteItem := l.createNoteItem(note)
@@ -251,7 +257,9 @@ func (l *NotesList) Refresh(resetSelectedIndex bool) message.StatusBarMsg {
 // createNoteItem creates populated NoteItem
 func (l *NotesList) createNoteItem(note notes.Note) NoteItem {
 	style := NotesListStyle()
-	childItem := NoteItem{
+	iconWidth := style.iconWidth
+
+	noteItem := NoteItem{
 		Item: Item{
 			index:  0,
 			name:   note.Name(),
@@ -260,7 +268,11 @@ func (l *NotesList) createNoteItem(note notes.Note) NoteItem {
 		},
 		isPinned: note.IsPinned,
 	}
-	return childItem
+
+	noteItem.styles.icon = style.icon.Width(iconWidth)
+	noteItem.styles.iconSelected = style.selected.Width(iconWidth)
+
+	return noteItem
 }
 
 // createVirtualNote creates a virtual note `Note`
@@ -344,7 +356,7 @@ func (l *NotesList) ConfirmRemove() message.StatusBarMsg {
 	msgType := message.PromptError
 
 	rootDir, _ := app.NotesRootDir()
-	path := strings.ReplaceAll(selectedNote.path, rootDir+"/", "")
+	path := strings.TrimPrefix(selectedNote.path, rootDir+"/")
 	resultMsg := fmt.Sprintf(message.StatusBar.RemovePrompt, path)
 
 	l.EditState = EditStates.Delete

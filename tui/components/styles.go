@@ -11,6 +11,7 @@ type styles struct {
 	enumerator,
 	icon,
 	selected,
+	iconSelected,
 	toggle lipgloss.Style
 
 	iconWidth,
