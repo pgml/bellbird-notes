@@ -86,6 +86,11 @@ func (l *NotesList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		// focus the input field when renaming a list item
+		if l.editIndex != nil && !l.editor.Focused() {
+			l.editor.Focus()
+			return l, nil
+		}
+
 		if l.editor.Focused() {
 			l.editor.Focus()
 			l.editor, cmd = l.editor.Update(msg)
