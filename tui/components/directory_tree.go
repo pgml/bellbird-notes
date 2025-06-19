@@ -187,6 +187,7 @@ func (t *DirectoryTree) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
+		// focus the input field when renaming a list item
 		if t.editIndex != nil && !t.editor.Focused() {
 			t.editor.Focus()
 			return t, nil
@@ -234,9 +235,10 @@ func (t *DirectoryTree) View() string {
 		t.Focused(),
 	)
 
-	t.header = theme.Header("FOLDERS", t.Size.Width, t.Focused())
-
-	return fmt.Sprintf("%s\n%s", t.header, t.viewport.View())
+	var view strings.Builder
+	view.WriteString(t.BuildHeader(t.Size.Width, false))
+	view.WriteString(t.viewport.View())
+	return view.String()
 }
 
 // NewDirectoryTree creates a new model with default settings.
@@ -291,6 +293,19 @@ func (t *DirectoryTree) build() {
 	t.refreshFlatList()
 	t.length = len(t.dirsListFlat)
 	t.lastIndex = t.dirsListFlat[len(t.dirsListFlat)-1].index
+}
+
+func (t *DirectoryTree) BuildHeader(width int, rebuild bool) string {
+	// return cached header
+	if t.header != nil && !rebuild {
+		if width == lipgloss.Width(*t.header) {
+			return *t.header
+		}
+	}
+
+	header := theme.Header("FOLDERS", width, t.Focused()) + "\n"
+	t.header = &header
+	return header
 }
 
 func (t *DirectoryTree) render() string {

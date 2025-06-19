@@ -83,15 +83,9 @@ func (l *NotesList) Init() tea.Cmd {
 func (l *NotesList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 
-	termWidth, termHeight := theme.GetTerminalSize()
-
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		if l.editIndex != nil && !l.editor.Focused() {
-			l.editor.Focus()
-			return l, nil
-		}
-
+		// focus the input field when renaming a list item
 		if l.editor.Focused() {
 			l.editor.Focus()
 			l.editor, cmd = l.editor.Update(msg)
@@ -99,6 +93,7 @@ func (l *NotesList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case tea.WindowSizeMsg:
+		termWidth, termHeight := theme.GetTerminalSize()
 		colHeight := termHeight - 1
 
 		if !l.ready {
@@ -134,9 +129,10 @@ func (l *NotesList) View() string {
 		l.Focused(),
 	)
 
-	l.header = theme.Header("NOTES", l.Size.Width, l.Focused())
-
-	return fmt.Sprintf("%s\n%s", l.header, l.viewport.View())
+	var view strings.Builder
+	view.WriteString(l.BuildHeader(l.Size.Width, false))
+	view.WriteString(l.viewport.View())
+	return view.String()
 }
 
 // NewNotesList creates a new model with default settings.
@@ -199,6 +195,19 @@ func (l NotesList) build() string {
 	}
 
 	return list.String()
+}
+
+func (l *NotesList) BuildHeader(width int, rebuild bool) string {
+	// return cached header
+	if l.header != nil && rebuild == false {
+		if width == lipgloss.Width(*l.header) {
+			return *l.header
+		}
+	}
+
+	header := theme.Header("NOTES", width, l.Focused()) + "\n"
+	l.header = &header
+	return header
 }
 
 // Refresh updates the notes list

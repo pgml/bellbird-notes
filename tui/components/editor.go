@@ -176,10 +176,6 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		if !e.Textarea.Focused() {
-			cmd = e.Textarea.Focus()
-		}
-
 		switch e.Vim.Mode.Current {
 		case mode.Normal:
 			e.saveCursorPosToConf()
@@ -223,7 +219,7 @@ func (e *Editor) View() string {
 
 func (e *Editor) build() string {
 	var view strings.Builder
-	view.WriteString(e.buildHeader(e.Size.Width))
+	view.WriteString(e.BuildHeader(e.Size.Width, false))
 	view.WriteString(e.Textarea.View())
 	return view.String()
 }
@@ -353,9 +349,9 @@ func (e *Editor) DirtyBuffers() []Buffer {
 	return bufs
 }
 
-func (e *Editor) buildHeader(width int) string {
+func (e *Editor) BuildHeader(width int, rebuild bool) string {
 	// return cached header
-	if e.CurrentBuffer.header != nil {
+	if e.CurrentBuffer.header != nil && !rebuild {
 		if width == lipgloss.Width(*e.CurrentBuffer.header) {
 			return *e.CurrentBuffer.header
 		}
@@ -366,9 +362,7 @@ func (e *Editor) buildHeader(width int) string {
 		title = e.breadcrumb()
 	}
 
-	e.header = theme.Header(title, width, e.Focused())
-
-	header := e.header + "\n"
+	header := theme.Header(title, width, e.Focused()) + "\n"
 	e.CurrentBuffer.header = &header
 	return header
 }
@@ -386,6 +380,9 @@ func (e *Editor) Focused() bool {
 
 func (e *Editor) SetFocus(focus bool) {
 	e.focused = focus
+	if !e.Textarea.Focused() {
+		e.Textarea.Focus()
+	}
 }
 
 func (e *Editor) breadcrumb() string {
@@ -548,6 +545,10 @@ func (e *Editor) cursorInfo() string {
 // setTextareaSize update the textarea height and width to match
 // the height and width of the editor
 func (e *Editor) setTextareaSize() {
+	if e.Textarea.Width() == e.Size.Width && e.Textarea.Height() == e.Size.Height {
+		return
+	}
+
 	const reserverdLines = 3
 	e.Textarea.SetWidth(e.Size.Width)
 	e.Textarea.SetHeight(e.Size.Height - reserverdLines)
