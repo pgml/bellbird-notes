@@ -60,6 +60,7 @@ func (n NoteItem) String() string {
 
 	var icon strings.Builder
 	icon.WriteByte(' ')
+	icon.WriteString(theme.Icon(theme.IconNote, n.nerdFonts))
 
 	if n.IsDirty {
 		icn = icn.Foreground(theme.ColourDirty)
