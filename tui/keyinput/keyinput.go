@@ -57,8 +57,9 @@ type matchContext struct {
 // including current key sequences, modifier states, mode, and the
 // list of all configured key actions.
 type Input struct {
-	KeySequence  string
-	sequenceKeys []string
+	KeySequence    string
+	sequenceKeys   []string
+	sequenceLength int
 	//actions      map[string]func() message.StatusBarMsg
 	Ctrl bool
 	Alt  bool
@@ -110,6 +111,7 @@ func New() *Input {
 		Mode:             mode.Normal,
 		KeySequence:      "",
 		sequenceKeys:     []string{},
+		sequenceLength:   0,
 		Functions:        []KeyFn{},
 		componentActions: []Action{},
 	}
@@ -144,8 +146,13 @@ func (ki *Input) HandleSequences(key string) []message.StatusBarMsg {
 		ki.KeySequence += key
 	}
 
-	keyInfoMsg := message.StatusBarMsg{Content: "", Column: sbc.KeyInfo}
+	// reset keybinds if we exceed the max length of sequences found in
+	// the keymap
+	if len(strings.Split(ki.KeySequence, " ")) > ki.sequenceLength {
+		ki.ResetKeysDown()
+	}
 
+	keyInfoMsg := message.StatusBarMsg{Content: "", Column: sbc.KeyInfo}
 	if ki.Mode != mode.Command && !ki.isBinding(ki.KeySequence) {
 		mod, isModifier := ki.isModifier(key)
 
@@ -160,7 +167,9 @@ func (ki *Input) HandleSequences(key string) []message.StatusBarMsg {
 			keyInfo := keyInfoMsg.Content
 			if ki.Mode != mode.Insert {
 				keyInfo = strings.ReplaceAll(ki.KeySequence, "ctrl", "^")
-				keyInfo = strings.ReplaceAll(keyInfo, "+", "")
+				if ki.Ctrl {
+					keyInfo = strings.ReplaceAll(keyInfo, "+", "")
+				}
 			}
 
 			return []message.StatusBarMsg{{
@@ -223,7 +232,12 @@ func (ki *Input) FetchKeyMap(resetSeq bool) {
 func (ki *Input) addSequenceKey(binding string) {
 	runeCount := utf8.RuneCountInString(binding)
 
-	if runeCount == 3 && binding != "esc" && binding != "alt" {
+	seqAmount := strings.Split(binding, " ")
+	if len(seqAmount) > ki.sequenceLength {
+		ki.sequenceLength = len(seqAmount)
+	}
+
+	if runeCount == 3 && binding != "esc" {
 		runes := []rune(binding)
 		r := string(runes[0]) + string(runes[1])
 		if !slices.Contains(ki.sequenceKeys, r) {
