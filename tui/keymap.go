@@ -597,8 +597,14 @@ func (m *Model) focusColumn(index int) message.StatusBarMsg {
 	}
 
 	m.dirTree.SetFocus(index == 1)
+	m.dirTree.BuildHeader(m.dirTree.Size.Width, true)
+
 	m.notesList.SetFocus(index == 2)
+	m.notesList.BuildHeader(m.notesList.Size.Width, true)
+
 	m.editor.SetFocus(index == 3)
+	m.editor.BuildHeader(m.notesList.Size.Width, true)
+
 	m.currColFocus = index
 	m.keyInput.FetchKeyMap(true)
 
