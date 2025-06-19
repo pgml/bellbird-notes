@@ -386,12 +386,13 @@ func (l *NotesList) ConfirmAction() message.StatusBarMsg {
 	// renaming or creating a directory
 	if l.editIndex != nil {
 		selectedNote := l.SelectedItem(nil)
-		newPath := filepath.Join(l.CurrentPath, l.editor.Value())
+		oldPath := selectedNote.path
+		ext := filepath.Ext(oldPath)
+		newPath := filepath.Join(l.CurrentPath, l.editor.Value()+ext)
 		resultMsg := ""
 
 		switch l.EditState {
 		case EditStates.Rename:
-			oldPath := selectedNote.path
 			if err := notes.Rename(oldPath, newPath); err == nil {
 				selectedNote.name = filepath.Base(newPath)
 				selectedNote.path = newPath

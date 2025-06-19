@@ -154,8 +154,6 @@ func Delete(path string) error {
 }
 
 func Exists(path string) bool {
-	path = checkPath(path)
-
 	if _, err := os.Stat(path); errors.Is(err, os.ErrNotExist) {
 		return false
 	}
@@ -167,19 +165,11 @@ func isHidden(path string) bool {
 }
 
 func checkPath(path string) string {
-	hasExt := strings.HasSuffix(path, ext)
-	hasLegayExt := strings.HasSuffix(path, legacyExt)
-	if !hasExt {
-		if hasLegayExt {
-			return path
-		}
-		return path + ext
+	if strings.HasSuffix(path, ext) ||
+		strings.HasSuffix(path, legacyExt) {
+
+		return path
 	}
-	if !hasLegayExt {
-		if hasExt {
-			return path
-		}
-		return path + legacyExt
-	}
-	return path
+
+	return path + ext
 }
