@@ -38,11 +38,11 @@ func (n Note) NameWithExt() string {
 }
 
 const (
-	ext       = ".txt"
+	Ext       = ".txt"
 	legacyExt = ".note"
 )
 
-func (n Note) Ext() string { return ext }
+func (n Note) Ext() string { return Ext }
 
 // LegacyExt is the extension used in the old rust version
 // of bellbird notes and is just here for compatibility reasons
@@ -73,7 +73,7 @@ func List(notePath string) ([]Note, error) {
 		}
 
 		// skip not  allowed files
-		if !strings.HasSuffix(child.Name(), ext) &&
+		if !strings.HasSuffix(child.Name(), Ext) &&
 			!strings.HasSuffix(child.Name(), legacyExt) {
 
 			continue
@@ -169,11 +169,11 @@ func isHidden(path string) bool {
 }
 
 func checkPath(path string) string {
-	if strings.HasSuffix(path, ext) ||
+	if strings.HasSuffix(path, Ext) ||
 		strings.HasSuffix(path, legacyExt) {
 
 		return path
 	}
 
-	return path + ext
+	return path + Ext
 }
