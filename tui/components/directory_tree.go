@@ -758,7 +758,7 @@ func (t *DirectoryTree) Remove() message.StatusBarMsg {
 	resultMsg := ""
 	msgType := message.Success
 
-	if err := directories.Delete(dir.path, false); err == nil {
+	if err := directories.Delete(dir.path, true); err == nil {
 		t.dirsListFlat = slices.Delete(
 			t.dirsListFlat,
 			index,
