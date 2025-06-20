@@ -151,11 +151,7 @@ func (e *Editor) LineNumbers() bool {
 		return false
 	}
 
-	number := false
-
-	if n == "true" {
-		number = true
-	}
+	number := n == "true"
 
 	return number
 }
@@ -642,7 +638,7 @@ func (e *Editor) InsertLineStart() message.StatusBarMsg {
 	return message.StatusBarMsg{}
 }
 
-// insertLineEnd moves the cursor to the end of the line,
+// InsertLineEnd moves the cursor to the end of the line,
 // enters insert mode and saves the cursor's position
 func (e *Editor) InsertLineEnd() message.StatusBarMsg {
 	e.Textarea.CursorEnd()
@@ -651,24 +647,21 @@ func (e *Editor) InsertLineEnd() message.StatusBarMsg {
 	return message.StatusBarMsg{}
 }
 
-// insertLineAbove creates and empty line above the current line
+// InsertLineAbove creates and empty line above the current line
 // and enters insert mode
 func (e *Editor) InsertLineAbove() message.StatusBarMsg {
-	e.Textarea.CursorUp()
-	e.Textarea.CursorEnd()
-	e.Textarea.InsertRune('\n')
-	e.Textarea.RepositionView()
-	e.EnterInsertMode(true)
+	e.newHistoryEntry()
+	e.Textarea.EmptyLineAbove()
+	e.EnterInsertMode(false)
 	return message.StatusBarMsg{}
 }
 
-// insertLineBelow creates and empty line below the current line
+// InsertLineBelow creates and empty line below the current line
 // and enters insert mode
 func (e *Editor) InsertLineBelow() message.StatusBarMsg {
-	e.Textarea.CursorEnd()
-	e.Textarea.InsertRune('\n')
-	e.Textarea.RepositionView()
-	e.EnterInsertMode(true)
+	e.newHistoryEntry()
+	e.Textarea.EmptyLineBelow()
+	e.EnterInsertMode(false)
 	return message.StatusBarMsg{}
 }
 

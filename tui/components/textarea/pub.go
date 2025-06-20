@@ -253,6 +253,18 @@ func (m *Model) SetCursorColor(color color.Color) {
 	m.updateVirtualCursorStyle()
 }
 
+func (m *Model) EmptyLineAbove() {
+	m.CursorUp()
+	m.EmptyLineBelow()
+	m.RepositionView()
+}
+
+func (m *Model) EmptyLineBelow() {
+	m.value = slices.Insert(m.value, m.row+1, []rune{})
+	m.CursorDown()
+	m.RepositionView()
+}
+
 func (m *Model) DeleteOuterWord() {
 	m.DeleteInnerWord()
 
