@@ -17,3 +17,11 @@ install-tui:
 clean:
 	go clean
 	rm ${BIN_CLI}
+
+.PHONY: test
+
+test:
+	go test ./...
+
+test-verbose:
+	go test ./... -v
