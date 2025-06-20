@@ -60,11 +60,12 @@ func (n NoteItem) String() string {
 
 	var icon strings.Builder
 	icon.WriteByte(' ')
-	icon.WriteString(theme.Icon(theme.IconNote, n.nerdFonts))
 
 	if n.IsDirty {
 		icn = icn.Foreground(theme.ColourDirty)
 		icon.WriteString(theme.Icon(theme.IconDot, n.nerdFonts))
+	} else {
+		icon.WriteString(theme.Icon(theme.IconNote, n.nerdFonts))
 	}
 
 	return icn.Render(icon.String()) + base.Render(name)
