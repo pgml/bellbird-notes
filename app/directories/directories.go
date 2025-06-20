@@ -35,7 +35,7 @@ func List(dirPath string) ([]Directory, error) {
 
 	for _, child := range dirs {
 		filePath := filepath.Join(dirPath, child.Name())
-		if !child.IsDir() || isHidden(filePath) {
+		if !child.IsDir() || isHidden(child.Name()) {
 			continue
 		}
 
