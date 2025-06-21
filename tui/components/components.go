@@ -8,7 +8,7 @@ import (
 )
 
 type Component struct {
-	Id   bl.ID
+	ID   bl.ID
 	Size bl.Size
 
 	// The current mode the directory tree is in
@@ -19,16 +19,23 @@ type Component struct {
 	// Used to determine if the directory tree should receive keyboard shortcuts
 	focused bool
 
-	statusMessage string         // For displaying useful information in the status bar
-	viewport      viewport.Model // The tree viewport that allows scrolling
-	header        *string
-	ready         bool
+	// For displaying useful information in the status bar
+	statusMessage string
+	viewport      viewport.Model
+
+	// Header is the title of the component
+	header *string
+
+	// ready indicates if the component has been initialized
+	ready bool
 }
 
+// Focused returns whether the component is focused
 func (c *Component) Focused() bool {
 	return c.focused
 }
 
+// SetFocus sets the focus state of the component
 func (c *Component) SetFocus(focus bool) {
 	c.focused = focus
 }

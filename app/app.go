@@ -32,6 +32,7 @@ func ModuleName() string {
 	return moduleName
 }
 
+// NotesRootDir returns the root directory for notes
 func NotesRootDir() (string, error) {
 	Home, err := os.UserHomeDir()
 	if err != nil {
@@ -49,6 +50,7 @@ func NotesRootDir() (string, error) {
 	return notesDir, nil
 }
 
+// ConfigDir returns the config directory
 func ConfigDir() (string, error) {
 	ConfigDir, err := os.UserConfigDir()
 	if err != nil {
@@ -72,6 +74,7 @@ func ConfigDir() (string, error) {
 	return confDir, nil
 }
 
+// ConfigFile returns the path to the config file
 func ConfigFile(isMetaInfo bool) (string, error) {
 	filename := ModuleName()
 	if isMetaInfo {

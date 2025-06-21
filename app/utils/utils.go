@@ -12,10 +12,14 @@ import (
 	"github.com/charmbracelet/lipgloss/v2"
 )
 
+// HasName is an interface for types that expose a Name method.
+// Used to generically sort any slice of such types.
 type HasName interface {
 	Name() string
 }
 
+// TruncateText shortens the given text to fit within maxWidth.
+// If the text exceeds maxWidth, it appends "..." (if possible).
 func TruncateText(text string, maxWidth int) string {
 	if lipgloss.Width(text) > maxWidth {
 		if maxWidth > 3 {
@@ -26,6 +30,7 @@ func TruncateText(text string, maxWidth int) string {
 	return text
 }
 
+// GetSortedKeys returns the keys of a map[int]T in ascending order.
 func GetSortedKeys[T any](mapToSort map[int]T) []int {
 	var keys []int
 	for key := range mapToSort {
@@ -36,6 +41,11 @@ func GetSortedKeys[T any](mapToSort map[int]T) []int {
 	return keys
 }
 
+// SortSliceAsc sorts a slice of items that implement HasName
+// in ascending (case-insensitive) order.
+// If skipFirst is true, the first element is left unsorted
+// (e.g., for keeping a "default" item first).
+// Optionally, a setIndex callback can be used to update the index after sorting.
 func SortSliceAsc[T HasName](slice []T, skipFirst bool, setIndex func(*T, int)) {
 	if len(slice) <= 0 {
 		return
@@ -57,10 +67,8 @@ func SortSliceAsc[T HasName](slice []T, skipFirst bool, setIndex func(*T, int)) 
 	}
 }
 
-func Pointer[T any](d T) *T {
-	return &d
-}
-
+// RelativePath removes the root notes directory from the full path,
+// Optionally includes trailing slash.
 func RelativePath(path string, trailingSlash bool) string {
 	rootDir, _ := app.NotesRootDir()
 

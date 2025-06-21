@@ -41,13 +41,13 @@ type NoteItem struct {
 // Index returns the index of a Note-Item
 func (n NoteItem) Index() int { return n.index }
 
-// Path() returns the index of a Note-Item
+// Path returns the index of a Note-Item
 func (n NoteItem) Path() string { return n.path }
 
-// Name() returns the index of a Note-Item
+// Name returns the index of a Note-Item
 func (n NoteItem) Name() string { return n.name }
 
-// The string representation of a Note
+// String is string representation of a Note
 func (n NoteItem) String() string {
 	base := n.styles.base
 	icn := n.styles.icon
@@ -204,7 +204,7 @@ func (l NotesList) build() string {
 
 func (l *NotesList) BuildHeader(width int, rebuild bool) string {
 	// return cached header
-	if l.header != nil && rebuild == false {
+	if l.header != nil && !rebuild {
 		if width == lipgloss.Width(*l.header) {
 			return *l.header
 		}
@@ -394,7 +394,7 @@ func (l *NotesList) Remove() message.StatusBarMsg {
 	}
 }
 
-// Confirms a user action
+// ConfirmAction confirms a user action
 func (l *NotesList) ConfirmAction() message.StatusBarMsg {
 	// if editingindex is set it most likely means that we are
 	// renaming or creating a directory

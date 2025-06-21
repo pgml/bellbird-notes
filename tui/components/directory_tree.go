@@ -76,7 +76,7 @@ func (d TreeItem) Indent(indentLines bool) string {
 	}
 }
 
-// The string representation of a Dir
+// String returns a string representation of a Dir-Item
 func (d *TreeItem) String() string {
 	if !d.nerdFonts {
 		d.styles.iconWidth = 0
@@ -98,7 +98,6 @@ func (d *TreeItem) String() string {
 		infoWidth = lipgloss.Width(dirInfo)
 	}
 
-	//baseWidth := 21 - d.styles.iconWidth - indentWidth
 	baseWidth := 26 - d.styles.iconWidth - indentWidth - infoWidth
 	base = base.Width(baseWidth)
 	indent := lipgloss.NewStyle().Width(indentWidth)
@@ -144,6 +143,8 @@ func (d *TreeItem) String() string {
 	)
 }
 
+// ContentInfo returns information about the content of a Dir-Item
+// such as number of notes and folders to the right of a Dir-Item in the tree list
 func (d TreeItem) ContentInfo() string {
 	dirStyle := lipgloss.NewStyle().
 		Width(5).
@@ -299,6 +300,7 @@ func (t *DirectoryTree) build() {
 	t.lastIndex = t.dirsListFlat[len(t.dirsListFlat)-1].index
 }
 
+// BuildHeader builds title of the directory tree column
 func (t *DirectoryTree) BuildHeader(width int, rebuild bool) string {
 	// return cached header
 	if t.header != nil && !rebuild {
@@ -374,6 +376,7 @@ func (t *DirectoryTree) getChildren(path string, level int) []TreeItem {
 	return dirs
 }
 
+// createDirectoryItem creates a directory item
 func (m *DirectoryTree) createDirectoryItem(
 	dir directories.Directory,
 	level int,
@@ -620,6 +623,7 @@ func findDirInTree(directories []TreeItem, path string) *TreeItem {
 	return nil
 }
 
+// SelectLastDir selects the last directory
 func (t *DirectoryTree) SelectLastDir() string {
 	dirPath, err := t.conf.MetaValue("", config.CurrentDirectory)
 	if err == nil && dirPath != "" {
@@ -640,7 +644,7 @@ func (t *DirectoryTree) SelectLastDir() string {
 /// keyboard shortcut commands
 ///
 
-// Collapses the currently selected directory
+// Collapse collapses the currently selected directory
 func (t *DirectoryTree) Collapse() message.StatusBarMsg {
 	statusMsg := message.StatusBarMsg{}
 	if t.selectedIndex >= len(t.dirsListFlat) || !t.Focused() {
@@ -652,17 +656,22 @@ func (t *DirectoryTree) Collapse() message.StatusBarMsg {
 
 	if dir := findDirInTree(items, path); dir != nil {
 		if dir.expanded {
+			// remove expanded state from cached map
 			delete(t.expandedDirs, dir.path)
 			dir.expanded = false
+
+			// rebuild directory tree
 			t.build()
 		}
+
+		// save state to meta config file
 		t.conf.SetMetaValue(dir.path, config.Expanded, "false")
 	}
 
 	return statusMsg
 }
 
-// Expands the currently selected directory
+// Expand expands the currently selected directory
 func (t *DirectoryTree) Expand() message.StatusBarMsg {
 	statusMsg := message.StatusBarMsg{}
 	if t.selectedIndex >= len(t.dirsListFlat) ||
@@ -676,10 +685,15 @@ func (t *DirectoryTree) Expand() message.StatusBarMsg {
 
 	if dir := findDirInTree(items, path); dir != nil {
 		if !dir.expanded {
+			// add expanded state to cached map
 			t.expandedDirs[dir.path] = true
 			dir.children = t.getChildren(dir.path, dir.level+1)
 			dir.expanded = true
+
+			// rebuild directory tree
 			t.build()
+
+			// save state to meta config file
 			t.conf.SetMetaValue(dir.path, config.Expanded, "true")
 		}
 	}
@@ -734,6 +748,8 @@ func (t *DirectoryTree) Create(
 	return statusMsg
 }
 
+// ConfirmRemove Confirms returns a status bar prompt
+// to confirm or cancel the removal of a directory
 func (t *DirectoryTree) ConfirmRemove() message.StatusBarMsg {
 	selectedDir := t.SelectedDir()
 	t.EditState = EditStates.Delete
@@ -750,8 +766,7 @@ func (t *DirectoryTree) ConfirmRemove() message.StatusBarMsg {
 	}
 }
 
-// Renames the currently selected directory
-// Returns a message to be displayed in the status bar
+// Remove removes the currently selected directory
 func (t *DirectoryTree) Remove() message.StatusBarMsg {
 	dir := t.SelectedDir()
 	index := t.selectedIndex
@@ -759,6 +774,7 @@ func (t *DirectoryTree) Remove() message.StatusBarMsg {
 	msgType := message.Success
 
 	if err := directories.Delete(dir.path, true); err == nil {
+		// delte the directory from the flat list
 		t.dirsListFlat = slices.Delete(
 			t.dirsListFlat,
 			index,
@@ -778,7 +794,7 @@ func (t *DirectoryTree) Remove() message.StatusBarMsg {
 	}
 }
 
-// Confirms a user action
+// ConfirmAction confirms a user action
 func (t *DirectoryTree) ConfirmAction() message.StatusBarMsg {
 	// if editingindex is set it most likely means that we are
 	// renaming or creating a directory
@@ -786,6 +802,7 @@ func (t *DirectoryTree) ConfirmAction() message.StatusBarMsg {
 		selDir := t.SelectedDir()
 		oldPath := selDir.path
 
+		// build the new path with the new name
 		newPath := filepath.Join(
 			filepath.Dir(oldPath),
 			t.editor.Value(),
@@ -817,6 +834,8 @@ func (t *DirectoryTree) ConfirmAction() message.StatusBarMsg {
 	return message.StatusBarMsg{}
 }
 
+// ContentInfo returns the info about the currently selected directory
+// in the status bar
 func (t *DirectoryTree) ContentInfo() message.StatusBarMsg {
 	sel := t.SelectedDir()
 	iconDir := theme.Icon(theme.IconDirClosed, t.conf.NerdFonts())

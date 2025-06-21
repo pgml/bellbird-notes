@@ -18,6 +18,7 @@ type Note struct {
 	IsPinned bool
 }
 
+// Name returns the note name without its file extension.
 func (n Note) Name() string {
 	name := strings.TrimSuffix(
 		n.name,
@@ -26,6 +27,7 @@ func (n Note) Name() string {
 	return name
 }
 
+// NameWithExt returns the full note name including the extension.
 func (n Note) NameWithExt() string {
 	if strings.HasSuffix(n.name, n.Ext()) {
 		return n.name
@@ -56,6 +58,9 @@ func NewNote(name string, path string, isPinned bool) Note {
 	}
 }
 
+// List returns a list of notes in the given directory path.
+// Only files with valid extensions (.txt or .note) are included.
+// Hidden files and directories are ignored.
 func List(notePath string) ([]Note, error) {
 	var notes []Note
 
@@ -72,7 +77,7 @@ func List(notePath string) ([]Note, error) {
 			continue
 		}
 
-		// skip not  allowed files
+		// skip unsupported files
 		if !strings.HasSuffix(child.Name(), Ext) &&
 			!strings.HasSuffix(child.Name(), legacyExt) {
 
@@ -92,6 +97,7 @@ func List(notePath string) ([]Note, error) {
 	return notes, nil
 }
 
+// Create creates a new note file at the specified path.
 func Create(path string) error {
 	path = checkPath(path)
 
@@ -107,6 +113,7 @@ func Create(path string) error {
 	return nil
 }
 
+// Write replaces the contents of a note at the given path with the provided string.
 func Write(path string, content string) (int, error) {
 	path = checkPath(path)
 
@@ -131,6 +138,7 @@ func Write(path string, content string) (int, error) {
 	return n, nil
 }
 
+// Rename changes the name or path of a note file.
 func Rename(oldPath string, newPath string) error {
 	newPath = checkPath(newPath)
 
@@ -141,6 +149,7 @@ func Rename(oldPath string, newPath string) error {
 	return nil
 }
 
+// Delete removes the specified note file.
 func Delete(path string) error {
 	path = checkPath(path)
 
@@ -157,6 +166,7 @@ func Delete(path string) error {
 	return nil
 }
 
+// Exists checks whether a file exists at the given path.
 func Exists(path string) bool {
 	if _, err := os.Stat(path); errors.Is(err, os.ErrNotExist) {
 		return false
@@ -164,10 +174,13 @@ func Exists(path string) bool {
 	return true
 }
 
+// isHidden returns true if the file or directory is hidden
 func isHidden(path string) bool {
 	return path[0] == 46
 }
 
+// checkPath ensures that the path ends with a valid extension.
+// If not, it appends the default extension.
 func checkPath(path string) string {
 	if strings.HasSuffix(path, Ext) ||
 		strings.HasSuffix(path, legacyExt) {
