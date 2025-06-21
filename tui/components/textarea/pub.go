@@ -29,6 +29,8 @@ type Selection struct {
 
 	wrappedLline []rune
 	lineIndex    int
+
+	Content *string
 }
 
 type SelectionMode int
@@ -202,6 +204,13 @@ func (m *Model) RenderLine(
 	}
 }
 
+func (m *Model) LineLength(index int) int {
+	if index == -1 {
+		index = m.row
+	}
+	return len(m.value[index])
+}
+
 func (m *Model) CursorLineEnd() {
 	m.SetCursorColumn(len(m.value[m.row]))
 }
@@ -211,6 +220,10 @@ func (m *Model) CursorLineVimEnd() {
 }
 
 func (m *Model) IsExceedingLine() bool {
+	maxRows := len(m.value) - 1
+	if m.row > maxRows {
+		m.row = maxRows
+	}
 	return m.col >= len(m.value[m.row])
 }
 
@@ -313,11 +326,12 @@ func (m *Model) DeleteInnerWord() {
 
 // DeleteLine deletes current line
 func (m *Model) DeleteLine() {
-	currCursorPos := m.LineInfo().ColumnOffset
-	m.CursorStart()
-	m.deleteAfterCursor()
-	m.mergeLineBelow(m.row)
-	m.SetCursorColumn(currCursorPos)
+	if m.row >= len(m.value)-1 {
+		m.value = m.value[:len(m.value)-1]
+		m.row--
+	} else {
+		m.value = append(m.value[:m.row], m.value[m.row+1:]...)
+	}
 }
 
 // DeleteLines deletes l lines
@@ -482,6 +496,8 @@ func (m *Model) SelectionStr() string {
 		}
 	}
 
+	content := str.String()
+	m.Selection.Content = &content
 	return str.String()
 }
 
@@ -569,6 +585,20 @@ func (m *Model) StartSelection(selectionMode SelectionMode) {
 		m.Selection.StartCol = m.LineInfo().ColumnOffset
 	}
 	m.Selection.Mode = selectionMode
+}
+
+func (m *Model) SelectRange(
+	selectionMode SelectionMode,
+	from CursorPos,
+	to CursorPos,
+) string {
+	m.Selection.Mode = selectionMode
+	m.Selection.StartRow = from.Row
+	m.Selection.StartCol = from.ColumnOffset
+	m.MoveCursor(to.Row, to.ColumnOffset)
+
+	return m.SelectionStr()
+	//m.Selection.Content = &content
 }
 
 func (m *Model) SelectInnerWord() {

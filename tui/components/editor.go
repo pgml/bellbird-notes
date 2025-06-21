@@ -19,10 +19,10 @@ import (
 	"bellbird-notes/tui/theme"
 	sbc "bellbird-notes/tui/types/statusbar_column"
 
-	"github.com/atotto/clipboard"
 	"github.com/charmbracelet/bubbles/v2/cursor"
 	tea "github.com/charmbracelet/bubbletea/v2"
 	"github.com/charmbracelet/lipgloss/v2"
+	"golang.design/x/clipboard"
 )
 
 const (
@@ -75,15 +75,16 @@ type Editor struct {
 type errMsg error
 
 type Buffer struct {
-	Index            int
-	CurrentLine      int
-	CursorPos        textarea.CursorPos
-	Path             string
-	Content          string
-	History          textarea.History
-	Dirty            bool
-	LastSavedContent *string
-	header           *string
+	Index             int
+	CurrentLine       int
+	CurrentLineLength int
+	CursorPos         textarea.CursorPos
+	Path              string
+	Content           string
+	History           textarea.History
+	Dirty             bool
+	LastSavedContent  *string
+	header            *string
 }
 
 func (b *Buffer) undo() (string, textarea.CursorPos) {
@@ -140,6 +141,10 @@ func NewEditor(conf *config.Config) *Editor {
 	editor.ShowLineNumbers = editor.LineNumbers()
 	editor.Textarea.ShowLineNumbers = editor.ShowLineNumbers
 	editor.Textarea.ResetSelection()
+
+	if err := clipboard.Init(); err != nil {
+		debug.LogErr(err)
+	}
 
 	return editor
 }
@@ -241,12 +246,13 @@ func (e *Editor) NewBuffer(path string) message.StatusBarMsg {
 	}
 
 	buf := Buffer{
-		Index:       len(e.Buffers) + 1,
-		Path:        path,
-		Content:     noteContent,
-		History:     textarea.NewHistory(),
-		CurrentLine: 0,
-		CursorPos:   cursorPos,
+		Index:             len(e.Buffers) + 1,
+		Path:              path,
+		Content:           noteContent,
+		History:           textarea.NewHistory(),
+		CurrentLine:       0,
+		CurrentLineLength: 0,
+		CursorPos:         cursorPos,
 	}
 
 	e.Buffers = append(e.Buffers, buf)
@@ -265,6 +271,7 @@ func (e *Editor) NewBuffer(path string) message.StatusBarMsg {
 	e.Textarea.SetValue(content)
 	e.Textarea.MoveCursor(cursorPos.Row, cursorPos.ColumnOffset)
 	e.Textarea.RepositionView()
+	e.saveLineLength()
 
 	e.conf.SetMetaValue("", config.CurrentNote, path)
 
@@ -294,6 +301,7 @@ func (e *Editor) OpenBuffer(path string) message.StatusBarMsg {
 	e.Textarea.SetValue(buf.Content)
 	e.Textarea.MoveCursor(buf.CursorPos.Row, buf.CursorPos.ColumnOffset)
 	e.Textarea.RepositionView()
+	e.saveLineLength()
 
 	e.conf.SetMetaValue("", config.CurrentNote, path)
 
@@ -560,6 +568,11 @@ func (e *Editor) saveCursorRow() {
 	e.CurrentBuffer.CursorPos.Row = e.Textarea.CursorPos().Row
 }
 
+// saveLineLength stores the length of the current line
+func (e *Editor) saveLineLength() {
+	e.CurrentBuffer.CurrentLineLength = e.Textarea.LineLength(-1)
+}
+
 // saveCursorCol saves the cursors current column offset
 //func (e *Editor) saveCursorCol() {
 //	e.CurrentBuffer.CursorPos.ColumnOffset = e.Textarea.CursorPos().ColumnOffset
@@ -684,6 +697,7 @@ func (e *Editor) LineUp() message.StatusBarMsg {
 
 	e.Textarea.SetCursorColumn(pos.ColumnOffset)
 	e.saveCursorRow()
+	e.saveLineLength()
 
 	if e.Textarea.IsExceedingLine() || e.isAtLineEnd {
 		e.Textarea.CursorLineVimEnd()
@@ -714,6 +728,7 @@ func (e *Editor) LineDown() message.StatusBarMsg {
 
 	e.Textarea.SetCursorColumn(pos.ColumnOffset)
 	e.saveCursorRow()
+	e.saveLineLength()
 
 	if e.Textarea.IsExceedingLine() || e.isAtLineEnd {
 		e.Textarea.CursorLineVimEnd()
@@ -814,8 +829,12 @@ func (e *Editor) SelectOuterWord() message.StatusBarMsg {
 
 func (e *Editor) DeleteLine() message.StatusBarMsg {
 	e.newHistoryEntry()
+
+	e.saveLineLength()
+	e.YankLine()
 	e.Textarea.DeleteLine()
 	e.updateHistoryEntry()
+
 	return e.UpdateSelectedRowsCount()
 }
 
@@ -947,6 +966,7 @@ func (e *Editor) Undo() message.StatusBarMsg {
 
 	e.Textarea.MoveCursor(cursorPos.Row, cursorPos.ColumnOffset)
 	e.Textarea.RepositionView()
+	e.saveCursorPos()
 	return message.StatusBarMsg{}
 }
 
@@ -962,13 +982,13 @@ func (e *Editor) Redo() message.StatusBarMsg {
 }
 
 func (e *Editor) Yank(str string) message.StatusBarMsg {
-	clipboard.WriteAll(str)
+	clipboard.Write(clipboard.FmtText, []byte(str))
 	return message.StatusBarMsg{}
 }
 
 func (e *Editor) YankSelection(keepCursorPos bool) message.StatusBarMsg {
 	sel := e.Textarea.SelectionStr()
-	clipboard.WriteAll(sel)
+	clipboard.Write(clipboard.FmtText, []byte(sel))
 
 	if keepCursorPos {
 		e.Textarea.SetCursorColumn(e.CurrentBuffer.CursorPos.ColumnOffset)
@@ -987,9 +1007,13 @@ func (e *Editor) YankSelection(keepCursorPos bool) message.StatusBarMsg {
 }
 
 func (e *Editor) YankLine() message.StatusBarMsg {
-	e.Textarea.CursorStart()
-	e.Textarea.StartSelection(textarea.SelectVisual)
-	e.Textarea.CursorLineVimEnd()
+	e.saveCursorPos()
+	row := e.CurrentBuffer.CursorPos.Row
+	e.Textarea.SelectRange(
+		textarea.SelectVisualLine,
+		textarea.CursorPos{Row: row, ColumnOffset: 0},
+		textarea.CursorPos{Row: row, ColumnOffset: e.Textarea.LineLength(-1)},
+	)
 	return e.YankSelection(true)
 }
 
@@ -1004,21 +1028,45 @@ func (e *Editor) YankOuterWord() message.StatusBarMsg {
 }
 
 func (e *Editor) Paste() message.StatusBarMsg {
-	e.newHistoryEntry()
-	if cnt, err := clipboard.ReadAll(); err == nil {
-		// if the string contains a new line we should paste it
-		// on a new line as well
-		pasteBelow := strings.ContainsRune(cnt, '\n')
-		if pasteBelow {
-			e.Textarea.CursorDown()
+	cp := clipboard.Read(clipboard.FmtText)
+	if len(cp) > 0 {
+		cnt := string(cp)
+		// save the curren cursor position to adjust the correct position
+		// after the clipboard content is pasted
+		cursorPos := e.CurrentBuffer.CursorPos
+		col := cursorPos.ColumnOffset
+		row := cursorPos.Row
+
+		lineLen := e.CurrentBuffer.CurrentLineLength
+
+		e.newHistoryEntry()
+
+		// insert clipboard content on a newline below if it's larger than
+		// than the current line
+		if len(cp) >= lineLen {
+			e.Textarea.EmptyLineBelow()
+			// strip the last new line since we've already inserted
+			// an empty line so we don't need it
+			// otherwise it would produce an additional empty line
+			cnt = strings.TrimRight(cnt, "\n")
+			// set the cursor position at the beginning of the next row
+			// which is the newly pasted content
+			col = 0
+			row++
 		} else {
-			// paste after the current character
+			// if the clipboard content is not a full line set the
+			// add the length of the selection to the current column offset
+			// to set the cursor to the end of the selection
+			col += len(cp)
 			e.Textarea.CharacterRight(false)
 		}
+
+		// insert clipboard content
 		e.Textarea.InsertString(cnt)
+		e.Textarea.MoveCursor(row, col)
+		e.updateHistoryEntry()
+		e.Textarea.RepositionView()
 	}
-	e.updateHistoryEntry()
-	e.Textarea.RepositionView()
 	return message.StatusBarMsg{}
 }
 
