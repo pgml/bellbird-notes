@@ -269,8 +269,17 @@ func (m *Model) SetCursorColor(color color.Color) {
 }
 
 func (m *Model) EmptyLineAbove() {
-	m.CursorUp()
-	m.EmptyLineBelow()
+	if m.row == 0 {
+		// extend slice
+		m.value = m.value[:len(m.value)+1]
+		// add empty item at the beginning
+		m.value = append([][]rune{{}}, m.value...)
+		// move column offset internally to the beginning of the line
+		m.SetCursorColumn(0)
+	} else {
+		m.CursorUp()
+		m.EmptyLineBelow()
+	}
 	m.RepositionView()
 }
 
