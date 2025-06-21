@@ -524,14 +524,18 @@ func (e *Editor) fileProgress() int {
 }
 
 func (e *Editor) fileProgresStr() string {
-	fileProgress := strconv.Itoa(e.fileProgress())
-	return fileProgress + "%"
+	var p strings.Builder
+	p.WriteString(strconv.Itoa(e.fileProgress()))
+	p.WriteByte('%')
+	return p.String()
 }
 
 func (e *Editor) cursorInfo() string {
-	line := strconv.Itoa(e.Textarea.Line() + 1)
-	col := strconv.Itoa(e.Textarea.LineInfo().ColumnOffset)
-	return line + "," + col
+	var info strings.Builder
+	info.WriteString(strconv.Itoa(e.Textarea.Line() + 1))
+	info.WriteByte(',')
+	info.WriteString(strconv.Itoa(e.Textarea.LineInfo().ColumnOffset))
+	return info.String()
 }
 
 //func (e *Editor) filePosition() int {
