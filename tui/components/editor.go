@@ -913,9 +913,9 @@ func (e *Editor) DeleteOuterWord(enterInsertMode bool) message.StatusBarMsg {
 }
 
 // DeleteAfterCursor deletes all characters after the cursor
-func (e *Editor) DeleteAfterCursor() message.StatusBarMsg {
+func (e *Editor) DeleteAfterCursor(overshoot bool) message.StatusBarMsg {
 	e.newHistoryEntry()
-	e.Textarea.DeleteAfterCursor()
+	e.Textarea.DeleteAfterCursor(overshoot)
 	e.updateHistoryEntry()
 	return e.ResetSelectedRowsCount()
 }

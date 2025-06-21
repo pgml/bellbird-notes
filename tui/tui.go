@@ -105,9 +105,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case bl.BubbleLayoutMsg:
-		m.dirTree.Size, _ = msg.Size(m.dirTree.Id)
-		m.notesList.Size, _ = msg.Size(m.notesList.Id)
-		m.editor.Size, _ = msg.Size(m.editor.Id)
+		m.dirTree.Size, _ = msg.Size(m.dirTree.ID)
+		m.notesList.Size, _ = msg.Size(m.notesList.ID)
+		m.editor.Size, _ = msg.Size(m.editor.ID)
 	}
 
 	m.keyInput.Mode = m.mode.Current
@@ -138,9 +138,9 @@ func (m Model) View() string {
 // componentsInit registers components in the layout
 // and sets initial focus
 func (m *Model) componentsInit() {
-	m.dirTree.Id = m.layout.Add("w 30")
-	m.notesList.Id = m.layout.Add("w 30")
-	m.editor.Id = m.layout.Add("grow")
+	m.dirTree.ID = m.layout.Add("w 30")
+	m.notesList.ID = m.layout.Add("w 30")
+	m.editor.ID = m.layout.Add("grow")
 }
 
 // updateComponents dispatches updates to the focused components

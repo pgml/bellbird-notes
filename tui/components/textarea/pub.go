@@ -169,9 +169,11 @@ func (m *Model) MoveToEnd() {
 // deleteAfterCursor deletes all text after the cursor. Returns whether or not
 // the cursor blink should be reset. If input is masked delete everything after
 // the cursor so as not to reveal word breaks in the masked input.
-func (m *Model) DeleteAfterCursor() {
+func (m *Model) DeleteAfterCursor(overshoot bool) {
 	m.deleteAfterCursor()
-	m.SetCursorColumn(len(m.value[m.row]) - 1)
+	if !overshoot {
+		m.SetCursorColumn(len(m.value[m.row]) - 1)
+	}
 }
 
 ///

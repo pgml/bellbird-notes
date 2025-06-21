@@ -335,7 +335,9 @@ func (m *Model) KeyInputFn() []ki.KeyFn {
 		{
 			Bindings: ki.KeyBindings("D"),
 			Cond: []keyCond{
-				m.editorInputAction(n, m.editor.DeleteAfterCursor),
+				m.editorInputAction(n, func() message.StatusBarMsg {
+					return m.editor.DeleteAfterCursor(false)
+				}),
 				m.editorInputAction(v, m.editor.DeleteLine),
 				m.editorInputAction(vl, m.editor.DeleteLine),
 				m.editorInputAction(vb, m.editor.DeleteLine),
@@ -405,10 +407,19 @@ func (m *Model) KeyInputFn() []ki.KeyFn {
 			})},
 		},
 		{
+			Bindings: ki.KeyBindings("C"),
+			Cond: []keyCond{m.editorInputAction(n, func() message.StatusBarMsg {
+				m.editor.DeleteAfterCursor(true)
+				m.editor.MoveCharacterRight()
+				m.editor.EnterInsertMode(false)
+				return message.StatusBarMsg{}
+			})},
+		},
+		{
 			Bindings: ki.KeyBindings("cc"),
 			Cond: []keyCond{m.editorInputAction(n, func() message.StatusBarMsg {
 				m.editor.GoToLineStart()
-				m.editor.DeleteAfterCursor()
+				m.editor.DeleteAfterCursor(false)
 				m.editor.EnterInsertMode(false)
 				return m.editor.ResetSelectedRowsCount()
 			})},
