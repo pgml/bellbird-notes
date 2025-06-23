@@ -180,6 +180,8 @@ func NewEditor(conf *config.Config) *Editor {
 		debug.LogErr(err)
 	}
 
+	editor.OpenLastNote()
+
 	return editor
 }
 

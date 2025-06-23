@@ -291,6 +291,7 @@ func NewDirectoryTree(conf *config.Config) *DirectoryTree {
 	})
 
 	tree.build()
+	tree.SelectLastDir()
 	return tree
 }
 

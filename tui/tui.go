@@ -200,12 +200,6 @@ func (m *Model) updateStatusBar() {
 
 // restoreState restores the state of the TUI from the last session
 func (m *Model) restoreState() {
-	m.editor.OpenLastNote()
-
-	path := m.dirTree.SelectLastDir()
-	m.notesList.CurrentPath = path
-	m.notesList.Refresh(true)
-
 	currComp, err := m.conf.MetaValue("", config.CurrentComponent)
 	colIndex := 1
 
