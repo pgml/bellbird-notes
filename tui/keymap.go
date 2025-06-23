@@ -132,6 +132,16 @@ func (m *Model) KeyInputFn() []ki.KeyFn {
 			}},
 		},
 
+		// Pin/unpin
+		{
+			Bindings: ki.KeyBindings("p"),
+			Cond: []keyCond{{
+				Mode:       mode.Normal,
+				Components: []c{m.dirTree, m.notesList},
+				Action:     m.TogglePin,
+			}},
+		},
+
 		{
 			Bindings: ki.KeyBindings("gg"),
 			Cond: []keyCond{
@@ -767,6 +777,13 @@ func (m *Model) goToTop() message.StatusBarMsg {
 func (m *Model) goToBottom() message.StatusBarMsg {
 	if f := m.focusedComponent(); f != nil {
 		return f.GoToBottom()
+	}
+	return message.StatusBarMsg{}
+}
+
+func (m *Model) TogglePin() message.StatusBarMsg {
+	if f := m.focusedComponent(); f != nil {
+		return f.TogglePinned()
 	}
 	return message.StatusBarMsg{}
 }

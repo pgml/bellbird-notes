@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"bellbird-notes/app/config"
 	"bellbird-notes/app/debug"
 	"bellbird-notes/app/utils"
 	"bellbird-notes/tui/bb_errors"
@@ -70,6 +71,8 @@ func List(notePath string) ([]Note, error) {
 		return nil, err
 	}
 
+	conf := config.New()
+
 	for _, child := range dirsList {
 		filePath := filepath.Join(notePath, child.Name())
 
@@ -84,10 +87,13 @@ func List(notePath string) ([]Note, error) {
 			continue
 		}
 
+		p, _ := conf.MetaValue(filePath, config.Pinned)
+		pinned := p == "true"
+
 		notes = append(notes, Note{
 			name:     child.Name(),
 			Path:     filePath,
-			IsPinned: false,
+			IsPinned: pinned,
 		})
 	}
 

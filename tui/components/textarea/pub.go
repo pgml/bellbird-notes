@@ -850,7 +850,7 @@ func (m *Model) CursorBeforeSelection() string {
 	return ""
 }
 
-// CursorAfterSelection() returns the cursor that is at the end
+// CursorAfterSelection returns the cursor that is at the end
 // of a selection as a string.
 // Returns an empty string of the selection doesn't require a
 // cursor at the beginning (e.g. a backward selection)

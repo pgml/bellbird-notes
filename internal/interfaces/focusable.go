@@ -9,6 +9,7 @@ type Focusable interface {
 	LineDown() message.StatusBarMsg
 	GoToTop() message.StatusBarMsg
 	GoToBottom() message.StatusBarMsg
+	TogglePinned() message.StatusBarMsg
 	ConfirmRemove() message.StatusBarMsg
 	ConfirmAction() message.StatusBarMsg
 	CancelAction(cb func()) message.StatusBarMsg

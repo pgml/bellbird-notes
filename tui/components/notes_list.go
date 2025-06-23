@@ -8,6 +8,7 @@ import (
 
 	"bellbird-notes/app"
 	"bellbird-notes/app/config"
+	"bellbird-notes/app/debug"
 	"bellbird-notes/app/notes"
 	"bellbird-notes/app/utils"
 	"bellbird-notes/tui/message"
@@ -24,12 +25,59 @@ import (
 type NotesList struct {
 	List[NoteItem]
 
+	// Contains all pinned notes of the current directory
+	PinnedNotes PinnedNotes
+
 	// The directory path of the currently displayed notes.
 	// This path might not match the directory that is selected in the
 	// directory tree since we don't automatically display a directory's
 	// content on a selection change
-	CurrentPath  string
+	CurrentPath string
+
+	// Contains dirty buffers of the current notes list
 	DirtyBuffers []Buffer
+}
+
+type PinnedNotes struct {
+	notes []NoteItem
+
+	// indicates whether notes has been fully populated with the pinned notes
+	// of the current directory.
+	// This should only be true after the directory is loaded
+	loaded bool
+}
+
+func (p *PinnedNotes) add(note NoteItem) {
+	p.notes = append(p.notes, note)
+}
+
+// contains returns whether a NoteItem is in `notes`
+func (p PinnedNotes) contains(note NoteItem) bool {
+	for _, n := range p.notes {
+		if n.Path() == note.Path() {
+			return true
+		}
+	}
+	return false
+}
+
+func (p *PinnedNotes) remove(note NoteItem) {
+	for i, n := range p.notes {
+		if n.Path() == note.Path() {
+			p.notes = append(p.notes[:i], p.notes[i+1:]...)
+			return
+		}
+	}
+}
+
+// toggle adds or removes the given note to the pinned notes
+// depending on whether it's already in the slice
+func (p *PinnedNotes) toggle(note NoteItem) {
+	if !p.contains(note) {
+		p.add(note)
+	} else {
+		p.remove(note)
+	}
 }
 
 type NoteItem struct {
@@ -64,6 +112,8 @@ func (n NoteItem) String() string {
 	if n.IsDirty {
 		icn = icn.Foreground(theme.ColourDirty)
 		icon.WriteString(theme.Icon(theme.IconDot, n.nerdFonts))
+	} else if n.isPinned {
+		icon.WriteString(theme.Icon(theme.IconPin, n.nerdFonts))
 	} else {
 		icon.WriteString(theme.Icon(theme.IconNote, n.nerdFonts))
 	}
@@ -159,6 +209,7 @@ func NewNotesList(conf *config.Config) *NotesList {
 			items:            make([]NoteItem, 0),
 			conf:             conf,
 		},
+		PinnedNotes: PinnedNotes{},
 		CurrentPath: notesDir,
 	}
 
@@ -177,6 +228,7 @@ func (l NotesList) build() string {
 
 	for i, note := range l.items {
 		note.selected = (l.selectedIndex == i)
+		note.index = i
 
 		if _, ok := dirtyMap[note.path]; ok {
 			note.IsDirty = true
@@ -224,7 +276,8 @@ func (l *NotesList) Refresh(resetSelectedIndex bool) message.StatusBarMsg {
 		l.selectedIndex = 0
 	}
 
-	notes, err := notes.List(l.CurrentPath)
+	notesList, err := notes.List(l.CurrentPath)
+	l.PinnedNotes.loaded = false
 
 	if err != nil {
 		return message.StatusBarMsg{
@@ -233,17 +286,35 @@ func (l *NotesList) Refresh(resetSelectedIndex bool) message.StatusBarMsg {
 		}
 	}
 
-	if cap(l.items) >= len(notes) {
+	if cap(l.items) >= len(notesList) {
 		l.items = l.items[:0]
 	} else {
-		l.items = make([]NoteItem, 0, len(notes))
+		l.items = make([]NoteItem, 0, len(notesList))
 	}
 
-	for i, note := range notes {
-		noteItem := l.createNoteItem(note)
-		noteItem.index = i
-		noteItem.nerdFonts = l.conf.NerdFonts()
+	i := 0
+	for len(l.items) < len(notesList) {
+		note := notesList[i]
+		noteItem := l.createNoteItem(note, i)
+
+		if l.containsNote(noteItem) {
+			i++
+			continue
+		}
+
+		// Add pinned notes first since they need to be at the top of the list
+		if l.PinnedNotes.contains(noteItem) {
+			l.items = append([]NoteItem{noteItem}, l.items...)
+			continue
+		}
+
+		// Append all remaining notes
 		l.items = append(l.items, noteItem)
+	}
+
+	// Mark pinned notes as loaded
+	if len(l.items) == len(notesList) {
+		l.PinnedNotes.loaded = true
 	}
 
 	l.length = len(l.items)
@@ -256,21 +327,40 @@ func (l *NotesList) Refresh(resetSelectedIndex bool) message.StatusBarMsg {
 	return message.StatusBarMsg{}
 }
 
-// createNoteItem creates populated NoteItem
-func (l *NotesList) createNoteItem(note notes.Note) NoteItem {
+func (l *NotesList) containsNote(note NoteItem) bool {
+	for _, n := range l.items {
+		if n.Path() == note.Path() {
+			return true
+		}
+	}
+	return false
+}
+
+// createNoteItem creates a NoteItem from a note, applying styles and pinning logic.
+// If the note is pinned and not yet loaded, it is added to the pinned notes list.
+func (l *NotesList) createNoteItem(note notes.Note, index int) NoteItem {
 	style := NotesListStyle()
 	iconWidth := style.iconWidth
 
 	noteItem := NoteItem{
 		Item: Item{
-			index:  0,
-			name:   note.Name(),
-			path:   note.Path,
-			styles: style,
+			index:     index,
+			name:      note.Name(),
+			path:      note.Path,
+			styles:    style,
+			nerdFonts: l.conf.NerdFonts(),
 		},
-		isPinned: note.IsPinned,
 	}
 
+	// Add the note to the list of pinned notes and flag it as pinned
+	// if they aren't fully loaded yet.
+	// This should only happen once when we enter the directory
+	if !l.PinnedNotes.loaded && note.IsPinned && !l.PinnedNotes.contains(noteItem) {
+		noteItem.isPinned = true
+		l.PinnedNotes.notes = append(l.PinnedNotes.notes, noteItem)
+	}
+
+	noteItem.isPinned = l.PinnedNotes.contains(noteItem)
 	noteItem.styles.icon = style.icon.Width(iconWidth)
 	noteItem.styles.iconSelected = style.selected.Width(iconWidth)
 
@@ -291,7 +381,7 @@ func (l *NotesList) createVirtualNote() NoteItem {
 	)
 
 	item := notes.NewNote(name, path, false)
-	noteItem := l.createNoteItem(item)
+	noteItem := l.createNoteItem(item, -1)
 	noteItem.index = len(l.items)
 
 	return noteItem
@@ -442,4 +532,40 @@ func (l *NotesList) ConfirmAction() message.StatusBarMsg {
 	}
 
 	return message.StatusBarMsg{Sender: message.SenderNotesList}
+}
+
+// TogglePinned pins or unpins the current selection
+func (l *NotesList) TogglePinned() message.StatusBarMsg {
+	note := *l.SelectedItem(nil)
+	path := note.path
+
+	// check if the selection already has a state
+	p, err := l.conf.MetaValue(path, config.Pinned)
+
+	// set default state if not
+	if err != nil {
+		l.conf.SetMetaValue(path, config.Pinned, "false")
+		debug.LogErr(err)
+	}
+
+	// write to metadata file
+	if p == "true" {
+		l.conf.SetMetaValue(path, config.Pinned, "false")
+	} else {
+		l.conf.SetMetaValue(path, config.Pinned, "true")
+	}
+
+	l.PinnedNotes.toggle(note)
+	l.Refresh(false)
+
+	// get the new index and select the newly pinned or unpinned note
+	// since the pinned notes are always at the top and the notes order
+	// is changed
+	for i, it := range l.items {
+		if it.path == path {
+			l.selectedIndex = i
+		}
+	}
+
+	return message.StatusBarMsg{}
 }

@@ -52,6 +52,8 @@ type TreeItem struct {
 	NbrNotes int
 	// the amount of sub directories a directory has
 	NbrFolders int
+
+	isPinned *bool
 }
 
 // Index returns the index of a Dir-Item
@@ -862,4 +864,8 @@ func (t *DirectoryTree) ContentInfo() message.StatusBarMsg {
 		Column:  sbc.FileInfo,
 		Content: msg.String(),
 	}
+}
+
+func (t *DirectoryTree) TogglePinned() message.StatusBarMsg {
+	return message.StatusBarMsg{}
 }

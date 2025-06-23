@@ -117,6 +117,7 @@ func (l *List[T]) SelectedItem(items []T) *T {
 }
 
 // indexByPath returns the interal list index by the given path
+// if no items are provided it takes the cached items
 func (l List[T]) indexByPath(path string, items *[]T) int {
 	if items == nil {
 		items = &l.items
@@ -133,7 +134,7 @@ func (l List[T]) indexByPath(path string, items *[]T) int {
 /// keyboard shortcut commands
 ///
 
-// Decrements `m.selectedIndex`
+// LineUp decrements `m.selectedIndex`
 func (l *List[T]) LineUp() message.StatusBarMsg {
 	if l.selectedIndex > 0 {
 		l.selectedIndex--
@@ -148,7 +149,7 @@ func (l *List[T]) LineUp() message.StatusBarMsg {
 	return message.StatusBarMsg{}
 }
 
-// Increments `m.selectedIndex`
+// LineDown increments `m.selectedIndex`
 func (l *List[T]) LineDown() message.StatusBarMsg {
 	if l.selectedIndex < l.length-1 {
 		l.selectedIndex++
@@ -198,7 +199,7 @@ func (l *List[T]) Rename(origName string) message.StatusBarMsg {
 	return message.StatusBarMsg{}
 }
 
-// Cancel the current action and blurs the editor
+// CancelAction cancels the current action and blurs the editor
 func (l *List[T]) CancelAction(cb func()) message.StatusBarMsg {
 	l.resetEditor()
 	cb()

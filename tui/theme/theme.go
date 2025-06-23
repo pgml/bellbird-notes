@@ -34,6 +34,7 @@ var (
 	IconDirOpen   = icon{Nerd: "", Alt: "▼"}
 	IconDirClosed = icon{Nerd: "󰉋", Alt: "▶"}
 	IconDot       = icon{Nerd: "", Alt: "*"}
+	IconPin       = icon{Nerd: "󰐃", Alt: "#"}
 )
 
 func Icon(icon icon, nerdFont bool) string {
