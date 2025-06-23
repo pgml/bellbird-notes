@@ -134,7 +134,7 @@ func (m *Model) KeyInputFn() []ki.KeyFn {
 
 		// Pin/unpin
 		{
-			Bindings: ki.KeyBindings("p"),
+			Bindings: ki.KeyBindings("P"),
 			Cond: []keyCond{{
 				Mode:       mode.Normal,
 				Components: []c{m.dirTree, m.notesList},
