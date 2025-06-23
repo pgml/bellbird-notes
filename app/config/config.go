@@ -166,8 +166,10 @@ func createFile(path string) (bool, error) {
 
 // SetDefaults sets default config values if none are present
 func (c *Config) SetDefaults() {
-	notesRootDir, _ := app.NotesRootDir()
-	c.SetValue(General, NotesDirectory, notesRootDir)
+	if n, err := c.Value(General, NotesDirectory); err == nil && n == "" {
+		notesRootDir, _ := app.NotesRootDir()
+		c.SetValue(General, NotesDirectory, notesRootDir)
+	}
 
 	if n, err := c.MetaValue("", OpenNotes); err == nil && n == "" {
 		c.SetMetaValue("", OpenNotes, "")
