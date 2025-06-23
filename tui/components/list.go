@@ -213,3 +213,7 @@ func (l *List[T]) resetEditor() {
 		l.editor.Blur()
 	}
 }
+
+func (l *List[T]) SelectedIndex() int {
+	return l.selectedIndex
+}

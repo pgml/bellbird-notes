@@ -738,9 +738,12 @@ func (m *Model) rename() message.StatusBarMsg {
 	}
 
 	if m.dirTree.Focused() {
-		return m.dirTree.Rename(
-			m.dirTree.SelectedDir().Name(),
-		)
+		if m.dirTree.SelectedIndex() > 0 {
+			return m.dirTree.Rename(
+				m.dirTree.SelectedDir().Name(),
+			)
+		}
+		m.mode.Current = mode.Normal
 	}
 
 	if m.notesList.Focused() {
