@@ -272,12 +272,13 @@ func (l *NotesList) BuildHeader(width int, rebuild bool) string {
 // If `resetIndex` is set to true, 'l.selectedIndex' will be set to 0
 // which representns the first note
 func (l *NotesList) Refresh(resetSelectedIndex bool) message.StatusBarMsg {
+	notesList, err := notes.List(l.CurrentPath)
+
 	if resetSelectedIndex {
 		l.selectedIndex = 0
+		l.PinnedNotes.loaded = false
+		l.PinnedNotes.notes = make([]NoteItem, 0, len(notesList))
 	}
-
-	notesList, err := notes.List(l.CurrentPath)
-	l.PinnedNotes.loaded = false
 
 	if err != nil {
 		return message.StatusBarMsg{
