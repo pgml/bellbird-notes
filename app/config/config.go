@@ -257,6 +257,33 @@ func (c *Config) SetMetaValue(path string, option Option, value string) {
 	c.debounceFlush()
 }
 
+// RenameMetaSection renames a section in the metadata file.
+func (c *Config) RenameMetaSection(oldName string, newName string) error {
+	if c.metaFile == nil {
+		return errors.New("could not find config file")
+	}
+
+	oldSection, _ := c.metaFile.GetSection(oldName)
+	newSection, err := c.metaFile.NewSection(newName)
+
+	if err != nil {
+		return err
+	}
+
+	for _, key := range oldSection.Keys() {
+		newSection.Key(key.Name()).SetValue(key.Value())
+	}
+
+	c.metaFile.DeleteSection(oldName)
+	err = c.metaFile.SaveTo(c.metaFilePath)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // debounceFlush uses a timer and mutex to delay and
 // batch saving of metaFile changes
 func (c *Config) debounceFlush() {

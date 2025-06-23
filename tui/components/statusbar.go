@@ -193,7 +193,7 @@ func (s *StatusBar) ConfirmAction(
 
 	case message.Response.No:
 		statusMsg = c.CancelAction(func() {
-			c.Refresh(false)
+			c.Refresh(false, false)
 		})
 	case "q":
 		s.ShouldQuit = true

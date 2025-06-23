@@ -13,6 +13,6 @@ type Focusable interface {
 	ConfirmRemove() message.StatusBarMsg
 	ConfirmAction() message.StatusBarMsg
 	CancelAction(cb func()) message.StatusBarMsg
-	Refresh(resetSelectedIndex bool) message.StatusBarMsg
+	Refresh(resetSelectedIndex bool, resetPinned bool) message.StatusBarMsg
 	Remove() message.StatusBarMsg
 }

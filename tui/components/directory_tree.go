@@ -434,7 +434,10 @@ func (t *DirectoryTree) createVirtualDir() TreeItem {
 //
 // If `resetIndex` is set to true, 't.selectedIndex' will be set to -1
 // which means the selected directory's parent
-func (t *DirectoryTree) Refresh(resetIndex bool) message.StatusBarMsg {
+func (t *DirectoryTree) Refresh(
+	resetIndex bool,
+	resetPinned bool,
+) message.StatusBarMsg {
 	statusMsg := message.StatusBarMsg{}
 
 	if t.EditState == EditStates.Create {
@@ -456,7 +459,7 @@ func (t *DirectoryTree) Refresh(resetIndex bool) message.StatusBarMsg {
 		// refresh is triggered just select root
 		if t.selectedIndex != 0 {
 			t.selectedIndex = 0
-			t.Refresh(false)
+			t.Refresh(false, false)
 		}
 	}
 
@@ -813,7 +816,7 @@ func (t *DirectoryTree) ConfirmAction() message.StatusBarMsg {
 		switch t.EditState {
 		case EditStates.Rename:
 			if err := directories.Rename(oldPath, newPath); err == nil {
-				t.Refresh(false)
+				t.Refresh(false, false)
 				t.selectedIndex = t.indexByPath(
 					newPath,
 					&t.dirsListFlat,
@@ -827,7 +830,7 @@ func (t *DirectoryTree) ConfirmAction() message.StatusBarMsg {
 		}
 
 		t.CancelAction(func() {
-			t.Refresh(false)
+			t.Refresh(false, false)
 		})
 
 		return message.StatusBarMsg{Content: "yep"}

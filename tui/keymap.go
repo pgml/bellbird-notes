@@ -820,7 +820,7 @@ func (m *Model) confirmAction() message.StatusBarMsg {
 			path := m.dirTree.SelectedDir().Path()
 			m.notesList.CurrentPath = path
 			m.conf.SetMetaValue("", config.CurrentDirectory, path)
-			statusMsg = m.notesList.Refresh(true)
+			statusMsg = m.notesList.Refresh(true, true)
 		}
 
 		if f == m.notesList {
@@ -854,7 +854,7 @@ func (m *Model) cancelAction() message.StatusBarMsg {
 			}
 
 			return f.CancelAction(func() {
-				f.Refresh(resetIndex)
+				f.Refresh(resetIndex, false)
 			})
 		}
 	}
