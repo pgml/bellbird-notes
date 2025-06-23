@@ -43,6 +43,7 @@ func (n Note) NameWithExt() string {
 const (
 	Ext       = ".txt"
 	legacyExt = ".note"
+	confExt   = ".conf"
 )
 
 func (n Note) Ext() string { return Ext }
@@ -189,7 +190,8 @@ func isHidden(path string) bool {
 // If not, it appends the default extension.
 func checkPath(path string) string {
 	if strings.HasSuffix(path, Ext) ||
-		strings.HasSuffix(path, legacyExt) {
+		strings.HasSuffix(path, legacyExt) ||
+		strings.HasSuffix(path, confExt) {
 
 		return path
 	}
