@@ -1,4 +1,4 @@
-// I need stuff that is not public to be public for the vim motions
+// I need stuff that is not public to be public for the vim motionspub
 // That's why this file exists
 // Also I need need new textarea functions
 package textarea
@@ -248,8 +248,16 @@ func (m *Model) IsAtLineEnd() bool {
 // SetCursor moves the cursor to the given position. If the position is
 // out of bounds the cursor will be moved to the start or end accordingly.
 func (m *Model) MoveCursor(row int, col int) {
+	if row < 0 {
+		row = 0
+	}
+
 	if row < len(m.value) {
 		m.row = row
+	}
+
+	if col > len(m.value[m.row]) {
+		col = 0
 	}
 
 	m.SetCursorColumn(col)

@@ -109,7 +109,7 @@ func (l *List[T]) SelectedItem(items []T) *T {
 		items = l.items
 	}
 
-	if l.selectedIndex >= 0 && l.selectedIndex <= l.length {
+	if l.selectedIndex >= 0 && l.selectedIndex < l.length {
 		return &items[l.selectedIndex]
 	}
 
