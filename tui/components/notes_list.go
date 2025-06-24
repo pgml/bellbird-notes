@@ -504,9 +504,11 @@ func (l *NotesList) ConfirmAction() message.StatusBarMsg {
 				selectedNote.name = filepath.Base(newPath)
 				selectedNote.path = newPath
 
-				// update the meta file so we don't lose meta data
-				if err := l.conf.RenameMetaSection(oldPath, newPath); err == nil {
-					l.Refresh(false, true)
+				if oldPath != newPath {
+					// update the meta file so we don't lose meta data
+					if err := l.conf.RenameMetaSection(oldPath, newPath); err == nil {
+						l.Refresh(false, true)
+					}
 				}
 			}
 
