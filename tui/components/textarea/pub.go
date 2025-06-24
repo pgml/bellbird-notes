@@ -58,7 +58,7 @@ func (m *Model) CharacterLeft(inside bool) {
 	}
 }
 
-// characterRight moves the cursor one character to the right.
+// CharacterRight moves the cursor one character to the right.
 //
 // If overshoot is true, the cursor moves past the last character
 // in the current row
@@ -72,22 +72,30 @@ func (m *Model) CharacterRight(overshoot bool) {
 	}
 }
 
-// repositionView repositions the view of the viewport based on the defined
+// RepositionView repositions the view of the viewport based on the defined
 // scrolling behavior.
 func (m *Model) RepositionView() {
 	m.repositionView()
 }
 
-// same as m.wordLeft but checks for non-letters instead of just spaces
+// WordLeft  is same as m.wordLeft but checks for non-letters instead of just spaces
 func (m *Model) WordLeft() {
 	for {
+		if m.col == 0 && m.row == 0 {
+			break
+		}
+
 		m.characterLeft(true /* insideLine */)
-		if m.col < len(m.value[m.row]) && unicode.IsLetter(m.value[m.row][m.col]) {
+
+		if m.col < len(m.value[m.row]) &&
+			m.row >= 0 &&
+			unicode.IsLetter(m.value[m.row][m.col]) {
+
 			break
 		}
 	}
 
-	for m.col > 0 {
+	for m.col > 0 && m.row >= 0 {
 		if !unicode.IsLetter(m.value[m.row][m.col-1]) {
 			break
 		}
@@ -146,7 +154,7 @@ func (m *Model) WordRightEnd() {
 	m.repositionView()
 }
 
-// CursorStart moves the cursor to the first non-blank character of the line
+// CursorInputStart moves the cursor to the first non-blank character of the line
 func (m *Model) CursorInputStart() {
 	for i, r := range m.value[m.row] {
 		if r != 32 {
