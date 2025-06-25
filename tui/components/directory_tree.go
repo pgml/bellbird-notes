@@ -43,13 +43,17 @@ type TreeItem struct {
 	parent      int
 	children    []TreeItem
 	isLastChild bool
+
 	// Indicates whether a directory is expanded
 	expanded bool
+
 	// Indicates the depth of a directory
 	// Used to determine the indentation of DirectoryTree.dirsFlatList
 	level int
+
 	// the amount of notes a directory contains
 	NbrNotes int
+
 	// the amount of sub directories a directory has
 	NbrFolders int
 
@@ -66,20 +70,59 @@ func (d TreeItem) Path() string { return d.path }
 func (d TreeItem) Name() string { return d.name }
 
 // Indent returns the path of a Dir-Item
-func (d TreeItem) Indent(indentLines bool) string {
+func (d TreeItem) indentation(indentLines bool) Indentation {
+	var indent strings.Builder
+
 	if indentLines {
-		indentStr := "│ "
 		if d.isLastChild {
-			indentStr = "╰ "
+			indent.WriteString("╰ ")
+		} else {
+			indent.WriteString("│ ")
 		}
-		return indentStr
+
 	} else {
-		return "  "
+		indent.WriteString("  ")
+	}
+
+	indentStr := strings.Repeat(indent.String(), d.level)
+	indentWidth := lipgloss.Width(indentStr)
+	style := lipgloss.NewStyle().Width(indentWidth)
+
+	if d.selected {
+		style = d.styles.selected.Width(indentWidth)
+	}
+
+	return Indentation{
+		str:   style.Render(indentStr),
+		width: indentWidth,
 	}
 }
 
+func (d TreeItem) ToggleArrow() string {
+	iconToggleArrow := map[string]string{
+		"open":  theme.IconDirOpen.Alt,
+		"close": theme.IconDirClosed.Alt,
+	}
+
+	iconArrow := iconToggleArrow["close"]
+	if d.expanded {
+		iconArrow = iconToggleArrow["open"]
+	}
+
+	if len(d.children) == 0 {
+		iconArrow = ""
+	}
+
+	return iconArrow
+}
+
+type Indentation struct {
+	str   string
+	width int
+}
+
 // String returns a string representation of a Dir-Item
-func (d *TreeItem) String() string {
+func (d *TreeItem) String(editor string) string {
 	if !d.nerdFonts {
 		d.styles.iconWidth = 0
 	}
@@ -89,9 +132,6 @@ func (d *TreeItem) String() string {
 	toggle := d.styles.toggle
 	sel := d.styles.selected
 
-	indentChar := d.Indent(false) // @todo make this a config option
-	indentStr := strings.Repeat(indentChar, d.level)
-	indentWidth := lipgloss.Width(indentStr)
 	infoWidth := 0
 	dirInfo := ""
 
@@ -100,24 +140,18 @@ func (d *TreeItem) String() string {
 		infoWidth = lipgloss.Width(dirInfo)
 	}
 
-	baseWidth := 26 - d.styles.iconWidth - indentWidth - infoWidth
+	indentation := d.indentation(false)
+	baseWidth := 26 - d.styles.iconWidth - indentation.width - infoWidth
 	base = base.Width(baseWidth)
-	indent := lipgloss.NewStyle().Width(indentWidth)
 	name := utils.TruncateText(d.Name(), baseWidth)
 
 	if d.selected {
 		base = sel.Width(baseWidth)
 		icn = sel.Width(d.styles.iconWidth)
 		toggle = sel.Width(d.styles.toggleWidth)
-		indent = sel.Width(indentWidth)
 	}
 
-	iconToggleArrow := map[string]string{
-		"open":  theme.IconDirOpen.Alt,
-		"close": theme.IconDirClosed.Alt,
-	}
 	iconToggleDir := map[string]string{"open": "", "close": ""}
-
 	if d.nerdFonts {
 		iconToggleDir = map[string]string{
 			"open":  theme.IconDirOpen.Nerd,
@@ -125,22 +159,21 @@ func (d *TreeItem) String() string {
 		}
 	}
 
-	iconArrow := iconToggleArrow["close"]
 	iconDir := iconToggleDir["close"]
 	if d.expanded {
-		iconArrow = iconToggleArrow["open"]
 		iconDir = iconToggleDir["open"]
 	}
 
-	if len(d.children) == 0 {
-		iconArrow = ""
+	in := icn.Render(iconDir) + base.Render(name)
+
+	if editor != "" {
+		in = base.Render(editor)
 	}
 
 	return lipgloss.JoinHorizontal(lipgloss.Center,
-		indent.Render(indentStr),
-		toggle.Render(iconArrow),
-		icn.Render(iconDir),
-		base.Render(name),
+		indentation.str,
+		toggle.Render(d.ToggleArrow()),
+		in,
 		dirInfo,
 	)
 }
@@ -329,11 +362,6 @@ func (t *DirectoryTree) render() string {
 			continue
 		}
 
-		indent := strings.Repeat(
-			dir.Indent(false),
-			dir.level,
-		)
-
 		if t.lastIndex == dir.Index() {
 			dir.isLastChild = true
 		}
@@ -349,13 +377,11 @@ func (t *DirectoryTree) render() string {
 
 		if t.editIndex != nil && i == *t.editIndex {
 			// Show input field instead of text
-			tree.WriteString(indent)
-			tree.WriteString(t.editor.View())
-			tree.WriteRune('\n')
+			tree.WriteString(dir.String(t.editor.View()))
 		} else {
-			tree.WriteString(dir.String())
-			tree.WriteByte('\n')
+			tree.WriteString(dir.String(""))
 		}
+		tree.WriteByte('\n')
 	}
 
 	return tree.String()
