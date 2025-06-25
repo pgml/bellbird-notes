@@ -8,9 +8,9 @@
 
 
 ---
-> [!IMPORTANT]  
+> [!IMPORTANT]
 > This software is still in early development and should be used with caution.
-> 
+>
 > Even though I already use it on a daily basis, bugs and crashes are to be expected.
 ---
 
@@ -31,24 +31,7 @@ Open it with `bbnotes` in your favourite terminal and use it like you would use 
 
 If you don't have NerdFonts install use `bbnotes --no-nerd-fonts`
 
-Meaning:
-
-* `i` for insert mode
-* `v` for visual
-* `shift+v` visual line
-* `r` replace
-* `:q` quit
-* `:w` write
-* `:wa` write all open buffers
-
-For navigating components use `ctr+w h` and `ctrl+w l` like you would navigate split buffers in vim. 
-Alternatively hit `1` to focus folders, `2` to focus notes or `3` to focues the editor.
-
-Creating, Renaming, Deleting folders and notes can be done exactly like in Netrw.
-
-***A complete list of motions/keybinds is coming soon...***
-
-
+You can find a list of all currently availabe keybinds [here](docs/keybindings.md)
 
 
 ## Currently missing/planned features (no particular order)
@@ -96,5 +79,3 @@ Creating, Renaming, Deleting folders and notes can be done exactly like in Netrw
 - [ ] SQLite Support
 - [ ] Themes
 - [ ] Localisation
-
-
