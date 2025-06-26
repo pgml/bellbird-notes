@@ -75,8 +75,10 @@ type Item struct {
 	name     string
 	path     string
 	selected bool
+	input    *textinput.Model
 
 	styles styles
+	width  int
 
 	nerdFonts bool
 }

@@ -23,16 +23,6 @@ import (
 	"github.com/charmbracelet/lipgloss/v2"
 )
 
-// DirectoryTree represents the bubbletea model.
-type DirectoryTree struct {
-	List[TreeItem]
-
-	// A flattened representation to make vertical navigation easier
-	dirsListFlat []TreeItem
-	// Stores currently expanded directories
-	expandedDirs map[string]bool
-}
-
 // TreeItem represents a single directory tree row
 type TreeItem struct {
 	Item
@@ -58,160 +48,152 @@ type TreeItem struct {
 	NbrFolders int
 
 	isPinned *bool
+
+	Icon        string
+	ToggleArrow string
+	Indent      string
 }
 
 // Index returns the index of a Dir-Item
-func (d TreeItem) Index() int { return d.index }
+func (d TreeItem) Index() int {
+	return d.index
+}
 
 // Path returns the path of a Dir-Item
-func (d TreeItem) Path() string { return d.path }
+func (d TreeItem) Path() string {
+	return d.path
+}
 
 // Name returns the name of a Dir-Item
-func (d TreeItem) Name() string { return d.name }
+func (d TreeItem) Name() string {
+	return d.name
+}
 
-// Indent returns the path of a Dir-Item
-func (d TreeItem) indentation(indentLines bool) Indentation {
-	var indent strings.Builder
+// setIndentation sets the visual indentation for the tree item based on its level
+// and whether line markers (like ├ or ╰) should be shown.
+func (d *TreeItem) setIndentation(indentLines bool) {
+	var indentStr strings.Builder
 
 	if indentLines {
 		if d.isLastChild {
-			indent.WriteString("╰ ")
+			indentStr.WriteString("╰ ")
 		} else {
-			indent.WriteString("│ ")
+			indentStr.WriteString("│ ")
 		}
 
 	} else {
-		indent.WriteString("  ")
+		indentStr.WriteString("  ")
 	}
 
-	indentStr := strings.Repeat(indent.String(), d.level)
-	indentWidth := lipgloss.Width(indentStr)
-	style := lipgloss.NewStyle().Width(indentWidth)
+	indent := strings.Repeat(indentStr.String(), d.level)
+	indentWidth := lipgloss.Width(indent)
+	style := lipgloss.NewStyle().Width(indentWidth).Foreground(theme.ColourBorder)
 
 	if d.selected {
-		style = d.styles.selected.Width(indentWidth)
+		style = d.styles.selected.Width(indentWidth).Foreground(theme.ColourBorder)
 	}
 
-	return Indentation{
-		str:   style.Render(indentStr),
-		width: indentWidth,
-	}
+	// store rendered indentation
+	d.Indent = style.Render(indent)
+
+	// subtract the indentation width from the item width
+	d.width -= indentWidth
 }
 
-func (d TreeItem) ToggleArrow() string {
-	iconToggleArrow := map[string]string{
-		"open":  theme.IconDirOpen.Alt,
-		"close": theme.IconDirClosed.Alt,
+// setIcon sets the icon representing a folder state (open/closed).
+func (d *TreeItem) setIcon() {
+	style := d.styles.icon.Width(d.styles.iconWidth)
+	folderClosed := ""
+	folderOpen := ""
+
+	if d.nerdFonts {
+		folderClosed = theme.IconDirClosed.Nerd
+		folderOpen = theme.IconDirOpen.Nerd
 	}
 
-	iconArrow := iconToggleArrow["close"]
+	iconDir := folderClosed
 	if d.expanded {
-		iconArrow = iconToggleArrow["open"]
+		iconDir = folderOpen
+	}
+
+	if d.selected {
+		style = d.styles.selected.Width(d.styles.iconWidth)
+	}
+
+	d.Icon = style.Render(iconDir)
+
+	// subtract the indentation width from the item width
+	d.width -= d.styles.iconWidth
+}
+
+// setToggleArrow sets the arrow icon used to expand/collapse tree items.
+// Hides the arrow if the item has no children.
+func (d *TreeItem) setToggleArrow() {
+	style := d.styles.toggle
+
+	iconArrow := theme.IconDirClosed.Alt
+	if d.expanded {
+		iconArrow = theme.IconDirOpen.Alt
 	}
 
 	if len(d.children) == 0 {
 		iconArrow = ""
 	}
 
-	return iconArrow
-}
-
-type Indentation struct {
-	str   string
-	width int
-}
-
-// String returns a string representation of a Dir-Item
-func (d *TreeItem) String(editor string) string {
-	if !d.nerdFonts {
-		d.styles.iconWidth = 0
+	if d.selected {
+		style = d.styles.selected.Width(d.styles.toggleWidth)
 	}
 
-	base := d.styles.base
-	icn := d.styles.icon.Width(d.styles.iconWidth)
-	toggle := d.styles.toggle
-	sel := d.styles.selected
+	d.ToggleArrow = style.Render(iconArrow)
 
-	infoWidth := 0
-	dirInfo := ""
+	// subtract the indentation width from the item width
+	d.width -= d.styles.toggleWidth
+}
 
-	if *app.DirTreeInfo {
-		dirInfo = d.ContentInfo()
-		infoWidth = lipgloss.Width(dirInfo)
+// prepareRow initialises all visual elements (indent, icon, arrow) for the row.
+func (d *TreeItem) prepareRow() {
+	d.setIndentation(false)
+	d.setIcon()
+	d.setToggleArrow()
+}
+
+// String renders the complete visual representation of the tree item.
+// If input is true render the input view to allow renaming/creating.
+func (d *TreeItem) String(input bool) string {
+	if d.width <= 0 {
+		return ""
 	}
 
-	indentation := d.indentation(false)
-	baseWidth := 26 - d.styles.iconWidth - indentation.width - infoWidth
-	base = base.Width(baseWidth)
-	name := utils.TruncateText(d.Name(), baseWidth)
+	base := d.styles.base.Width(d.width)
+	selected := d.styles.selected.Width(d.width)
+	name := utils.TruncateText(d.Name(), d.width-1)
 
 	if d.selected {
-		base = sel.Width(baseWidth)
-		icn = sel.Width(d.styles.iconWidth)
-		toggle = sel.Width(d.styles.toggleWidth)
+		base = selected
 	}
 
-	iconToggleDir := map[string]string{"open": "", "close": ""}
-	if d.nerdFonts {
-		iconToggleDir = map[string]string{
-			"open":  theme.IconDirOpen.Nerd,
-			"close": theme.IconDirClosed.Nerd,
-		}
+	name = base.Render(name)
+
+	if input {
+		name = d.input.View()
+		d.Icon = ""
 	}
 
-	iconDir := iconToggleDir["close"]
-	if d.expanded {
-		iconDir = iconToggleDir["open"]
-	}
-
-	in := icn.Render(iconDir) + base.Render(name)
-
-	if editor != "" {
-		in = base.Render(editor)
-	}
-
-	return lipgloss.JoinHorizontal(lipgloss.Center,
-		indentation.str,
-		toggle.Render(d.ToggleArrow()),
-		in,
-		dirInfo,
+	return lipgloss.JoinHorizontal(
+		lipgloss.Center,
+		d.Indent, d.ToggleArrow, d.Icon, name,
 	)
 }
 
-// ContentInfo returns information about the content of a Dir-Item
-// such as number of notes and folders to the right of a Dir-Item in the tree list
-func (d TreeItem) ContentInfo() string {
-	dirStyle := lipgloss.NewStyle().
-		Width(5).
-		Foreground(theme.ColourBorder).
-		Align(lipgloss.Right)
+// DirectoryTree represents the bubbletea model.
+type DirectoryTree struct {
+	List[TreeItem]
 
-	nbrDir := strconv.Itoa(d.NbrFolders)
-	nbrNotes := strconv.Itoa(d.NbrNotes)
+	// A flattened representation to make vertical navigation easier
+	dirsListFlat []TreeItem
 
-	var dirInfo strings.Builder
-
-	if d.NbrNotes == 0 {
-		nbrNotes = ""
-	}
-
-	if d.NbrNotes == 0 && d.NbrFolders == 0 {
-		dirInfo.WriteByte('0')
-	} else if d.NbrFolders == 0 && d.NbrNotes > 0 {
-		dirInfo.WriteString(nbrNotes)
-	} else if d.NbrFolders > 0 && d.NbrNotes == 0 {
-		dirInfo.WriteString(nbrDir)
-	} else {
-		dirInfo.WriteString(nbrDir)
-		dirInfo.WriteByte('|')
-		dirInfo.WriteString(nbrNotes)
-	}
-
-	if d.selected {
-		dirStyle = d.styles.selected.Width(5).Align(lipgloss.Right)
-	}
-
-	return dirStyle.Render(dirInfo.String())
+	// Stores currently expanded directories
+	expandedDirs map[string]bool
 }
 
 // Init initialises the Model on program load.
@@ -286,6 +268,13 @@ func NewDirectoryTree(conf *config.Config) *DirectoryTree {
 	ti := textinput.New()
 	ti.Prompt = theme.Icon(theme.IconPen, conf.NerdFonts()) + " "
 	ti.CharLimit = 100
+	ti.VirtualCursor = true
+
+	bgSelected := lipgloss.NewStyle().Background(theme.ColourBgSelected)
+	ti.Styles.Focused = textinput.StyleState{
+		Text:   bgSelected,
+		Prompt: bgSelected,
+	}
 
 	tree := &DirectoryTree{
 		List: List[TreeItem]{
@@ -375,12 +364,18 @@ func (t *DirectoryTree) render() string {
 			tree.WriteString(" ")
 		}
 
-		if t.editIndex != nil && i == *t.editIndex {
-			// Show input field instead of text
-			tree.WriteString(dir.String(t.editor.View()))
-		} else {
-			tree.WriteString(dir.String(""))
+		if t.Size.Width > 0 {
+			dir.width = t.Size.Width - 2
 		}
+
+		dir.prepareRow()
+
+		t.editor.SetWidth(dir.width - 1)
+		dir.input = &t.editor
+
+		rename := t.editIndex != nil && i == *t.editIndex
+
+		tree.WriteString(dir.String(rename))
 		tree.WriteByte('\n')
 	}
 
