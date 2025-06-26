@@ -191,6 +191,7 @@ func (l *NotesList) View() string {
 func NewNotesList(conf *config.Config) *NotesList {
 	ti := textinput.New()
 	ti.Prompt = " " + theme.Icon(theme.IconPen, conf.NerdFonts()) + " "
+	ti.VirtualCursor = true
 	ti.CharLimit = 100
 
 	notesDir, err := conf.MetaValue("", config.CurrentDirectory)
