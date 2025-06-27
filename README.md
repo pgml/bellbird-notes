@@ -67,7 +67,6 @@ You can find a list of all currently availabe keybinds [here](docs/keybindings.m
 
 ## Known bugs
 
-* Cursor is not visible in input fields
 * visual mode goes crazy on multilines (wrapped lines)
 * General status bar column is cut off if window is too small
 
