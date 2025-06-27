@@ -75,6 +75,11 @@ func (d TreeItem) Name() string {
 	return d.name
 }
 
+// Name returns the name of a Dir-Item
+func (d TreeItem) Expanded() bool {
+	return d.expanded
+}
+
 // setIndentation sets the visual indentation for the tree item based on its level
 // and whether line markers (like │ or ╰) should be shown.
 func (d *TreeItem) setIndentation(indentLines bool) {
@@ -697,7 +702,7 @@ func (t *DirectoryTree) SelectLastDir() string {
 // Collapse collapses the currently selected directory
 func (t *DirectoryTree) Collapse() message.StatusBarMsg {
 	statusMsg := message.StatusBarMsg{}
-	if t.selectedIndex >= len(t.dirsListFlat) || !t.Focused() {
+	if t.selectedIndex >= len(t.dirsListFlat) {
 		return statusMsg
 	}
 
@@ -725,8 +730,8 @@ func (t *DirectoryTree) Collapse() message.StatusBarMsg {
 func (t *DirectoryTree) Expand() message.StatusBarMsg {
 	statusMsg := message.StatusBarMsg{}
 	if t.selectedIndex >= len(t.dirsListFlat) ||
-		!t.Focused() ||
 		len(t.SelectedDir().children) == 0 {
+
 		return statusMsg
 	}
 
