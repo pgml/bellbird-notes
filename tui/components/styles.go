@@ -8,7 +8,7 @@ import (
 
 type styles struct {
 	base,
-	enumerator,
+	indent,
 	icon,
 	selected,
 	iconSelected,
@@ -45,6 +45,8 @@ func DirTreeStyle() styles {
 
 	s.base = lipgloss.NewStyle().
 		Foreground(lipgloss.NoColor{})
+
+	s.indent = s.base.Foreground(theme.ColourBorder)
 
 	s.icon = lipgloss.NewStyle().
 		Width(s.iconWidth)

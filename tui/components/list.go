@@ -42,10 +42,13 @@ type List[T ListItem] struct {
 
 	// The currently selector directory row
 	selectedIndex int
+
 	// The text input that is used for renaming or creating directories
-	editor textinput.Model
+	input textinput.Model
+
 	// The index of the currently edited directory row
 	editIndex *int
+
 	// States if directory is being created or renamed
 	EditState EditState
 
@@ -194,9 +197,9 @@ func (l *List[T]) Rename(origName string) message.StatusBarMsg {
 	if l.editIndex == nil {
 		l.EditState = EditStates.Rename
 		l.editIndex = &l.selectedIndex
-		l.editor.SetValue(origName)
+		l.input.SetValue(origName)
 		// set cursor to last position
-		l.editor.CursorEnd()
+		l.input.CursorEnd()
 	}
 	return message.StatusBarMsg{}
 }
@@ -212,7 +215,7 @@ func (l *List[T]) resetEditor() {
 	if l.EditState != EditStates.None {
 		l.editIndex = nil
 		l.EditState = EditStates.None
-		l.editor.Blur()
+		l.input.Blur()
 	}
 }
 
