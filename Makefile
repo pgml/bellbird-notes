@@ -1,15 +1,22 @@
-BIN_CLI=bbnotes
+BIN_CLI = bbnotes
+DATE = $(shell date +%Y%m%d%H)
+GIT_HASH = $(shell git rev-parse --short HEAD)
+PKG = bellbird-notes/app
 
-build-tui:
+build-dev:
+	go mod tidy
+	go build -ldflags "-X '$(PKG).DevVersion=g$(GIT_HASH)'" -o ${BIN_CLI} cmd/tui/main.go
+
+build-release:
 	go mod tidy
 	go build -ldflags="-s -w" -o ${BIN_CLI} cmd/tui/main.go
 
-install-tui-local:
+install-local:
 	rsync -azP ${BIN_CLI} ~/.local/bin/
 	go clean
 	rm ${BIN_CLI}
 
-install-tui:
+install:
 	rsync -azP ${BIN_CLI} /usr/bin/
 	go clean
 	rm ${BIN_CLI}

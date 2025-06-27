@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"bellbird-notes/app"
 	"bellbird-notes/tui"
 
 	tea "github.com/charmbracelet/bubbletea/v2"
@@ -13,6 +14,11 @@ import (
 func main() {
 	// parse flags for stuff like --debug etc.
 	flag.Parse()
+
+	if *app.ShowVersion {
+		app.PrintVersion()
+		return
+	}
 
 	p := tea.NewProgram(tui.InitialModel(), tea.WithAltScreen())
 

@@ -8,9 +8,10 @@ import (
 	"bellbird-notes/app/debug"
 )
 
-var NoNerdFonts = flag.Bool("no-nerd-fonts", false, "Nerd fonts disabled")
+var NoNerdFonts = flag.Bool("no-nerd-fonts", false, "Disable nerd fonts")
 var Debug = flag.Bool("debug", false, "Debug mode")
-var DirTreeInfo = flag.Bool("tree-info", false, "Debug mode")
+var DirTreeInfo = flag.Bool("tree-info", false, "Show additional info in the directory tree")
+var ShowVersion = flag.Bool("version", false, "Shows the version")
 
 func IsDev() bool {
 	return os.Getenv("CHANNEL") == "dev"
