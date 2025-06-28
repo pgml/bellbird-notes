@@ -47,11 +47,17 @@ type TreeItem struct {
 	// the amount of sub directories a directory has
 	NbrFolders int
 
+	// Indicates whether the directory should be pinnend
 	isPinned *bool
 
-	Icon        string
+	// Stores the rendered item row icon
+	Icon string
+
+	// Stores the rendered toggle arrow icon
 	ToggleArrow string
-	Indent      string
+
+	// Stores the visual representation of the indentation level
+	Indent string
 }
 
 // Index returns the index of a Dir-Item
@@ -70,27 +76,27 @@ func (d TreeItem) Name() string {
 }
 
 // setIndentation sets the visual indentation for the tree item based on its level
-// and whether line markers (like ├ or ╰) should be shown.
+// and whether line markers (like │ or ╰) should be shown.
 func (d *TreeItem) setIndentation(indentLines bool) {
-	var indentStr strings.Builder
-
+	indentStr := "  "
 	if indentLines {
 		if d.isLastChild {
-			indentStr.WriteString("╰ ")
+			indentStr = "╰ "
 		} else {
-			indentStr.WriteString("│ ")
+			indentStr = "│ "
 		}
-
-	} else {
-		indentStr.WriteString("  ")
 	}
 
-	indent := strings.Repeat(indentStr.String(), d.level)
+	// repeat indentation once per indentation level
+	indent := strings.Repeat(indentStr, d.level)
+
+	// width of indentation per level which needs to be subtracted later rom
+	// general item width to prevent row breaks
 	indentWidth := lipgloss.Width(indent)
-	style := lipgloss.NewStyle().Width(indentWidth).Foreground(theme.ColourBorder)
+	style := d.styles.indent.Width(indentWidth)
 
 	if d.selected {
-		style = d.styles.selected.Width(indentWidth).Foreground(theme.ColourBorder)
+		style = style.Background(theme.ColourBgSelected)
 	}
 
 	// store rendered indentation
@@ -101,8 +107,8 @@ func (d *TreeItem) setIndentation(indentLines bool) {
 }
 
 // setIcon sets the icon representing a folder state (open/closed).
+// If the nerd fonts settings is disabled, nothing will be shown
 func (d *TreeItem) setIcon() {
-	style := d.styles.icon.Width(d.styles.iconWidth)
 	folderClosed := ""
 	folderOpen := ""
 
@@ -116,10 +122,12 @@ func (d *TreeItem) setIcon() {
 		iconDir = folderOpen
 	}
 
+	style := d.styles.icon.Width(d.styles.iconWidth)
 	if d.selected {
 		style = d.styles.selected.Width(d.styles.iconWidth)
 	}
 
+	// store rendered icon
 	d.Icon = style.Render(iconDir)
 
 	// subtract the indentation width from the item width
@@ -129,7 +137,6 @@ func (d *TreeItem) setIcon() {
 // setToggleArrow sets the arrow icon used to expand/collapse tree items.
 // Hides the arrow if the item has no children.
 func (d *TreeItem) setToggleArrow() {
-	style := d.styles.toggle
 
 	iconArrow := theme.IconDirClosed.Alt
 	if d.expanded {
@@ -140,10 +147,12 @@ func (d *TreeItem) setToggleArrow() {
 		iconArrow = ""
 	}
 
+	style := d.styles.toggle
 	if d.selected {
 		style = d.styles.selected.Width(d.styles.toggleWidth)
 	}
 
+	// store rendered toggle arrow
 	d.ToggleArrow = style.Render(iconArrow)
 
 	// subtract the indentation width from the item width
@@ -164,16 +173,17 @@ func (d *TreeItem) String(input bool) string {
 		return ""
 	}
 
-	base := d.styles.base.Width(d.width)
-	selected := d.styles.selected.Width(d.width)
-	name := utils.TruncateText(d.Name(), d.width-1)
-
+	baseStyle := d.styles.base.Width(d.width)
+	selectedStyle := d.styles.selected.Width(d.width)
 	if d.selected {
-		base = selected
+		baseStyle = selectedStyle
 	}
 
-	name = base.Render(name)
+	name := utils.TruncateText(d.Name(), d.width-1)
+	name = baseStyle.Render(name)
 
+	// replace name with the stored input view if we are creating or
+	// renaming
 	if input {
 		name = d.input.View()
 		d.Icon = ""
@@ -210,14 +220,13 @@ func (t *DirectoryTree) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		// focus the input field when renaming a list item
-		if t.editIndex != nil && !t.editor.Focused() {
-			t.editor.Focus()
+		if t.editIndex != nil && !t.input.Focused() {
+			t.input.Focus()
 			return t, nil
 		}
 
-		if t.editor.Focused() {
-			t.editor.Focus()
-			t.editor, cmd = t.editor.Update(msg)
+		if t.input.Focused() {
+			t.input, cmd = t.input.Update(msg)
 			return t, cmd
 		}
 
@@ -265,29 +274,20 @@ func (t *DirectoryTree) View() string {
 
 // NewDirectoryTree creates a new model with default settings.
 func NewDirectoryTree(conf *config.Config) *DirectoryTree {
-	ti := textinput.New()
-	ti.Prompt = theme.Icon(theme.IconPen, conf.NerdFonts()) + " "
-	ti.CharLimit = 100
-	ti.VirtualCursor = true
-
-	bgSelected := lipgloss.NewStyle().Background(theme.ColourBgSelected)
-	ti.Styles.Focused = textinput.StyleState{
-		Text:   bgSelected,
-		Prompt: bgSelected,
-	}
-
 	tree := &DirectoryTree{
 		List: List[TreeItem]{
 			selectedIndex: 0,
 			editIndex:     nil,
 			EditState:     EditStates.None,
-			editor:        ti,
 			items:         make([]TreeItem, 0),
 			conf:          conf,
 		},
 		expandedDirs: make(map[string]bool),
 	}
 
+	tree.input = tree.Input()
+
+	// fetch notes directory
 	notesDir, err := conf.Value(
 		config.General,
 		config.NotesDirectory,
@@ -315,6 +315,22 @@ func NewDirectoryTree(conf *config.Config) *DirectoryTree {
 	tree.build()
 	tree.SelectLastDir()
 	return tree
+}
+
+// Input returns and textinput model tailored to the directory tree
+func (t *DirectoryTree) Input() textinput.Model {
+	ti := textinput.New()
+	ti.Prompt = theme.Icon(theme.IconPen, t.conf.NerdFonts()) + " "
+	ti.CharLimit = 100
+	ti.VirtualCursor = true
+
+	bgSelected := DirTreeStyle().selected
+	ti.Styles.Focused = textinput.StyleState{
+		Text:   bgSelected,
+		Prompt: bgSelected,
+	}
+
+	return ti
 }
 
 // build prepares t.dirsListFlat for rendering
@@ -368,14 +384,20 @@ func (t *DirectoryTree) render() string {
 			dir.width = t.Size.Width - 2
 		}
 
+		// Prepare all visual row elements and get the correct width.
+		// This has to be called before any actuall output
 		dir.prepareRow()
 
-		t.editor.SetWidth(dir.width - 1)
-		dir.input = &t.editor
+		// Set the correct input width so that in case the folder name is too
+		// long we're not breaking to the next line
+		t.input.SetWidth(dir.width - 1)
+		dir.input = &t.input
 
-		rename := t.editIndex != nil && i == *t.editIndex
+		// get text input if there's an edit index which likely means
+		// we're renaming or creating
+		isInput := t.editIndex != nil && i == *t.editIndex
 
-		tree.WriteString(dir.String(rename))
+		tree.WriteString(dir.String(isInput))
 		tree.WriteByte('\n')
 	}
 
@@ -389,11 +411,12 @@ func (t *DirectoryTree) getChildren(path string, level int) []TreeItem {
 
 	for _, dir := range childDir {
 		dirItem := t.createDirectoryItem(dir, level)
+
 		if dir.IsExpanded {
 			t.expandedDirs[dir.Path] = dir.IsExpanded
 		}
+
 		dirItem.expanded = dir.IsExpanded
-		//dirItem.expanded = t.isExpanded(dir.Path)
 		dirs = append(dirs, dirItem)
 	}
 
@@ -767,8 +790,8 @@ func (t *DirectoryTree) Create(
 
 		if t.editIndex == nil {
 			t.editIndex = &t.selectedIndex
-			t.editor.SetValue(vrtDir.name)
-			t.editor.CursorEnd()
+			t.input.SetValue(vrtDir.name)
+			t.input.CursorEnd()
 		}
 	}
 
@@ -832,7 +855,7 @@ func (t *DirectoryTree) ConfirmAction() message.StatusBarMsg {
 		// build the new path with the new name
 		newPath := filepath.Join(
 			filepath.Dir(oldPath),
-			t.editor.Value(),
+			t.input.Value(),
 		)
 
 		switch t.EditState {

@@ -133,14 +133,14 @@ func (l *NotesList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		// focus the input field when renaming a list item
-		if l.editIndex != nil && !l.editor.Focused() {
-			l.editor.Focus()
+		if l.editIndex != nil && !l.input.Focused() {
+			l.input.Focus()
 			return l, nil
 		}
 
-		if l.editor.Focused() {
-			l.editor.Focus()
-			l.editor, cmd = l.editor.Update(msg)
+		if l.input.Focused() {
+			l.input.Focus()
+			l.input, cmd = l.input.Update(msg)
 			return l, cmd
 		}
 
@@ -204,7 +204,7 @@ func NewNotesList(conf *config.Config) *NotesList {
 			selectedIndex:    0,
 			editIndex:        nil,
 			EditState:        EditStates.None,
-			editor:           ti,
+			input:            ti,
 			lastVisibleLine:  0,
 			firstVisibleLine: 0,
 			items:            make([]NoteItem, 0),
@@ -244,7 +244,7 @@ func (l NotesList) build() string {
 
 		if l.editIndex != nil && i == *l.editIndex {
 			// Show input field instead of text
-			list.WriteString(l.editor.View())
+			list.WriteString(l.input.View())
 			list.WriteByte('\n')
 		} else {
 			list.WriteString(note.String())
@@ -435,8 +435,8 @@ func (l *NotesList) Create(
 
 		if l.editIndex == nil {
 			l.editIndex = &l.selectedIndex
-			l.editor.SetValue(vrtNote.name)
-			l.editor.CursorEnd()
+			l.input.SetValue(vrtNote.name)
+			l.input.CursorEnd()
 		}
 	}
 
@@ -494,7 +494,7 @@ func (l *NotesList) ConfirmAction() message.StatusBarMsg {
 		if selectedNote != nil {
 			ext = filepath.Ext(selectedNote.path)
 		}
-		newPath := filepath.Join(l.CurrentPath, l.editor.Value()+ext)
+		newPath := filepath.Join(l.CurrentPath, l.input.Value()+ext)
 		resultMsg := ""
 
 		switch l.EditState {
