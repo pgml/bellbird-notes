@@ -4,6 +4,7 @@
 package textarea
 
 import (
+	"bellbird-notes/app/debug"
 	"image/color"
 	"slices"
 	"strings"
@@ -16,13 +17,21 @@ import (
 
 type CursorPos struct {
 	Row          int
+	RowOffset    int
 	ColumnOffset int
 }
 
 type Selection struct {
-	Cursor   cursor.Model
-	Start    CursorPos
+	Cursor cursor.Model
+	Start  CursorPos
+
+	// The row the selection has been started on
 	StartRow int
+
+	// The offset from the start row on multilines.
+	StartRowOffset int
+
+	// The column offset the selection has been started in
 	StartCol int
 
 	Mode SelectionMode
@@ -609,6 +618,7 @@ func (m *Model) StartSelection(selectionMode SelectionMode) {
 	m.Selection.Cursor.Focus()
 	if m.Selection.StartRow < 0 {
 		m.Selection.StartRow = m.row
+		m.Selection.StartRowOffset = m.LineInfo().RowOffset
 		m.Selection.StartCol = m.LineInfo().ColumnOffset
 	}
 	m.Selection.Mode = selectionMode
@@ -682,12 +692,14 @@ func (m *Model) SelectOuterWord() {
 func (m *Model) SelectionRange() (CursorPos, CursorPos) {
 	selectionStart := CursorPos{
 		m.Selection.StartRow,
+		m.Selection.StartRowOffset,
 		m.Selection.StartCol,
 	}
 
 	// current cursor position which usually indicates the end of the selection
 	cursor := CursorPos{
 		m.row,
+		m.LineInfo().RowOffset,
 		m.LineInfo().ColumnOffset,
 	}
 
@@ -708,6 +720,7 @@ func (p CursorPos) InRange(minPos, maxPos CursorPos) bool {
 	minColOffset := min(minPos.ColumnOffset, maxPos.ColumnOffset)
 	maxColOffset := max(minPos.ColumnOffset, maxPos.ColumnOffset)
 
+	debug.LogDebug(p.ColumnOffset, p.RowOffset, p.Row)
 	return p.Row >= minPos.Row && p.Row <= maxPos.Row &&
 		p.ColumnOffset >= minColOffset && p.ColumnOffset <= maxColOffset
 }
@@ -719,6 +732,7 @@ func (m *Model) SelectionStyle() lipgloss.Style {
 // ResetSelection clears a selection
 func (m *Model) ResetSelection() {
 	m.Selection.StartRow = -1
+	m.Selection.StartRowOffset = -1
 	m.Selection.StartCol = -1
 	m.Selection.Mode = SelectNone
 }
@@ -729,9 +743,11 @@ func (m *Model) SelectionContent() SelectionContent {
 	line := m.Selection.wrappedLline
 	l := m.Selection.lineIndex
 
-	colOffset := m.LineInfo().ColumnOffset
+	//colOffset := m.LineInfo().ColumnOffset
+	colOffset := m.col
+	rowOffset := m.LineInfo().RowOffset
 	minRange, maxRange := m.SelectionRange()
-	cursor := CursorPos{m.row, colOffset}
+	cursor := CursorPos{m.row, rowOffset, colOffset}
 	isInRange := cursor.InRange(minRange, maxRange)
 	wrappedStr := string(line)
 
@@ -742,6 +758,7 @@ func (m *Model) SelectionContent() SelectionContent {
 	)
 
 	cursorOffset := colOffset
+	//debug.LogDebug(colOffset, m.width, m.LineInfo().RowOffset)
 	if minRange.ColumnOffset < m.Selection.StartCol {
 		cursorOffset = minRange.ColumnOffset
 	}
@@ -771,6 +788,7 @@ func (m *Model) SelectionContent() SelectionContent {
 				colOffset = maxCol
 			}
 
+			lineLen = m.width
 			switch {
 			// single line selection
 			case minRow == l && maxRow == l:
