@@ -4,11 +4,12 @@
 package textarea
 
 import (
-	"bellbird-notes/app/debug"
 	"image/color"
 	"slices"
 	"strings"
 	"unicode"
+
+	"bellbird-notes/app/debug"
 
 	"github.com/charmbracelet/bubbles/v2/cursor"
 	tea "github.com/charmbracelet/bubbletea/v2"
@@ -118,9 +119,10 @@ func (m *Model) WordLeft() {
 // Skips any non-letter characters that follow.
 func (m *Model) WordRight() {
 	m.col = clamp(m.col, 0, len(m.value[m.row])-1)
+	li := m.LineInfo()
 
 	if len(m.value[m.row]) == 0 {
-		m.MoveCursor(m.row+1, 0)
+		m.MoveCursor(m.row+1, li.RowOffset, 0)
 		m.repositionView()
 		return
 	}
@@ -129,7 +131,7 @@ func (m *Model) WordRight() {
 		m.characterRight()
 
 		if m.col >= len(m.value[m.row]) {
-			m.MoveCursor(m.row+1, 0)
+			m.MoveCursor(m.row+1, li.RowOffset, 0)
 			break
 		}
 
@@ -145,7 +147,7 @@ func (m *Model) WordRight() {
 // WordRightEnd moves the cursor to the end of the next word.
 func (m *Model) WordRightEnd() {
 	if m.col >= len(m.value[m.row])-1 {
-		m.MoveCursor(m.row+1, 0)
+		m.MoveCursor(m.row+1, m.LineInfo().RowOffset, 0)
 	}
 
 	for {
@@ -256,7 +258,8 @@ func (m *Model) IsAtLineEnd() bool {
 
 // SetCursor moves the cursor to the given position. If the position is
 // out of bounds the cursor will be moved to the start or end accordingly.
-func (m *Model) MoveCursor(row int, col int) {
+func (m *Model) MoveCursor(row int, rowOffset int, col int) {
+	debug.LogDebug(row, rowOffset, col)
 	if row < 0 {
 		row = 0
 	}
@@ -269,7 +272,13 @@ func (m *Model) MoveCursor(row int, col int) {
 		col = 0
 	}
 
+	for i := range rowOffset {
+		debug.LogDebug(i, rowOffset)
+		m.CursorDown()
+	}
+
 	m.SetCursorColumn(col)
+
 	// Any time that we move the cursor horizontally we need to reset the last
 	// offset so that the horizontal position when navigating is adjusted.
 	//m.lastCharOffset = 0
@@ -278,6 +287,7 @@ func (m *Model) MoveCursor(row int, col int) {
 func (m *Model) CursorPos() CursorPos {
 	return CursorPos{
 		Row:          m.row,
+		RowOffset:    m.LineInfo().RowOffset,
 		ColumnOffset: m.LineInfo().ColumnOffset,
 	}
 }
@@ -632,7 +642,7 @@ func (m *Model) SelectRange(
 	m.Selection.Mode = selectionMode
 	m.Selection.StartRow = from.Row
 	m.Selection.StartCol = from.ColumnOffset
-	m.MoveCursor(to.Row, to.ColumnOffset)
+	m.MoveCursor(to.Row, to.RowOffset, to.ColumnOffset)
 
 	return m.SelectionStr()
 	//m.Selection.Content = &content
@@ -720,7 +730,7 @@ func (p CursorPos) InRange(minPos, maxPos CursorPos) bool {
 	minColOffset := min(minPos.ColumnOffset, maxPos.ColumnOffset)
 	maxColOffset := max(minPos.ColumnOffset, maxPos.ColumnOffset)
 
-	debug.LogDebug(p.ColumnOffset, p.RowOffset, p.Row)
+	//debug.LogDebug(p.ColumnOffset, p.RowOffset, p.Row)
 	return p.Row >= minPos.Row && p.Row <= maxPos.Row &&
 		p.ColumnOffset >= minColOffset && p.ColumnOffset <= maxColOffset
 }
@@ -788,7 +798,6 @@ func (m *Model) SelectionContent() SelectionContent {
 				colOffset = maxCol
 			}
 
-			lineLen = m.width
 			switch {
 			// single line selection
 			case minRow == l && maxRow == l:
@@ -904,4 +913,8 @@ func (m *Model) CursorAfterSelection() string {
 	}
 
 	return ""
+}
+
+func (m *Model) GoTO(row int) {
+	m.row = row
 }

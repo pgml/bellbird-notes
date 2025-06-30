@@ -1260,6 +1260,7 @@ func (m Model) View() string {
 			m.Selection.wrappedLline = wrappedLine
 			m.Selection.lineIndex = l
 			selection := m.SelectionContent()
+			//debug.LogDebug(m.LineInfo().RowOffset, m.Selection.StartRowOffset)
 
 			if selection.Content != "" {
 				selectionColour := lipgloss.Color("#666")
@@ -1267,9 +1268,13 @@ func (m Model) View() string {
 
 				switch m.Selection.Mode {
 				case SelectVisual:
-					s.WriteString(style.Render(m.CursorBeforeSelection()))
+					if m.LineInfo().RowOffset == m.Selection.StartRowOffset {
+						s.WriteString(style.Render(m.CursorBeforeSelection()))
+					}
 					s.WriteString(style.Background(selectionColour).Render(selection.Content))
-					s.WriteString(style.Render(m.CursorAfterSelection()))
+					if m.LineInfo().RowOffset == m.Selection.StartRowOffset {
+						s.WriteString(style.Render(m.CursorAfterSelection()))
+					}
 
 				case SelectVisualLine:
 					st := style.Background(selectionColour)

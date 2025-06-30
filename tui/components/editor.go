@@ -278,8 +278,13 @@ func (e *Editor) NewBuffer(path string) message.StatusBarMsg {
 	if err == nil && pos != "" {
 		p := strings.Split(pos, ",")
 		row, _ := strconv.Atoi(p[0])
-		col, _ := strconv.Atoi(p[1])
-		cursorPos = textarea.CursorPos{Row: row, ColumnOffset: col}
+		rowOffset, _ := strconv.Atoi(p[1])
+		col, _ := strconv.Atoi(p[2])
+		cursorPos = textarea.CursorPos{
+			Row:          row,
+			RowOffset:    rowOffset,
+			ColumnOffset: col,
+		}
 	}
 
 	buf := Buffer{
@@ -306,7 +311,11 @@ func (e *Editor) NewBuffer(path string) message.StatusBarMsg {
 	e.CurrentBuffer.LastSavedContent = &content
 
 	e.Textarea.SetValue(content)
-	e.Textarea.MoveCursor(cursorPos.Row, cursorPos.ColumnOffset)
+	e.Textarea.MoveCursor(
+		cursorPos.Row,
+		cursorPos.RowOffset,
+		cursorPos.ColumnOffset,
+	)
 	e.Textarea.RepositionView()
 
 	e.saveLineLength()
@@ -336,7 +345,11 @@ func (e *Editor) OpenBuffer(path string) message.StatusBarMsg {
 	e.CurrentBuffer = buf
 
 	e.Textarea.SetValue(buf.Content)
-	e.Textarea.MoveCursor(buf.CursorPos.Row, buf.CursorPos.ColumnOffset)
+	e.Textarea.MoveCursor(
+		buf.CursorPos.Row,
+		buf.CursorPos.RowOffset,
+		buf.CursorPos.ColumnOffset,
+	)
 	e.Textarea.RepositionView()
 	e.saveLineLength()
 
@@ -608,6 +621,7 @@ func (e *Editor) saveCursorPos() {
 // saveCursorRow saves the cursors current row
 func (e *Editor) saveCursorRow() {
 	e.CurrentBuffer.CursorPos.Row = e.Textarea.CursorPos().Row
+	e.CurrentBuffer.CursorPos.RowOffset = e.Textarea.CursorPos().RowOffset
 }
 
 // saveLineLength stores the length of the current line
@@ -752,6 +766,18 @@ func (e *Editor) LineUp() message.StatusBarMsg {
 	return message.StatusBarMsg{}
 }
 
+func (e *Editor) MultiLineUp() message.StatusBarMsg {
+	e.Textarea.CursorUp()
+	e.Textarea.RepositionView()
+	e.saveCursorRow()
+	e.saveLineLength()
+
+	if e.Vim.Mode.IsAnyVisual() {
+		return e.UpdateSelectedRowsCount()
+	}
+	return message.StatusBarMsg{}
+}
+
 // LineDown moves the cursor one line down and sets the column offset
 // to the previous column's offset.
 // If the column offset exceeds the line length, the offset is set
@@ -761,6 +787,7 @@ func (e *Editor) LineDown() message.StatusBarMsg {
 	e.Textarea.RepositionView()
 
 	pos := e.CurrentBuffer.CursorPos
+
 	// If we have a wrapped line we skip the wrapped part of the line
 	if pos.Row == e.Textarea.CursorPos().Row &&
 		e.Textarea.Line() < e.Textarea.LineCount()-1 {
@@ -776,6 +803,18 @@ func (e *Editor) LineDown() message.StatusBarMsg {
 	if e.Textarea.IsExceedingLine() || e.isAtLineEnd {
 		e.Textarea.CursorLineVimEnd()
 	}
+
+	if e.Vim.Mode.IsAnyVisual() {
+		return e.UpdateSelectedRowsCount()
+	}
+	return message.StatusBarMsg{}
+}
+
+func (e *Editor) MultiLineDown() message.StatusBarMsg {
+	e.Textarea.CursorDown()
+	e.Textarea.RepositionView()
+	e.saveCursorRow()
+	e.saveLineLength()
 
 	if e.Vim.Mode.IsAnyVisual() {
 		return e.UpdateSelectedRowsCount()
@@ -1027,7 +1066,11 @@ func (e *Editor) Undo() message.StatusBarMsg {
 		}
 	}
 
-	e.Textarea.MoveCursor(cursorPos.Row, cursorPos.ColumnOffset)
+	e.Textarea.MoveCursor(
+		cursorPos.Row,
+		cursorPos.RowOffset,
+		cursorPos.ColumnOffset,
+	)
 	e.Textarea.RepositionView()
 	e.saveCursorPos()
 	return message.StatusBarMsg{}
@@ -1039,7 +1082,11 @@ func (e *Editor) Redo() message.StatusBarMsg {
 	// dirty check
 	e.CurrentBuffer.Dirty = val != *e.CurrentBuffer.LastSavedContent
 	e.Textarea.SetValue(val)
-	e.Textarea.MoveCursor(cursorPos.Row, cursorPos.ColumnOffset)
+	e.Textarea.MoveCursor(
+		cursorPos.Row,
+		cursorPos.RowOffset,
+		cursorPos.ColumnOffset,
+	)
 	e.Textarea.RepositionView()
 	return message.StatusBarMsg{}
 }
@@ -1056,6 +1103,7 @@ func (e *Editor) Yank(str string) message.StatusBarMsg {
 func (e *Editor) YankSelection(keepCursorPos bool) message.StatusBarMsg {
 	sel := e.Textarea.SelectionStr()
 	clipboard.Write(clipboard.FmtText, []byte(sel))
+	buf := e.CurrentBuffer
 
 	if keepCursorPos {
 		e.Textarea.SetCursorColumn(e.CurrentBuffer.CursorPos.ColumnOffset)
@@ -1066,7 +1114,7 @@ func (e *Editor) YankSelection(keepCursorPos bool) message.StatusBarMsg {
 			startCol = 0
 		}
 		// move the cursor to the beginning of the selection
-		e.Textarea.MoveCursor(startRow, startCol)
+		e.Textarea.MoveCursor(startRow, buf.CursorPos.RowOffset, startCol)
 	}
 
 	e.EnterNormalMode()
@@ -1111,6 +1159,7 @@ func (e *Editor) Paste() message.StatusBarMsg {
 		cursorPos := e.CurrentBuffer.CursorPos
 		col := cursorPos.ColumnOffset
 		row := cursorPos.Row
+		rowOffset := cursorPos.RowOffset
 
 		lineLen := e.CurrentBuffer.CurrentLineLength
 
@@ -1138,7 +1187,7 @@ func (e *Editor) Paste() message.StatusBarMsg {
 
 		// insert clipboard content
 		e.Textarea.InsertString(cnt)
-		e.Textarea.MoveCursor(row, col)
+		e.Textarea.MoveCursor(row, rowOffset, col)
 		e.updateHistoryEntry()
 		e.Textarea.RepositionView()
 	}
@@ -1150,6 +1199,8 @@ func (e *Editor) saveCursorPosToConf() {
 	pos := e.Textarea.CursorPos()
 	var curPos strings.Builder
 	curPos.WriteString(strconv.Itoa(pos.Row))
+	curPos.WriteRune(',')
+	curPos.WriteString(strconv.Itoa(pos.RowOffset))
 	curPos.WriteRune(',')
 	curPos.WriteString(strconv.Itoa(pos.ColumnOffset))
 	e.conf.SetMetaValue(
