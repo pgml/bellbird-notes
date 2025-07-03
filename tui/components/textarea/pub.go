@@ -90,11 +90,7 @@ func (m *Model) RepositionView() {
 
 // WordLeft  is same as m.wordLeft but checks for non-letters instead of just spaces
 func (m *Model) WordLeft() {
-	for {
-		if m.col == 0 && m.row == 0 {
-			break
-		}
-
+	for m.col != 0 || m.row != 0 {
 		m.characterLeft(true /* insideLine */)
 
 		if m.col < len(m.value[m.row]) &&
@@ -730,7 +726,6 @@ func (p CursorPos) InRange(minPos, maxPos CursorPos) bool {
 	minColOffset := min(minPos.ColumnOffset, maxPos.ColumnOffset)
 	maxColOffset := max(minPos.ColumnOffset, maxPos.ColumnOffset)
 
-	//debug.LogDebug(p.ColumnOffset, p.RowOffset, p.Row)
 	return p.Row >= minPos.Row && p.Row <= maxPos.Row &&
 		p.ColumnOffset >= minColOffset && p.ColumnOffset <= maxColOffset
 }
@@ -754,8 +749,9 @@ func (m *Model) SelectionContent() SelectionContent {
 	l := m.Selection.lineIndex
 
 	//colOffset := m.LineInfo().ColumnOffset
-	colOffset := m.col
+	colOffset := m.LineInfo().ColumnOffset
 	rowOffset := m.LineInfo().RowOffset
+	selRowOffset := m.Selection.StartRowOffset
 	minRange, maxRange := m.SelectionRange()
 	cursor := CursorPos{m.row, rowOffset, colOffset}
 	isInRange := cursor.InRange(minRange, maxRange)
@@ -778,6 +774,7 @@ func (m *Model) SelectionContent() SelectionContent {
 	// slice for unicode safety
 	runes := []rune(wrappedStr)
 	lineLen := len(runes)
+	rowLen := m.LineInfo().Width
 
 	if isInRange {
 		if m.Selection.Mode == SelectVisualLine {
@@ -790,8 +787,8 @@ func (m *Model) SelectionContent() SelectionContent {
 			//}
 			after = ""
 		} else {
-			minCol := clamp(minRange.ColumnOffset, 0, lineLen)
-			maxCol := clamp(maxRange.ColumnOffset, 0, lineLen)
+			minCol := clamp(minRange.ColumnOffset, 0, rowLen)
+			maxCol := clamp(maxRange.ColumnOffset, 0, rowLen)
 			minRow, maxRow := minRange.Row, maxRange.Row
 
 			if colOffset == minCol {
@@ -800,20 +797,21 @@ func (m *Model) SelectionContent() SelectionContent {
 
 			switch {
 			// single line selection
-			case minRow == l && maxRow == l:
+			case minRow == l && maxRow == l && rowOffset == selRowOffset && rowLen == lineLen:
 				before = string(runes[:minCol])
 
 				if isCursorBeforeSel {
-					minCol = clamp(minCol+1, 0, lineLen)
-					colOffset = clamp(m.Selection.StartCol+1, 0, lineLen)
+					minCol = clamp(minCol+1, 0, rowLen)
+					colOffset = clamp(m.Selection.StartCol+1, 0, rowLen)
 				}
 
-				if colOffset <= lineLen {
+				debug.LogDebug(colOffset, lineLen, rowLen, rowOffset, selRowOffset)
+				if colOffset <= rowLen && rowLen == lineLen {
 					selection = string(runes[minCol:colOffset])
 				}
 
-				if maxCol < lineLen {
-					after = string(runes[maxCol+1:])
+				if maxCol < rowLen {
+					after = string(runes[maxCol+1 : rowLen])
 				}
 
 			// first line of multi selection
