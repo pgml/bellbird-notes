@@ -763,7 +763,7 @@ func (m *Model) SelectionContent() SelectionContent {
 	//colOffset := m.LineInfo().ColumnOffset
 	colOffset := m.LineInfo().ColumnOffset
 	rowOffset := m.LineInfo().RowOffset
-	selRowOffset := m.Selection.StartRowOffset
+	//selRowOffset := m.Selection.StartRowOffset
 	minRange, maxRange := m.SelectionRange()
 	cursor := CursorPos{m.row, rowOffset, colOffset}
 	isInRange := cursor.InRange(minRange, maxRange)
@@ -786,7 +786,7 @@ func (m *Model) SelectionContent() SelectionContent {
 	// slice for unicode safety
 	runes := []rune(wrappedStr)
 	lineLen := len(runes)
-	rowLen := m.LineInfo().Width
+	//rowLen := m.LineInfo().Width
 
 	if isInRange {
 		if m.Selection.Mode == SelectVisualLine {
@@ -799,8 +799,8 @@ func (m *Model) SelectionContent() SelectionContent {
 			//}
 			after = ""
 		} else {
-			minCol := clamp(minRange.ColumnOffset, 0, rowLen)
-			maxCol := clamp(maxRange.ColumnOffset, 0, rowLen)
+			minCol := clamp(minRange.ColumnOffset, 0, lineLen)
+			maxCol := clamp(maxRange.ColumnOffset, 0, lineLen)
 			minRow, maxRow := minRange.Row, maxRange.Row
 
 			if colOffset == minCol {
@@ -809,21 +809,20 @@ func (m *Model) SelectionContent() SelectionContent {
 
 			switch {
 			// single line selection
-			case minRow == l && maxRow == l && rowOffset == selRowOffset && rowLen == lineLen:
+			case minRow == l && maxRow == l:
 				before = string(runes[:minCol])
 
 				if isCursorBeforeSel {
-					minCol = clamp(minCol+1, 0, rowLen)
-					colOffset = clamp(m.Selection.StartCol+1, 0, rowLen)
+					minCol = clamp(minCol+1, 0, lineLen)
+					colOffset = clamp(m.Selection.StartCol+1, 0, lineLen)
 				}
 
-				debug.LogDebug(colOffset, lineLen, rowLen, rowOffset, selRowOffset)
-				if colOffset <= rowLen && rowLen == lineLen {
+				if colOffset <= lineLen {
 					selection = string(runes[minCol:colOffset])
 				}
 
-				if maxCol < rowLen {
-					after = string(runes[maxCol+1 : rowLen])
+				if maxCol < lineLen {
+					after = string(runes[maxCol+1:])
 				}
 
 			// first line of multi selection
