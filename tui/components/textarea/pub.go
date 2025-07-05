@@ -70,7 +70,7 @@ type SelectionContent struct {
 	After   string
 }
 
-// characterLeft moves the cursor one character to the left.
+// CharacterLeft moves the cursor one character to the left.
 // If insideLine is set, the cursor is moved to the last
 // character in the previous line, instead of one past that.
 func (m *Model) CharacterLeft(inside bool) {
@@ -264,7 +264,7 @@ func (m *Model) IsAtLineEnd() bool {
 	return m.col == len(m.value[m.row])-1
 }
 
-// SetCursor moves the cursor to the given position. If the position is
+// MoveCursor() moves the cursor to the given position. If the position is
 // out of bounds the cursor will be moved to the start or end accordingly.
 func (m *Model) MoveCursor(row int, rowOffset int, col int) {
 	debug.LogDebug(row, rowOffset, col)

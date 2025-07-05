@@ -665,7 +665,7 @@ func (e *Editor) MoveCharacterRight() message.StatusBarMsg {
 	return message.StatusBarMsg{}
 }
 
-// InserAfter enters insert mode one character after the current cursor's
+// InsertAfter enters insert mode one character after the current cursor's
 // position and saves its position
 func (e *Editor) InsertAfter() message.StatusBarMsg {
 	e.Textarea.CharacterRight(true)
@@ -1144,10 +1144,12 @@ func (e *Editor) Paste() message.StatusBarMsg {
 		// than the current line
 		if len(cp) >= lineLen {
 			e.Textarea.EmptyLineBelow()
+
 			// strip the last new line since we've already inserted
 			// an empty line so we don't need it
 			// otherwise it would produce an additional empty line
 			cnt = strings.TrimRight(cnt, "\n")
+
 			// set the cursor position at the beginning of the next row
 			// which is the newly pasted content
 			col = 0
