@@ -47,6 +47,8 @@
 | `k`        | Normal         | Move cursor up                                         |        |
 | `l`        | Normal         | Move cursor right                                      |        |
 | `h`        | Normal         | Move cursor left                                       |        |
+| `gj`       | Normal, Visual | Move cursor down in multi line text                    |        |
+| `gk`       | Normal, Visual | Move cursor up in multi line text                      |        |
 | `ctrl+d`   | Normal, Visual | Move half page down                                    |        |
 | `ctrl+u`   | Normal, Visual | Move half page up                                      |        |
 | `gg`       | Normal         | Move cursor to top                                     |        |
