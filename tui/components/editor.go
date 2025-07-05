@@ -185,18 +185,6 @@ func NewEditor(conf *config.Config) *Editor {
 	return editor
 }
 
-func (e *Editor) LineNumbers() bool {
-	n, err := e.conf.Value(config.Editor, config.ShowLineNumbers)
-
-	if err != nil {
-		return false
-	}
-
-	number := n == "true"
-
-	return number
-}
-
 // Init initialises the Model on program load.
 // It partially implements the tea.Model interface.
 func (e *Editor) Init() tea.Cmd {
@@ -272,20 +260,7 @@ func (e *Editor) NewBuffer(path string) message.StatusBarMsg {
 	}
 
 	noteContent := string(note)
-
-	cursorPos := textarea.CursorPos{}
-	pos, err := e.conf.MetaValue(path, config.CursorPosition)
-	if err == nil && pos != "" {
-		p := strings.Split(pos, ",")
-		row, _ := strconv.Atoi(p[0])
-		rowOffset, _ := strconv.Atoi(p[1])
-		col, _ := strconv.Atoi(p[2])
-		cursorPos = textarea.CursorPos{
-			Row:          row,
-			RowOffset:    rowOffset,
-			ColumnOffset: col,
-		}
-	}
+	cursorPos := e.cursorPosFromConf(path)
 
 	buf := Buffer{
 		Index:             len(e.Buffers) + 1,
@@ -1194,18 +1169,55 @@ func (e *Editor) Paste() message.StatusBarMsg {
 	return message.StatusBarMsg{}
 }
 
+// cursorPosFromConf retrieves the cursor position of the given note
+// from the meta config file.
+// If the meta config value is invalid it returns the empty CursorPos which
+// equals the beginning of the file
+func (e *Editor) cursorPosFromConf(filepath string) textarea.CursorPos {
+	cursorPos := textarea.CursorPos{}
+	pos, err := e.conf.MetaValue(filepath, config.CursorPosition)
+
+	if err == nil {
+		p := strings.Split(pos, ",")
+
+		if len(p) != 3 {
+			return cursorPos
+		}
+
+		row, _ := strconv.Atoi(p[0])
+		rowOffset, _ := strconv.Atoi(p[1])
+		col, _ := strconv.Atoi(p[2])
+
+		cursorPos = textarea.CursorPos{
+			Row:          row,
+			RowOffset:    rowOffset,
+			ColumnOffset: col,
+		}
+	}
+
+	return cursorPos
+}
+
 // saveCursorPosToConf saves the current cursor position to the config file
 func (e *Editor) saveCursorPosToConf() {
 	pos := e.Textarea.CursorPos()
-	var curPos strings.Builder
-	curPos.WriteString(strconv.Itoa(pos.Row))
-	curPos.WriteRune(',')
-	curPos.WriteString(strconv.Itoa(pos.RowOffset))
-	curPos.WriteRune(',')
-	curPos.WriteString(strconv.Itoa(pos.ColumnOffset))
+
 	e.conf.SetMetaValue(
 		e.CurrentBuffer.Path,
 		config.CursorPosition,
-		curPos.String(),
+		pos.String(),
 	)
+}
+
+// LineNumbers returns whether line numbers are enabled in the config file
+func (e *Editor) LineNumbers() bool {
+	n, err := e.conf.Value(config.Editor, config.ShowLineNumbers)
+
+	if err != nil {
+		return false
+	}
+
+	number := n == "true"
+
+	return number
 }

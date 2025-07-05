@@ -6,6 +6,7 @@ package textarea
 import (
 	"image/color"
 	"slices"
+	"strconv"
 	"strings"
 	"unicode"
 
@@ -20,6 +21,17 @@ type CursorPos struct {
 	Row          int
 	RowOffset    int
 	ColumnOffset int
+}
+
+// String returns a comma separated string representation of the cursor position
+func (c *CursorPos) String() string {
+	curPos := make([]string, 3)
+
+	curPos[0] = strconv.Itoa(c.Row)
+	curPos[1] = strconv.Itoa(c.RowOffset)
+	curPos[2] = strconv.Itoa(c.ColumnOffset)
+
+	return strings.Join(curPos, ",")
 }
 
 type Selection struct {
