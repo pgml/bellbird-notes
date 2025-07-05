@@ -6,8 +6,11 @@ package textarea
 import (
 	"image/color"
 	"slices"
+	"strconv"
 	"strings"
 	"unicode"
+
+	"bellbird-notes/app/debug"
 
 	"github.com/charmbracelet/bubbles/v2/cursor"
 	tea "github.com/charmbracelet/bubbletea/v2"
@@ -16,13 +19,32 @@ import (
 
 type CursorPos struct {
 	Row          int
+	RowOffset    int
 	ColumnOffset int
 }
 
+// String returns a comma separated string representation of the cursor position
+func (c *CursorPos) String() string {
+	curPos := make([]string, 3)
+
+	curPos[0] = strconv.Itoa(c.Row)
+	curPos[1] = strconv.Itoa(c.RowOffset)
+	curPos[2] = strconv.Itoa(c.ColumnOffset)
+
+	return strings.Join(curPos, ",")
+}
+
 type Selection struct {
-	Cursor   cursor.Model
-	Start    CursorPos
+	Cursor cursor.Model
+	Start  CursorPos
+
+	// The row the selection has been started on
 	StartRow int
+
+	// The offset from the start row on multilines.
+	StartRowOffset int
+
+	// The column offset the selection has been started in
 	StartCol int
 
 	Mode SelectionMode
@@ -48,7 +70,7 @@ type SelectionContent struct {
 	After   string
 }
 
-// characterLeft moves the cursor one character to the left.
+// CharacterLeft moves the cursor one character to the left.
 // If insideLine is set, the cursor is moved to the last
 // character in the previous line, instead of one past that.
 func (m *Model) CharacterLeft(inside bool) {
@@ -80,11 +102,7 @@ func (m *Model) RepositionView() {
 
 // WordLeft  is same as m.wordLeft but checks for non-letters instead of just spaces
 func (m *Model) WordLeft() {
-	for {
-		if m.col == 0 && m.row == 0 {
-			break
-		}
-
+	for m.col != 0 || m.row != 0 {
 		m.characterLeft(true /* insideLine */)
 
 		if m.col < len(m.value[m.row]) &&
@@ -109,9 +127,10 @@ func (m *Model) WordLeft() {
 // Skips any non-letter characters that follow.
 func (m *Model) WordRight() {
 	m.col = clamp(m.col, 0, len(m.value[m.row])-1)
+	li := m.LineInfo()
 
 	if len(m.value[m.row]) == 0 {
-		m.MoveCursor(m.row+1, 0)
+		m.MoveCursor(m.row+1, li.RowOffset, 0)
 		m.repositionView()
 		return
 	}
@@ -120,7 +139,7 @@ func (m *Model) WordRight() {
 		m.characterRight()
 
 		if m.col >= len(m.value[m.row]) {
-			m.MoveCursor(m.row+1, 0)
+			m.MoveCursor(m.row+1, li.RowOffset, 0)
 			break
 		}
 
@@ -136,7 +155,7 @@ func (m *Model) WordRight() {
 // WordRightEnd moves the cursor to the end of the next word.
 func (m *Model) WordRightEnd() {
 	if m.col >= len(m.value[m.row])-1 {
-		m.MoveCursor(m.row+1, 0)
+		m.MoveCursor(m.row+1, m.LineInfo().RowOffset, 0)
 	}
 
 	for {
@@ -245,9 +264,10 @@ func (m *Model) IsAtLineEnd() bool {
 	return m.col == len(m.value[m.row])-1
 }
 
-// SetCursor moves the cursor to the given position. If the position is
+// MoveCursor() moves the cursor to the given position. If the position is
 // out of bounds the cursor will be moved to the start or end accordingly.
-func (m *Model) MoveCursor(row int, col int) {
+func (m *Model) MoveCursor(row int, rowOffset int, col int) {
+	debug.LogDebug(row, rowOffset, col)
 	if row < 0 {
 		row = 0
 	}
@@ -260,7 +280,13 @@ func (m *Model) MoveCursor(row int, col int) {
 		col = 0
 	}
 
+	for i := range rowOffset {
+		debug.LogDebug(i, rowOffset)
+		m.CursorDown()
+	}
+
 	m.SetCursorColumn(col)
+
 	// Any time that we move the cursor horizontally we need to reset the last
 	// offset so that the horizontal position when navigating is adjusted.
 	//m.lastCharOffset = 0
@@ -269,6 +295,7 @@ func (m *Model) MoveCursor(row int, col int) {
 func (m *Model) CursorPos() CursorPos {
 	return CursorPos{
 		Row:          m.row,
+		RowOffset:    m.LineInfo().RowOffset,
 		ColumnOffset: m.LineInfo().ColumnOffset,
 	}
 }
@@ -609,6 +636,7 @@ func (m *Model) StartSelection(selectionMode SelectionMode) {
 	m.Selection.Cursor.Focus()
 	if m.Selection.StartRow < 0 {
 		m.Selection.StartRow = m.row
+		m.Selection.StartRowOffset = m.LineInfo().RowOffset
 		m.Selection.StartCol = m.LineInfo().ColumnOffset
 	}
 	m.Selection.Mode = selectionMode
@@ -622,7 +650,7 @@ func (m *Model) SelectRange(
 	m.Selection.Mode = selectionMode
 	m.Selection.StartRow = from.Row
 	m.Selection.StartCol = from.ColumnOffset
-	m.MoveCursor(to.Row, to.ColumnOffset)
+	m.MoveCursor(to.Row, to.RowOffset, to.ColumnOffset)
 
 	return m.SelectionStr()
 	//m.Selection.Content = &content
@@ -682,12 +710,14 @@ func (m *Model) SelectOuterWord() {
 func (m *Model) SelectionRange() (CursorPos, CursorPos) {
 	selectionStart := CursorPos{
 		m.Selection.StartRow,
+		m.Selection.StartRowOffset,
 		m.Selection.StartCol,
 	}
 
 	// current cursor position which usually indicates the end of the selection
 	cursor := CursorPos{
 		m.row,
+		m.LineInfo().RowOffset,
 		m.LineInfo().ColumnOffset,
 	}
 
@@ -719,6 +749,7 @@ func (m *Model) SelectionStyle() lipgloss.Style {
 // ResetSelection clears a selection
 func (m *Model) ResetSelection() {
 	m.Selection.StartRow = -1
+	m.Selection.StartRowOffset = -1
 	m.Selection.StartCol = -1
 	m.Selection.Mode = SelectNone
 }
@@ -729,9 +760,12 @@ func (m *Model) SelectionContent() SelectionContent {
 	line := m.Selection.wrappedLline
 	l := m.Selection.lineIndex
 
+	//colOffset := m.LineInfo().ColumnOffset
 	colOffset := m.LineInfo().ColumnOffset
+	rowOffset := m.LineInfo().RowOffset
+	//selRowOffset := m.Selection.StartRowOffset
 	minRange, maxRange := m.SelectionRange()
-	cursor := CursorPos{m.row, colOffset}
+	cursor := CursorPos{m.row, rowOffset, colOffset}
 	isInRange := cursor.InRange(minRange, maxRange)
 	wrappedStr := string(line)
 
@@ -742,6 +776,7 @@ func (m *Model) SelectionContent() SelectionContent {
 	)
 
 	cursorOffset := colOffset
+	//debug.LogDebug(colOffset, m.width, m.LineInfo().RowOffset)
 	if minRange.ColumnOffset < m.Selection.StartCol {
 		cursorOffset = minRange.ColumnOffset
 	}
@@ -751,6 +786,7 @@ func (m *Model) SelectionContent() SelectionContent {
 	// slice for unicode safety
 	runes := []rune(wrappedStr)
 	lineLen := len(runes)
+	//rowLen := m.LineInfo().Width
 
 	if isInRange {
 		if m.Selection.Mode == SelectVisualLine {
@@ -886,4 +922,8 @@ func (m *Model) CursorAfterSelection() string {
 	}
 
 	return ""
+}
+
+func (m *Model) GoTO(row int) {
+	m.row = row
 }

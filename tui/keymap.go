@@ -92,6 +92,38 @@ func (m *Model) KeyInputFn() []ki.KeyFn {
 			},
 		},
 
+		// Editor multiline down
+		{
+			Bindings: ki.KeyBindings("gj"),
+			Cond: []keyCond{
+				{
+					Mode:       mode.Normal,
+					Components: []c{m.dirTree},
+					Action:     m.dirTree.Expand,
+				},
+				m.editorInputAction(n, m.editor.MultiLineDown),
+				m.editorInputAction(v, m.editor.MultiLineDown),
+				m.editorInputAction(vl, m.editor.MultiLineDown),
+				m.editorInputAction(vb, m.editor.MultiLineDown),
+			},
+		},
+
+		// Editor multiline up
+		{
+			Bindings: ki.KeyBindings("gk"),
+			Cond: []keyCond{
+				{
+					Mode:       mode.Normal,
+					Components: []c{m.dirTree},
+					Action:     m.dirTree.Expand,
+				},
+				m.editorInputAction(n, m.editor.MultiLineUp),
+				m.editorInputAction(v, m.editor.MultiLineUp),
+				m.editorInputAction(vl, m.editor.MultiLineUp),
+				m.editorInputAction(vb, m.editor.MultiLineUp),
+			},
+		},
+
 		// CREATE DIR
 		{
 			Bindings: ki.KeyBindings("d", "n"),
