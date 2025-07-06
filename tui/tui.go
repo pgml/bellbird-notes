@@ -177,8 +177,10 @@ func (m *Model) updateComponents(msg tea.Msg) []tea.Cmd {
 		if editorMode == mode.Insert || editorMode == mode.Replace {
 			m.editor.CanInsert = true
 		}
-		m.notesList.DirtyBuffers = m.editor.DirtyBuffers()
 	}
+
+	// collect dirty buffers
+	m.notesList.DirtyBuffers = m.editor.DirtyBuffers()
 
 	return cmds
 }
