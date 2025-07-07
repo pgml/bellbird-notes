@@ -382,9 +382,15 @@ func (m *Model) DeleteInnerWord() {
 func (m *Model) DeleteLine() {
 	if m.row >= len(m.value)-1 {
 		m.value = m.value[:len(m.value)-1]
-		m.row--
+		// if we're on the only availabe line create a fresh slice
+		// to ensure there's always at least one line available
+		if len(m.value) == 0 {
+			m.value = make([][]rune, 1)
+		} else {
+			m.row--
+		}
 	} else {
-		m.value = append(m.value[:m.row], m.value[m.row+1:]...)
+		m.value = slices.Delete(m.value, m.row, m.row+1)
 	}
 }
 
