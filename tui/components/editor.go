@@ -924,9 +924,11 @@ func (e *Editor) DeleteOuterWord(enterInsertMode bool) message.StatusBarMsg {
 	e.newHistoryEntry()
 	e.Textarea.DeleteOuterWord()
 	e.updateHistoryEntry()
+
 	if enterInsertMode {
-		e.Vim.Mode.Current = mode.Insert
+		e.EnterInsertMode(false)
 	}
+
 	return e.UpdateSelectedRowsCount()
 }
 
