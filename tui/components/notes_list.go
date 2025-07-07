@@ -1,6 +1,7 @@
 package components
 
 import (
+	"errors"
 	"fmt"
 	"path/filepath"
 	"slices"
@@ -514,9 +515,16 @@ func (l *NotesList) ConfirmAction() message.StatusBarMsg {
 			}
 
 		case EditStates.Create:
-			if err := notes.Create(newPath); err != nil {
-				resultMsg = err.Error()
+			if _, err := notes.Create(newPath); err == nil {
 				l.Refresh(true, true)
+
+				if note, err := l.NoteItemByPath(newPath); err == nil {
+					l.selectedIndex = note.index
+				} else {
+					debug.LogErr(err)
+				}
+			} else {
+				debug.LogErr(err)
 			}
 		}
 
@@ -568,4 +576,14 @@ func (l *NotesList) TogglePinned() message.StatusBarMsg {
 	}
 
 	return message.StatusBarMsg{}
+}
+
+func (l *NotesList) NoteItemByPath(path string) (NoteItem, error) {
+	for _, item := range l.items {
+		if item.path == path {
+			return item, nil
+		}
+	}
+
+	return NoteItem{}, errors.New("couldn't find NoteItem")
 }
