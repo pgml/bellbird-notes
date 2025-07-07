@@ -909,9 +909,11 @@ func (e *Editor) DeleteInnerWord(enterInsertMode bool) message.StatusBarMsg {
 	e.newHistoryEntry()
 	e.Textarea.DeleteInnerWord()
 	e.updateHistoryEntry()
+
 	if enterInsertMode {
-		e.Vim.Mode.Current = mode.Insert
+		e.EnterInsertMode(false)
 	}
+
 	return e.ResetSelectedRowsCount()
 }
 
