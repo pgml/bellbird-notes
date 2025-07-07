@@ -14,28 +14,29 @@ import (
 )
 
 type Note struct {
-	name     string
 	Path     string
 	IsPinned bool
 }
 
 // Name returns the note name without its file extension.
 func (n Note) Name() string {
-	name := strings.TrimSuffix(
-		n.name,
-		filepath.Ext(n.name),
+	name := filepath.Base(n.Path)
+	name = strings.TrimSuffix(
+		name,
+		filepath.Ext(name),
 	)
 	return name
 }
 
 // NameWithExt returns the full note name including the extension.
 func (n Note) NameWithExt() string {
-	if strings.HasSuffix(n.name, n.Ext()) {
-		return n.name
+	filename := filepath.Base(n.Path)
+	if strings.HasSuffix(filename, n.Ext()) {
+		return filename
 	}
 
 	var name strings.Builder
-	name.WriteString(n.name)
+	name.WriteString(filename)
 	name.WriteString(n.Ext())
 	return name.String()
 }
@@ -52,9 +53,8 @@ func (n Note) Ext() string { return Ext }
 // of bellbird notes and is just here for compatibility reasons
 func (n Note) LegacyExt() string { return legacyExt }
 
-func NewNote(name string, path string, isPinned bool) Note {
+func NewNote(path string, isPinned bool) Note {
 	return Note{
-		name:     name,
 		Path:     path,
 		IsPinned: isPinned,
 	}
@@ -92,7 +92,6 @@ func List(notePath string) ([]Note, error) {
 		pinned := p == "true"
 
 		notes = append(notes, Note{
-			name:     child.Name(),
 			Path:     filePath,
 			IsPinned: pinned,
 		})
@@ -105,19 +104,20 @@ func List(notePath string) ([]Note, error) {
 }
 
 // Create creates a new note file at the specified path.
-func Create(path string) error {
+func Create(path string) (Note, error) {
 	path = checkPath(path)
+	note := Note{}
 
 	if Exists(path) {
-		return errors.New(message.StatusBar.NoteExists)
+		return note, errors.New(message.StatusBar.NoteExists)
 	}
 
 	if _, err := os.Create(path); err != nil {
 		debug.LogErr(err)
-		return err
+		return note, err
 	}
 
-	return nil
+	return NewNote(path, false), nil
 }
 
 // Write replaces the contents of a note at the given path with the provided string.

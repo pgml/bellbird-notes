@@ -380,7 +380,7 @@ func (l *NotesList) createVirtualNote() NoteItem {
 		name,
 	)
 
-	item := notes.NewNote(name, path, false)
+	item := notes.NewNote(path, false)
 	noteItem := l.createNoteItem(item, -1, false)
 	noteItem.index = len(l.items)
 

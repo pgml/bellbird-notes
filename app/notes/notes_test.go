@@ -9,7 +9,8 @@ import (
 )
 
 func TestNewNote(t *testing.T) {
-	n := notes.NewNote("test.txt", "./test.txt", true)
+	n := notes.NewNote("./test.txt", true)
+
 	if n.Name() != "test" {
 		t.Errorf("Expected note name to be 'test', got '%s'", n.Name())
 	}
@@ -22,7 +23,7 @@ func TestCreateWriteDelete(t *testing.T) {
 	tmp := t.TempDir()
 	path := filepath.Join(tmp, "test_note.txt")
 
-	err := notes.Create(path)
+	_, err := notes.Create(path)
 	if err != nil {
 		t.Fatalf("Create failed: %v", err)
 	}
@@ -52,7 +53,7 @@ func TestRename(t *testing.T) {
 	oldPath := filepath.Join(dir, "old.txt")
 	newPath := filepath.Join(dir, "new.txt")
 
-	err := notes.Create(oldPath)
+	_, err := notes.Create(oldPath)
 	if err != nil {
 		t.Fatalf("Create failed: %v", err)
 	}
