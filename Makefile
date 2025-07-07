@@ -2,14 +2,15 @@ BIN_CLI = bbnotes
 DATE = $(shell date +%Y%m%d%H)
 GIT_HASH = $(shell git rev-parse --short HEAD)
 PKG = bellbird-notes/app
+GOFLAGS = -trimpath
 
 build-dev:
 	go mod tidy
-	go build -ldflags "-X '$(PKG).DevVersion=g$(GIT_HASH)'" -o ${BIN_CLI} cmd/tui/main.go
+	go build $(GOFLAGS) -ldflags="-X '$(PKG).DevVersion=g$(GIT_HASH)'" -o ${BIN_CLI} cmd/tui/main.go
 
 build-release:
 	go mod tidy
-	go build -ldflags="-s -w" -o ${BIN_CLI} cmd/tui/main.go
+	go build $(GOFLAGS) -ldflags="-s -w" -o ${BIN_CLI} cmd/tui/main.go
 
 install-local:
 	rsync -azP ${BIN_CLI} ~/.local/bin/
