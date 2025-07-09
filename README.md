@@ -52,7 +52,6 @@ You can find a list of all currently availabe keybinds [here](docs/keybindings.m
 #### Editor
 
 * `U` and `u` for lower- & uppercase in visual mode
-* `gj` and `gk` for navigation multilines
 * `f` and `F` motion to navigation to a specific character
 * `/` to search in a buffer and `n` and `N` to navigate between results
 * visual block mode
