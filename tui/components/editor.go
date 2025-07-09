@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -310,7 +311,7 @@ func (e *Editor) OpenBuffer(path string) message.StatusBarMsg {
 		Column:  sbc.FileInfo,
 	}
 
-	buf, exists := e.bufferExists(path)
+	buf, exists, _ := e.bufferExists(path)
 	// create new buffer if we can't find anything
 	if len(e.Buffers) <= 0 || !exists {
 		e.NewBuffer(path)
@@ -363,6 +364,28 @@ func (e *Editor) SaveBuffer() message.StatusBarMsg {
 
 	statusMsg.Content = resultMsg
 	return statusMsg
+}
+
+// DeleteBuffer closes the currently active buffer or resets the editor if
+// none is available
+func (e *Editor) DeleteBuffer() message.StatusBarMsg {
+	if _, ok, index := e.bufferExists(e.CurrentBuffer.Path); ok {
+		e.Buffers = slices.Delete(e.Buffers, index, index+1)
+	}
+
+	if len(e.Buffers) > 0 {
+		lastBuf := e.Buffers[len(e.Buffers)-1]
+		e.OpenBuffer(lastBuf.Path)
+	} else {
+		e.reset()
+	}
+
+	return message.StatusBarMsg{}
+}
+
+func (e *Editor) DeleteAllBuffers() message.StatusBarMsg {
+	e.reset()
+	return message.StatusBarMsg{}
 }
 
 // DirtyBuffers collects all the dirty, dirty buffers
@@ -430,13 +453,22 @@ func (e *Editor) breadcrumb() string {
 }
 
 // bufferExists returns whether a buffer is in memory
-func (e *Editor) bufferExists(path string) (*Buffer, bool) {
+func (e *Editor) bufferExists(path string) (*Buffer, bool, int) {
 	for i := range e.Buffers {
 		if e.Buffers[i].Path == path {
-			return &e.Buffers[i], true
+			return &e.Buffers[i], true, i
 		}
 	}
-	return nil, false
+	return nil, false, 0
+}
+
+// reset puts the editor to default by clearing the textarea, resetting the
+// meta value for current note and deleting the current buffer
+func (e *Editor) reset() {
+	e.Textarea.SetValue("")
+	e.conf.SetMetaValue("", config.CurrentNote, "")
+	e.Buffers = []Buffer{}
+	e.CurrentBuffer = &Buffer{}
 }
 
 // EnterNormalMode sets the current editor mode to normal,

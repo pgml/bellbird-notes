@@ -210,6 +210,10 @@ func (s *StatusBar) ConfirmAction(
 		e.SetNoNumbers()
 	case "config":
 		statusMsg = e.OpenConfig()
+	case "bd":
+		e.DeleteBuffer()
+	case "%bd": // temporary
+		e.DeleteAllBuffers()
 	}
 
 	s.SetColContent(statusMsg.Column, &statusMsg.Content)
