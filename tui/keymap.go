@@ -636,6 +636,14 @@ func (m *Model) KeyInputFn() []ki.KeyFn {
 				},
 			}},
 		},
+		{
+			Bindings: ki.KeyBindings("space q"),
+			Cond: []keyCond{{
+				Mode:       mode.Normal,
+				Components: []c{m.dirTree, m.notesList, m.editor},
+				Action:     m.editor.DeleteBuffer,
+			}},
+		},
 	}
 }
 
