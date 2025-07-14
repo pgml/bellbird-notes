@@ -138,7 +138,7 @@ func (l *BufferList) BuildHeader(width int, rebuild bool) string {
 		}
 	}
 
-	header := theme.Header("Buffers", width, l.Focused()) + "\n"
+	header := theme.Header("Open Notes", width, l.Focused()) + "\n"
 	l.header = &header
 	return header
 }
