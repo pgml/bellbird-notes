@@ -656,10 +656,6 @@ func (m *Model) editorInputAction(mode mode.Mode, fn func() message.StatusBarMsg
 func (m *Model) focusColumn(index int) message.StatusBarMsg {
 	m.conf.SetMetaValue("", config.CurrentComponent, strconv.Itoa(index))
 
-	if index == 3 && len(m.editor.Buffers) <= 0 {
-		index = 2
-	}
-
 	m.dirTree.SetFocus(index == 1)
 	m.dirTree.BuildHeader(m.dirTree.Size.Width, true)
 

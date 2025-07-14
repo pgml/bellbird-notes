@@ -191,6 +191,11 @@ func (m *Model) updateComponents(msg tea.Msg) []tea.Cmd {
 		m.editor.LastOpenNoteLoaded = true
 	}
 
+	// focus notes list if not buffer is open
+	if m.editor.Ready && len(m.editor.Buffers) == 0 {
+		m.focusColumn(2)
+	}
+
 	if m.dirTree.Focused() {
 		m.dirTree.Mode = m.mode.Current
 		_, cmd := m.dirTree.Update(msg)
@@ -265,6 +270,13 @@ func (m *Model) restoreState() {
 		index, _ := strconv.Atoi(currComp)
 		colIndex = index
 	}
+
+	// focus notes list if there's not open note in meta conf but
+	currentNote, err := m.conf.MetaValue("", config.CurrentNote)
+	if err == nil && currentNote == "" {
+		colIndex = 2
+	}
+
 	m.focusColumn(colIndex)
 }
 
