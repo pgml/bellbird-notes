@@ -9,6 +9,7 @@ require (
 	github.com/charmbracelet/lipgloss/v2 v2.0.0-beta.1
 	github.com/charmbracelet/x/ansi v0.9.2
 	github.com/mattn/go-runewidth v0.0.16
+	github.com/muesli/reflow v0.3.0
 	github.com/rivo/uniseg v0.4.7
 	github.com/winder/bubblelayout v0.0.1
 	golang.design/x/clipboard v0.7.1

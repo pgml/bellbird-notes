@@ -10,8 +10,6 @@ import (
 	"strings"
 	"unicode"
 
-	"bellbird-notes/app/debug"
-
 	"github.com/charmbracelet/bubbles/v2/cursor"
 	tea "github.com/charmbracelet/bubbletea/v2"
 	"github.com/charmbracelet/lipgloss/v2"
@@ -267,7 +265,7 @@ func (m *Model) IsAtLineEnd() bool {
 // MoveCursor() moves the cursor to the given position. If the position is
 // out of bounds the cursor will be moved to the start or end accordingly.
 func (m *Model) MoveCursor(row int, rowOffset int, col int) {
-	debug.LogDebug(row, rowOffset, col)
+	//debug.LogDebug(row, rowOffset, col)
 	if row < 0 {
 		row = 0
 	}
@@ -280,8 +278,8 @@ func (m *Model) MoveCursor(row int, rowOffset int, col int) {
 		col = 0
 	}
 
-	for i := range rowOffset {
-		debug.LogDebug(i, rowOffset)
+	for range rowOffset {
+		//debug.LogDebug(i, rowOffset)
 		m.CursorDown()
 	}
 

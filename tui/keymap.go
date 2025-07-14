@@ -34,7 +34,7 @@ func (m *Model) KeyInputFn() []ki.KeyFn {
 			Cond: []keyCond{
 				{
 					Mode:       mode.Normal,
-					Components: []c{m.dirTree, m.notesList},
+					Components: []c{m.dirTree, m.notesList, m.bufferList},
 					Action:     m.lineDown,
 				},
 				m.editorInputAction(n, m.editor.LineDown),
@@ -50,7 +50,7 @@ func (m *Model) KeyInputFn() []ki.KeyFn {
 			Cond: []keyCond{
 				{
 					Mode:       mode.Normal,
-					Components: []c{m.dirTree, m.notesList},
+					Components: []c{m.dirTree, m.notesList, m.bufferList},
 					Action:     m.lineUp,
 				},
 				m.editorInputAction(n, m.editor.LineUp),
@@ -539,7 +539,7 @@ func (m *Model) KeyInputFn() []ki.KeyFn {
 			Bindings: ki.KeyBindings("enter"),
 			Cond: []keyCond{{
 				Mode:       mode.Normal,
-				Components: []c{m.dirTree, m.notesList},
+				Components: []c{m.dirTree, m.notesList, m.bufferList},
 				Action:     m.confirmAction,
 			}, {
 				Mode:       mode.Insert,
@@ -557,7 +557,7 @@ func (m *Model) KeyInputFn() []ki.KeyFn {
 			Bindings: ki.KeyBindings("esc"),
 			Cond: []keyCond{{
 				Mode:       mode.Normal,
-				Components: []c{m.dirTree, m.notesList, m.editor},
+				Components: []c{m.dirTree, m.notesList, m.editor, m.bufferList},
 				Action:     m.cancelAction,
 			}, {
 				Mode:       mode.Insert,
@@ -623,6 +623,17 @@ func (m *Model) KeyInputFn() []ki.KeyFn {
 				Mode:       mode.Normal,
 				Components: []c{m.dirTree, m.notesList, m.editor},
 				Action:     m.focusEditor,
+			}},
+		},
+		{
+			Bindings: ki.KeyBindings("ctrl+e"),
+			Cond: []keyCond{{
+				Mode:       mode.Normal,
+				Components: []c{m.dirTree, m.notesList, m.editor},
+				Action: func() message.StatusBarMsg {
+					m.OverlayOpenBuffers()
+					return message.StatusBarMsg{}
+				},
 			}},
 		},
 	}
@@ -712,10 +723,30 @@ func (m *Model) focusedComponent() Focusable {
 	if m.dirTree.Focused() {
 		return m.dirTree
 	}
+
 	if m.notesList.Focused() {
 		return m.notesList
 	}
+
+	if m.bufferList.Focused() {
+		return m.bufferList
+	}
+
 	return nil
+}
+
+func (m *Model) unfocusAllComponents() message.StatusBarMsg {
+	m.dirTree.SetFocus(false)
+	m.dirTree.BuildHeader(m.dirTree.Size.Width, true)
+
+	m.notesList.SetFocus(false)
+	m.notesList.BuildHeader(m.notesList.Size.Width, true)
+
+	m.editor.SetFocus(false)
+	m.editor.BuildHeader(m.notesList.Size.Width, true)
+	m.statusBar.Focused = false
+
+	return message.StatusBarMsg{}
 }
 
 // lineUp moves the cursor one line up in the currently focused column.
@@ -851,17 +882,29 @@ func (m *Model) confirmAction() message.StatusBarMsg {
 			return statusMsg
 		}
 
-		if f == m.dirTree {
+		switch f {
+		case m.dirTree:
 			path := m.dirTree.SelectedDir().Path()
 			m.notesList.CurrentPath = path
 			m.conf.SetMetaValue("", config.CurrentDirectory, path)
 			statusMsg = m.notesList.Refresh(true, true)
-		}
 
-		if f == m.notesList {
+		case m.notesList:
 			if sel := m.notesList.SelectedItem(nil); sel != nil {
 				statusMsg = m.editor.OpenBuffer(sel.Path())
 			}
+
+		case m.bufferList:
+			items := m.bufferList.Items()
+			selected := items[m.bufferList.SelectedIndex()].Path()
+			// close buffer list overlay
+			m.editor.ListBuffers = false
+			m.editor.OpenBuffer(selected)
+			m.bufferList.SetSelectedIndex(0)
+			m.focusEditor()
+
+		default:
+			f.ConfirmAction()
 		}
 	}
 
@@ -886,6 +929,11 @@ func (m *Model) cancelAction() message.StatusBarMsg {
 			if m.dirTree.EditState == stateCreate ||
 				m.notesList.EditState == stateCreate {
 				resetIndex = true
+			}
+
+			if f == m.bufferList {
+				m.editor.ListBuffers = false
+				m.focusColumn(m.currColFocus)
 			}
 
 			return f.CancelAction(func() {
@@ -927,4 +975,15 @@ func (m *Model) enterCmdMode() message.StatusBarMsg {
 		Type:   message.Prompt,
 		Column: sbc.General,
 	}
+}
+
+func (m *Model) OverlayOpenBuffers() (string, int, int) {
+	m.editor.ListBuffers = true
+	m.bufferList.SetFocus(true)
+
+	x, y := m.overlayPosition(m.bufferList.Width)
+	overlay := m.bufferList.View()
+
+	m.updateComponents(false)
+	return overlay, x, y
 }

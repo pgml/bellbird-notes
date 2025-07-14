@@ -82,7 +82,7 @@ func Header(title string, colWidth int, focused bool) string {
 // BaseColumnLayout provides thae basic layout style for a column
 func BaseColumnLayout(size bl.Size, focused bool) lipgloss.Style {
 	borderColour := BorderColour(focused)
-	_, termHeight := GetTerminalSize()
+	_, termHeight := TerminalSize()
 
 	return lipgloss.NewStyle().
 		Border(BorderStyle).
@@ -101,14 +101,14 @@ func BorderColour(focused bool) color.Color {
 	return borderColour
 }
 
-// GetTerminalSize determines the current
+// TerminalSize determines the current
 // Terminal providing a fallback and subtracting 1 from height
 // because otherwise the upper part of the ui gets truncated
-func GetTerminalSize() (int, int) {
+func TerminalSize() (int, int) {
 	width, height, err := term.GetSize(int(os.Stdout.Fd()))
 	if err != nil {
 		// Default width if terminal size can't be detected
 		width = 80
 	}
-	return width, height - 1
+	return width, height
 }

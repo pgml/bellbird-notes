@@ -14,11 +14,15 @@ import (
 	"github.com/charmbracelet/bubbles/v2/textinput"
 	tea "github.com/charmbracelet/bubbletea/v2"
 	"github.com/charmbracelet/lipgloss/v2"
+	bl "github.com/winder/bubblelayout"
 )
 
 type Focusable = interfaces.Focusable
 
 type StatusBar struct {
+	ID   bl.ID
+	Size bl.Size
+
 	Content string
 	Type    message.Type
 	Prompt  textinput.Model
@@ -36,6 +40,8 @@ type StatusBar struct {
 
 	ShouldQuit      bool
 	ShouldWriteFile bool
+
+	Height int
 }
 
 var StatusBarColumn = struct {
@@ -53,6 +59,7 @@ func NewStatusBar() *StatusBar {
 
 	statusBar := &StatusBar{
 		Prompt: ti,
+		Height: 1,
 	}
 
 	return statusBar
@@ -97,6 +104,11 @@ func (s *StatusBar) Update(
 			s.Prompt, _ = s.Prompt.Update(teaMsg)
 			return s
 		}
+
+	case tea.WindowSizeMsg:
+		termWidth, _ := theme.TerminalSize()
+		s.Size.Width = termWidth
+		s.Size.Height = s.Height
 	}
 
 	return s
@@ -125,7 +137,7 @@ func (s *StatusBar) View() string {
 		colGeneral = fmt.Sprint(colGeneral, promptView)
 	}
 
-	width, _ := theme.GetTerminalSize()
+	width, _ := theme.TerminalSize()
 
 	wColFileInfo := 70
 	wColKeyInfo := 15
@@ -214,6 +226,9 @@ func (s *StatusBar) ConfirmAction(
 		e.DeleteBuffer()
 	case "%bd": // temporary
 		e.DeleteAllBuffers()
+	case "buffers":
+	case "b":
+		e.ListBuffers = true
 	}
 
 	s.SetColContent(statusMsg.Column, &statusMsg.Content)

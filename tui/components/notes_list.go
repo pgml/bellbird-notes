@@ -146,20 +146,18 @@ func (l *NotesList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case tea.WindowSizeMsg:
-		termWidth, termHeight := theme.GetTerminalSize()
-		colHeight := termHeight - 1
+		l.Size.Width = msg.Width
+		l.Size.Height = msg.Height
 
 		if !l.ready {
 			l.viewport = viewport.New()
-			l.viewport.SetWidth(termWidth)
-			l.viewport.SetHeight(colHeight)
 			l.viewport.SetContent(l.build())
 			l.viewport.KeyMap = viewport.KeyMap{}
 			l.lastVisibleLine = l.viewport.VisibleLineCount() - reservedLines
 			l.ready = true
 		} else {
-			l.viewport.SetWidth(termWidth)
-			l.viewport.SetHeight(colHeight)
+			l.viewport.SetWidth(l.Size.Width)
+			l.viewport.SetHeight(l.Size.Height)
 		}
 	}
 
@@ -167,6 +165,14 @@ func (l *NotesList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	l.viewport, cmd = l.viewport.Update(msg)
 
 	return l, cmd
+}
+
+func (l *NotesList) RefreshSize() {
+	vp := l.viewport
+	if vp.Width() != l.Size.Width && vp.Height() != l.Size.Height {
+		l.viewport.SetWidth(l.Size.Width)
+		l.viewport.SetHeight(l.Size.Height)
+	}
 }
 
 func (l *NotesList) View() string {

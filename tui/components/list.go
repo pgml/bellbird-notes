@@ -88,7 +88,7 @@ type Item struct {
 
 type statusMsg string
 
-const reservedLines = 1
+const reservedLines = 0
 
 // UpdateViewportInfo synchronises the list's internal visible line count
 // with the actual height of the viewport, subtracting `reservedLines`
@@ -204,6 +204,10 @@ func (l *List[T]) Rename(origName string) message.StatusBarMsg {
 	return message.StatusBarMsg{}
 }
 
+func (l *BufferList) ConfirmAction() message.StatusBarMsg {
+	return message.StatusBarMsg{}
+}
+
 // CancelAction cancels the current action and blurs the editor
 func (l *List[T]) CancelAction(cb func()) message.StatusBarMsg {
 	l.resetEditor()
@@ -221,4 +225,27 @@ func (l *List[T]) resetEditor() {
 
 func (l *List[T]) SelectedIndex() int {
 	return l.selectedIndex
+}
+
+func (l *List[T]) SetSelectedIndex(index int) {
+	l.selectedIndex = index
+}
+
+func (l *BufferList) TogglePinned() message.StatusBarMsg {
+	return message.StatusBarMsg{}
+}
+
+func (l *BufferList) ConfirmRemove() message.StatusBarMsg {
+	return message.StatusBarMsg{}
+}
+
+func (l *BufferList) Remove() message.StatusBarMsg {
+	return message.StatusBarMsg{}
+}
+
+func (l *BufferList) Refresh(
+	resetSelectedIndex bool,
+	resetPinned bool,
+) message.StatusBarMsg {
+	return message.StatusBarMsg{}
 }

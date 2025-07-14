@@ -9,6 +9,7 @@ import (
 	"bellbird-notes/tui/keyinput"
 	"bellbird-notes/tui/message"
 	"bellbird-notes/tui/mode"
+	"bellbird-notes/tui/theme"
 	sbc "bellbird-notes/tui/types/statusbar_column"
 
 	tea "github.com/charmbracelet/bubbletea/v2"
@@ -27,11 +28,12 @@ type Model struct {
 	keyInput     *keyinput.Input
 	currColFocus int
 
-	dirTree   *components.DirectoryTree
-	notesList *components.NotesList
-	editor    *components.Editor
-	statusBar *components.StatusBar
-	conf      *config.Config
+	dirTree    *components.DirectoryTree
+	notesList  *components.NotesList
+	editor     *components.Editor
+	bufferList *components.BufferList
+	statusBar  *components.StatusBar
+	conf       *config.Config
 }
 
 func InitialModel() *Model {
@@ -52,6 +54,7 @@ func InitialModel() *Model {
 		dirTree:      components.NewDirectoryTree(conf),
 		notesList:    components.NewNotesList(conf),
 		editor:       components.NewEditor(conf),
+		bufferList:   components.NewBufferList(conf),
 		statusBar:    components.NewStatusBar(),
 		conf:         conf,
 	}
@@ -108,6 +111,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.dirTree.Size, _ = msg.Size(m.dirTree.ID)
 		m.notesList.Size, _ = msg.Size(m.notesList.ID)
 		m.editor.Size, _ = msg.Size(m.editor.ID)
+		m.bufferList.Size, _ = msg.Size(m.bufferList.ID)
+		m.statusBar.Size, _ = msg.Size(m.statusBar.ID)
 	}
 
 	m.keyInput.Mode = m.mode.Current
@@ -125,7 +130,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 // View renders the TUI layout as a string
 func (m Model) View() string {
-	return lipgloss.JoinVertical(lipgloss.Left,
+	view := lipgloss.JoinVertical(lipgloss.Left,
 		lipgloss.JoinHorizontal(lipgloss.Top,
 			m.dirTree.View(),
 			m.notesList.View(),
@@ -133,20 +138,53 @@ func (m Model) View() string {
 		),
 		m.statusBar.View(),
 	)
+
+	var (
+		overlay = ""
+		x       = 0
+		y       = 0
+	)
+
+	// check if any overlays should be displayed
+	if m.editor.ListBuffers {
+		overlay, x, y = m.OverlayOpenBuffers()
+	} else {
+		m.bufferList.SetFocus(false)
+	}
+
+	if overlay != "" {
+		// place overlay above the application
+		return components.PlaceOverlay(x, y, overlay, view)
+	}
+
+	return view
 }
 
 // componentsInit registers components in the layout
 // and sets initial focus
 func (m *Model) componentsInit() {
-	m.dirTree.ID = m.layout.Add("w 30")
-	m.notesList.ID = m.layout.Add("w 30")
+	const reserverdLines = 1
+	statusBarHeight := m.statusBar.Height + reserverdLines
+
+	m.dirTree.ID = m.layout.Add("width 30")
+	m.notesList.ID = m.layout.Add("width 30")
 	m.editor.ID = m.layout.Add("grow")
+
+	m.statusBar.ID = m.layout.Dock(bl.Dock{
+		Cardinal:  bl.SOUTH,
+		Preferred: statusBarHeight,
+	})
 }
 
 // updateComponents dispatches updates to the focused components
 // (directory tree, notes list, editor), updates the current editor mode
 func (m *Model) updateComponents(msg tea.Msg) []tea.Cmd {
 	var cmds []tea.Cmd
+
+	m.dirTree.RefreshSize()
+	m.notesList.RefreshSize()
+	m.bufferList.RefreshSize()
+	m.editor.RefreshSize()
 
 	if m.dirTree.Focused() {
 		m.dirTree.Mode = m.mode.Current
@@ -166,6 +204,7 @@ func (m *Model) updateComponents(msg tea.Msg) []tea.Cmd {
 		editorMode := m.editor.Vim.Mode.Current
 		m.mode.Current = editorMode
 		m.keyInput.Mode = editorMode
+
 		// This is probably a dirty workaround - since key events are
 		// being executed before the editor receives updates, insert
 		// mode is already active which means we already start typing
@@ -177,6 +216,18 @@ func (m *Model) updateComponents(msg tea.Msg) []tea.Cmd {
 		if editorMode == mode.Insert || editorMode == mode.Replace {
 			m.editor.CanInsert = true
 		}
+	}
+
+	// let the buffer list know if anything changes
+	if len(m.bufferList.Items()) != len(m.editor.Buffers) {
+		cmds = append(cmds, m.editor.SendBuffersChangedMsg())
+	}
+
+	_, cmd := m.bufferList.Update(msg)
+	cmds = append(cmds, cmd)
+
+	if m.editor.ListBuffers {
+		m.unfocusAllComponents()
 	}
 
 	// collect dirty buffers
@@ -210,4 +261,14 @@ func (m *Model) restoreState() {
 		colIndex = index
 	}
 	m.focusColumn(colIndex)
+}
+
+// overlayPosition returns the top center position of the application screen
+func (m *Model) overlayPosition(overlayWidth int) (int, int) {
+	termW, _ := theme.TerminalSize()
+
+	x := (termW / 2) - (overlayWidth / 2)
+	y := 2
+
+	return x, y
 }

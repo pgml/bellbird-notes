@@ -75,7 +75,7 @@ func (d TreeItem) Name() string {
 	return d.name
 }
 
-// Name returns the name of a Dir-Item
+// Expanded returns the name of a Dir-Item
 func (d TreeItem) Expanded() bool {
 	return d.expanded
 }
@@ -142,7 +142,6 @@ func (d *TreeItem) setIcon() {
 // setToggleArrow sets the arrow icon used to expand/collapse tree items.
 // Hides the arrow if the item has no children.
 func (d *TreeItem) setToggleArrow() {
-
 	iconArrow := theme.IconDirClosed.Alt
 	if d.expanded {
 		iconArrow = theme.IconDirOpen.Alt
@@ -220,8 +219,6 @@ func (t *DirectoryTree) Init() tea.Cmd {
 func (t *DirectoryTree) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 
-	termWidth, termHeight := theme.GetTerminalSize()
-
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		// focus the input field when renaming a list item
@@ -236,26 +233,33 @@ func (t *DirectoryTree) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case tea.WindowSizeMsg:
-		colHeight := termHeight - 1
+		t.Size.Width = msg.Width
+		t.Size.Height = msg.Height
 
 		if !t.ready {
 			t.viewport = viewport.New()
-			t.viewport.SetWidth(termWidth)
-			t.viewport.SetHeight(colHeight)
 			t.viewport.SetContent(t.render())
 			t.viewport.KeyMap = viewport.KeyMap{}
-			t.lastVisibleLine = t.viewport.
-				VisibleLineCount() - reservedLines
+			t.lastVisibleLine = t.viewport.VisibleLineCount() - reservedLines
 			t.ready = true
 		} else {
-			t.viewport.SetWidth(termWidth)
-			t.viewport.SetHeight(colHeight)
+			t.viewport.SetWidth(t.Size.Width)
+			t.viewport.SetHeight(t.Size.Height)
 		}
+
 	}
 
 	t.viewport, cmd = t.viewport.Update(msg)
 
 	return t, cmd
+}
+
+func (t *DirectoryTree) RefreshSize() {
+	vp := t.viewport
+	if vp.Width() != t.Size.Width && vp.Height() != t.Size.Height {
+		t.viewport.SetWidth(t.Size.Width)
+		t.viewport.SetHeight(t.Size.Height)
+	}
 }
 
 func (t *DirectoryTree) View() string {

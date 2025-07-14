@@ -52,43 +52,6 @@ var (
 			Bold(true)
 )
 
-type Editor struct {
-	Component
-
-	// Buffers holds all the open buffers
-	Buffers []Buffer
-
-	// CurrentBuffer is the currently active buffer
-	CurrentBuffer *Buffer
-
-	// Textarea is the bubbletea textarea component
-	Textarea textarea.Model
-
-	// Vim holds the current vim mode
-	Vim Vim
-
-	// CanInsert indicates whether textarea can receive input
-	// regardless of the current input mode
-	CanInsert bool
-
-	// isAtLineEnd indicates whether the cursor is at the end of the line
-	isAtLineEnd bool
-
-	// isAtLineStart indicates whether the cursor is at the beginning of the line
-	isAtLineStart bool
-
-	// StatusBarMsg is the message to be displayed in the status bar
-	StatusBarMsg message.StatusBarMsg
-
-	// ShowLineNumbers indicates whether to show line numbers
-	ShowLineNumbers bool
-
-	// ShowColumnNumbers indicates whether to show column numbers
-	conf *config.Config
-
-	err error
-}
-
 type errMsg error
 
 type Buffer struct {
@@ -122,12 +85,30 @@ type Buffer struct {
 	header *string
 }
 
+func (b *Buffer) Name() string {
+	name := filepath.Base(b.Path)
+	name = strings.TrimSuffix(name, filepath.Ext(name))
+	return name
+}
+
 func (b *Buffer) undo() (string, textarea.CursorPos) {
 	return b.History.Undo()
 }
 
 func (b *Buffer) redo() (string, textarea.CursorPos) {
 	return b.History.Redo()
+}
+
+type BuffersChangedMsg struct {
+	Buffers *[]Buffer
+}
+
+func (e *Editor) SendBuffersChangedMsg() tea.Cmd {
+	return func() tea.Msg {
+		return BuffersChangedMsg{
+			Buffers: &e.Buffers,
+		}
+	}
 }
 
 type Input struct {
@@ -139,6 +120,45 @@ type Input struct {
 type Vim struct {
 	Mode    mode.ModeInstance
 	Pending Input
+}
+
+type Editor struct {
+	Component
+
+	// Buffers holds all the open buffers
+	Buffers []Buffer
+
+	// CurrentBuffer is the currently active buffer
+	CurrentBuffer *Buffer
+
+	// Textarea is the bubbletea textarea component
+	Textarea textarea.Model
+
+	// Vim holds the current vim mode
+	Vim Vim
+
+	// CanInsert indicates whether textarea can receive input
+	// regardless of the current input mode
+	CanInsert bool
+
+	// isAtLineEnd indicates whether the cursor is at the end of the line
+	isAtLineEnd bool
+
+	// isAtLineStart indicates whether the cursor is at the beginning of the line
+	isAtLineStart bool
+
+	// StatusBarMsg is the message to be displayed in the status bar
+	StatusBarMsg message.StatusBarMsg
+
+	// ShowLineNumbers indicates whether to show line numbers
+	ShowLineNumbers bool
+
+	ListBuffers bool
+
+	// conf indicates whether to show column numbers
+	conf *config.Config
+
+	err error
 }
 
 func NewEditor(conf *config.Config) *Editor {
@@ -219,9 +239,9 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		e.checkDirty()
 
 	case tea.WindowSizeMsg:
-		termWidth, termHeight := theme.GetTerminalSize()
-		e.Size.Width = termWidth
-		e.Size.Height = termHeight
+		e.Size.Width = msg.Width
+		e.Size.Height = msg.Height
+
 	case errMsg:
 		e.err = msg
 		return e, nil
@@ -248,6 +268,10 @@ func (e *Editor) build() string {
 	view.WriteString(e.BuildHeader(e.Size.Width, false))
 	view.WriteString(e.Textarea.View())
 	return view.String()
+}
+
+func (e *Editor) RefreshSize() {
+	e.setTextareaSize()
 }
 
 // NewBuffer creates a new buffer, sets the textareas content
@@ -611,13 +635,11 @@ func (e *Editor) cursorInfo() string {
 // setTextareaSize update the textarea height and width to match
 // the height and width of the editor
 func (e *Editor) setTextareaSize() {
-	if e.Textarea.Width() == e.Size.Width && e.Textarea.Height() == e.Size.Height {
-		return
+	if e.Textarea.Width() != e.Size.Width && e.Textarea.Height() != e.Size.Height {
+		const reserverdLines = 1
+		e.Textarea.SetWidth(e.Size.Width)
+		e.Textarea.SetHeight(e.Size.Height - reserverdLines)
 	}
-
-	const reserverdLines = 3
-	e.Textarea.SetWidth(e.Size.Width)
-	e.Textarea.SetHeight(e.Size.Height - reserverdLines)
 }
 
 // saveCursorPos saves the cursors current column offset and row
