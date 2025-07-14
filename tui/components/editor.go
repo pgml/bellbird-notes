@@ -201,8 +201,6 @@ func NewEditor(conf *config.Config) *Editor {
 		debug.LogErr(err)
 	}
 
-	editor.OpenLastNote()
-
 	return editor
 }
 
@@ -219,6 +217,10 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	)
 
 	e.Textarea.Selection.Cursor.Blur()
+
+	if !e.ready {
+		e.OpenLastNote()
+	}
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
@@ -241,6 +243,10 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		e.Size.Width = msg.Width
 		e.Size.Height = msg.Height
+
+		if !e.ready {
+			e.ready = true
+		}
 
 	case errMsg:
 		e.err = msg
