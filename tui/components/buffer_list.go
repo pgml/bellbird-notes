@@ -1,6 +1,7 @@
 package components
 
 import (
+	"path"
 	"strconv"
 	"strings"
 
@@ -8,6 +9,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea/v2"
 	"github.com/charmbracelet/lipgloss/v2"
 
+	"bellbird-notes/app"
 	"bellbird-notes/app/config"
 	"bellbird-notes/app/utils"
 	"bellbird-notes/tui/components/textarea"
@@ -27,23 +29,43 @@ func (b BufferListItem) Index() int { return b.index }
 // Path returns the index of a Note-Item
 func (b BufferListItem) Path() string { return b.path }
 
+func (b BufferListItem) PathOnly() string {
+	p := path.Dir(b.Path())
+
+	notesRoot, _ := app.NotesRootDir()
+
+	if p == notesRoot {
+		return "/"
+	}
+
+	return p
+}
+
 // String is string representation of a Note
 func (b BufferListItem) String() string {
 	baseStyle := b.styles.base.Width(b.width)
 	selectedStyle := b.styles.selected.Width(b.width)
+	fadedStyle := lipgloss.NewStyle().Foreground(theme.ColourBorder)
 
 	if b.selected {
 		baseStyle = selectedStyle
+		fadedStyle = fadedStyle.Background(theme.ColourBgSelected)
 	}
 
 	var list strings.Builder
 
-	list.WriteString(theme.Icon(theme.IconNote, b.nerdFonts))
-	list.WriteString("  ")
+	list.WriteString("  " + strconv.Itoa(b.index+1))
+	list.WriteString("  " + theme.Icon(theme.IconNote, b.nerdFonts))
+	list.WriteString("  " + b.name)
 
-	list.WriteString(utils.RelativePath(b.Path(), true))
-	list.WriteByte(':')
-	list.WriteString(strconv.Itoa(b.cursorPos.Row))
+	truncWidth := b.width - lipgloss.Width(list.String()) - 2
+
+	list.WriteString(fadedStyle.Render(
+		utils.TruncateText(
+			"  "+utils.RelativePath(b.PathOnly(), true),
+			truncWidth,
+		),
+	))
 
 	return baseStyle.Render(list.String())
 }
