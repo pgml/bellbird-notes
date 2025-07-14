@@ -236,12 +236,12 @@ func (t *DirectoryTree) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		t.Size.Width = msg.Width
 		t.Size.Height = msg.Height
 
-		if !t.ready {
+		if !t.Ready {
 			t.viewport = viewport.New()
 			t.viewport.SetContent(t.render())
 			t.viewport.KeyMap = viewport.KeyMap{}
 			t.lastVisibleLine = t.viewport.VisibleLineCount() - reservedLines
-			t.ready = true
+			t.Ready = true
 		} else {
 			t.viewport.SetWidth(t.Size.Width)
 			t.viewport.SetHeight(t.Size.Height)
@@ -263,7 +263,7 @@ func (t *DirectoryTree) RefreshSize() {
 }
 
 func (t *DirectoryTree) View() string {
-	if !t.ready {
+	if !t.Ready {
 		return "\n  Initializing..."
 	}
 

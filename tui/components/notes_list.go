@@ -149,12 +149,12 @@ func (l *NotesList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		l.Size.Width = msg.Width
 		l.Size.Height = msg.Height
 
-		if !l.ready {
+		if !l.Ready {
 			l.viewport = viewport.New()
 			l.viewport.SetContent(l.build())
 			l.viewport.KeyMap = viewport.KeyMap{}
 			l.lastVisibleLine = l.viewport.VisibleLineCount() - reservedLines
-			l.ready = true
+			l.Ready = true
 		} else {
 			l.viewport.SetWidth(l.Size.Width)
 			l.viewport.SetHeight(l.Size.Height)
@@ -176,7 +176,7 @@ func (l *NotesList) RefreshSize() {
 }
 
 func (l *NotesList) View() string {
-	if !l.ready {
+	if !l.Ready {
 		return "\n  Initializing..."
 	}
 

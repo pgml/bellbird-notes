@@ -186,6 +186,11 @@ func (m *Model) updateComponents(msg tea.Msg) []tea.Cmd {
 	m.bufferList.RefreshSize()
 	m.editor.RefreshSize()
 
+	if m.componentsReady() && !m.editor.LastOpenNoteLoaded {
+		m.editor.OpenLastNote()
+		m.editor.LastOpenNoteLoaded = true
+	}
+
 	if m.dirTree.Focused() {
 		m.dirTree.Mode = m.mode.Current
 		_, cmd := m.dirTree.Update(msg)
@@ -271,4 +276,8 @@ func (m *Model) overlayPosition(overlayWidth int) (int, int) {
 	y := 2
 
 	return x, y
+}
+
+func (m *Model) componentsReady() bool {
+	return m.dirTree.Ready && m.notesList.Ready && m.editor.Ready
 }

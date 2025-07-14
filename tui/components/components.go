@@ -26,8 +26,8 @@ type Component struct {
 	// Header is the title of the component
 	header *string
 
-	// ready indicates if the component has been initialized
-	ready bool
+	// Ready indicates if the component has been initialized
+	Ready bool
 }
 
 // Focused returns whether the component is focused

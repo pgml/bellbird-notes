@@ -159,6 +159,8 @@ type Editor struct {
 	conf *config.Config
 
 	err error
+
+	LastOpenNoteLoaded bool
 }
 
 func NewEditor(conf *config.Config) *Editor {
@@ -182,15 +184,16 @@ func NewEditor(conf *config.Config) *Editor {
 				"",
 			},
 		},
-		CanInsert:     false,
-		Textarea:      ta,
-		Component:     Component{},
-		Buffers:       []Buffer{},
-		CurrentBuffer: &Buffer{},
-		isAtLineEnd:   false,
-		isAtLineStart: false,
-		err:           nil,
-		conf:          conf,
+		CanInsert:          false,
+		Textarea:           ta,
+		Component:          Component{},
+		Buffers:            []Buffer{},
+		CurrentBuffer:      &Buffer{},
+		isAtLineEnd:        false,
+		isAtLineStart:      false,
+		err:                nil,
+		conf:               conf,
+		LastOpenNoteLoaded: false,
 	}
 
 	editor.ShowLineNumbers = editor.LineNumbers()
@@ -218,10 +221,6 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	e.Textarea.Selection.Cursor.Blur()
 
-	if !e.ready {
-		e.OpenLastNote()
-	}
-
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch e.Vim.Mode.Current {
@@ -244,8 +243,8 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		e.Size.Width = msg.Width
 		e.Size.Height = msg.Height
 
-		if !e.ready {
-			e.ready = true
+		if !e.Ready {
+			e.Ready = true
 		}
 
 	case errMsg:
@@ -254,8 +253,6 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	e.setTextareaSize()
-	//_, selectionCmd := e.Textarea.Cursor.Update(msg)
-	//cmds = append(cmds, cmd, selectionCmd)
 	cmds = append(cmds, cmd)
 
 	return e, tea.Batch(cmds...)

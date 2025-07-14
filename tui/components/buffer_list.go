@@ -89,11 +89,11 @@ func (l *BufferList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	if l.focused {
-		if !l.ready {
+		if !l.Ready {
 			l.viewport = viewport.New()
 			l.viewport.SetContent(l.render())
 			l.viewport.KeyMap = viewport.KeyMap{}
-			l.ready = true
+			l.Ready = true
 		}
 
 		l.viewport, cmd = l.viewport.Update(msg)
@@ -103,7 +103,7 @@ func (l *BufferList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (l *BufferList) View() string {
-	if !l.ready {
+	if !l.Ready {
 		return "\n  Initializing..."
 	}
 
