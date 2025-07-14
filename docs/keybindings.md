@@ -1,13 +1,15 @@
 ## Global keybindings
 
-| Key                   | Action                  | Info   |
-| --------------------- | ----------------------- | ------ |
-| `ctrl+w l` or `alt+e` | Focus next column       |        |
-| `ctrl+w h` or `alt+q` | Focus previous column   |        |
-| `:`                   | Enter command mode      |        |
-| `1`                   | Focus folders           |        |
-| `2`                   | Focus notes             |        |
-| `3`                   | Focus editor            |        |
+| Key                   | Action                      | Info   |
+| --------------------- | --------------------------- | ------ |
+| `ctrl+w l` or `alt+e` | Focus next column           |        |
+| `ctrl+w h` or `alt+q` | Focus previous column       |        |
+| `:`                   | Enter command mode          |        |
+| `1`                   | Focus folders               |        |
+| `2`                   | Focus notes                 |        |
+| `3`                   | Focus editor                |        |
+| `space e`             | Show open notes             |        |
+| `space q`             | Close currently open note   |        |
 
 ## Folders
 
