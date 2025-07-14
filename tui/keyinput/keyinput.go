@@ -3,7 +3,10 @@ package keyinput
 import (
 	"slices"
 	"strings"
+	"time"
 	"unicode/utf8"
+
+	tea "github.com/charmbracelet/bubbletea/v2"
 
 	"bellbird-notes/tui/message"
 	"bellbird-notes/tui/mode"
@@ -43,39 +46,6 @@ type KeyCondition struct {
 	Action     func() message.StatusBarMsg
 }
 
-// matchContext represents the current input and UI state
-// used for evaluating whether a key binding matches.
-// It encapsulates the current mode, the component being checked,
-// and the key binding string.
-type matchContext struct {
-	mode      mode.Mode
-	component FocusedComponent
-	binding   string
-}
-
-// Input represents the state and configuration of the input handler,
-// including current key sequences, modifier states, mode, and the
-// list of all configured key actions.
-type Input struct {
-	KeySequence    string
-	sequenceKeys   []string
-	sequenceLength int
-	//actions      map[string]func() message.StatusBarMsg
-	Ctrl bool
-	Alt  bool
-	Mode mode.Mode
-	// contains the keymap of all availaböe functions
-	Functions []KeyFn
-	// contains all componentActions of the currently selected component
-	componentActions []Action
-}
-
-type Action struct {
-	binding string
-	fn      func() message.StatusBarMsg
-	mode    mode.Mode
-}
-
 // Matches checks if the given matchContext satisfies the KeyCondition.
 // It returns true if the mode matches and either:
 // - no specific component is provided and any of the condition's components are focused, or
@@ -103,13 +73,56 @@ func (kc KeyCondition) Matches(ctx matchContext) bool {
 	return false
 }
 
+// matchContext represents the current input and UI state
+// used for evaluating whether a key binding matches.
+// It encapsulates the current mode, the component being checked,
+// and the key binding string.
+type matchContext struct {
+	mode      mode.Mode
+	component FocusedComponent
+	binding   string
+}
+
+type ResetSequenceMsg struct{}
+
+type Action struct {
+	binding string
+	fn      func() message.StatusBarMsg
+	mode    mode.Mode
+}
+
+// Input represents the state and configuration of the input handler,
+// including current key sequences, modifier states, mode, and the
+// list of all configured key actions.
+type Input struct {
+	KeySequence    string
+	sequenceKeys   []string
+	sequenceLength int
+
+	// sequenceTimeOut is Time in milliseconds to wait for a mapped
+	// sequence to complete. This is basically `timeoutlen` from Vim.
+	sequenceTimeOut time.Duration
+	Space           bool
+	Ctrl            bool
+	Alt             bool
+	Mode            mode.Mode
+
+	// contains the keymap of all availaböe functions
+	Functions []KeyFn
+
+	// contains all componentActions of the currently selected component
+	componentActions []Action
+}
+
 // New creates and returns a new Input instance with default state.
 func New() *Input {
 	return &Input{
+		Space:            false,
 		Ctrl:             false,
 		Alt:              false,
 		Mode:             mode.Normal,
 		KeySequence:      "",
+		sequenceTimeOut:  300,
 		sequenceKeys:     []string{},
 		sequenceLength:   0,
 		Functions:        []KeyFn{},
@@ -134,16 +147,28 @@ func (ki *Input) isModifier(binding string) (string, bool) {
 // HandleSequences processes an incoming key string, updating the internal
 // key sequence and modifier states as needed, and executing any matching
 // actions.
-func (ki *Input) HandleSequences(key string) []message.StatusBarMsg {
-	if key == "esc" && ki.KeySequence != "" {
-		ki.ResetKeysDown()
-		return nil
+func (ki *Input) HandleSequences(key tea.Key) []message.StatusBarMsg {
+	if key.String() == "esc" && ki.KeySequence != "" {
+		return []message.StatusBarMsg{ki.ResetKeysDown()}
 	}
 
-	if ki.Ctrl || ki.Alt {
-		ki.KeySequence += " " + key
+	// special treatment for space to make it simulate a leader key
+	if ki.Mode == mode.Normal && !ki.Space {
+		if key.Code == 32 {
+			ki.KeySequence += key.Keystroke()
+			ki.Space = true
+
+			return []message.StatusBarMsg{{
+				Content: key.Keystroke(),
+				Column:  sbc.KeyInfo,
+			}}
+		}
+	}
+
+	if ki.Ctrl || ki.Alt || ki.Space {
+		ki.KeySequence += " " + key.String()
 	} else {
-		ki.KeySequence += key
+		ki.KeySequence += key.String()
 	}
 
 	// reset keybinds if we exceed the max length of sequences found in
@@ -154,7 +179,7 @@ func (ki *Input) HandleSequences(key string) []message.StatusBarMsg {
 
 	keyInfoMsg := message.StatusBarMsg{Content: "", Column: sbc.KeyInfo}
 	if ki.Mode != mode.Command && !ki.isBinding(ki.KeySequence) {
-		mod, isModifier := ki.isModifier(key)
+		mod, isModifier := ki.isModifier(key.String())
 
 		if slices.Contains(ki.sequenceKeys, ki.KeySequence) || isModifier {
 			switch mod {
@@ -297,8 +322,23 @@ func (ki *Input) anyComponentFocused(components []FocusedComponent) bool {
 
 // ResetKeysDown resets the modifier state flags and
 // clears the current key sequence.
-func (ki *Input) ResetKeysDown() {
+func (ki *Input) ResetKeysDown() message.StatusBarMsg {
+	ki.Space = false
 	ki.Ctrl = false
 	ki.Alt = false
 	ki.KeySequence = ""
+
+	return message.StatusBarMsg{
+		Content: "",
+		Column:  sbc.KeyInfo,
+	}
+}
+
+// ResetSequence resets the key sequence after the given delay.
+// Simulates Vim's `timeoutlen`
+func (ki *Input) ResetSequence() tea.Cmd {
+	return func() tea.Msg {
+		time.Sleep(ki.sequenceTimeOut * time.Millisecond)
+		return ResetSequenceMsg{}
+	}
 }

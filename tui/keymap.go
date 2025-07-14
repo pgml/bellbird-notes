@@ -626,7 +626,7 @@ func (m *Model) KeyInputFn() []ki.KeyFn {
 			}},
 		},
 		{
-			Bindings: ki.KeyBindings("ctrl+e"),
+			Bindings: ki.KeyBindings("space e"),
 			Cond: []keyCond{{
 				Mode:       mode.Normal,
 				Components: []c{m.dirTree, m.notesList, m.editor},

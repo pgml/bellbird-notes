@@ -78,7 +78,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		statusMsg := m.keyInput.HandleSequences(msg.String())
+		statusMsg := m.keyInput.HandleSequences(msg.Key())
+
+		// If space is pressed, reset it after a certain delay
+		if msg.Key().Code == 32 {
+			cmds = append(cmds, m.keyInput.ResetSequence())
+		}
 
 		if msg.String() == "ctrl+c" {
 			statusMsg = []message.StatusBarMsg{{
@@ -113,6 +118,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.editor.Size, _ = msg.Size(m.editor.ID)
 		m.bufferList.Size, _ = msg.Size(m.bufferList.ID)
 		m.statusBar.Size, _ = msg.Size(m.statusBar.ID)
+
+	case keyinput.ResetSequenceMsg:
+		m.statusBar = m.statusBar.Update(
+			[]message.StatusBarMsg{m.keyInput.ResetKeysDown()},
+			msg,
+		)
 	}
 
 	m.keyInput.Mode = m.mode.Current
@@ -122,7 +133,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, tea.Quit
 	}
 
-	cmds = m.updateComponents(msg)
+	cmds = append(cmds, m.updateComponents(msg)...)
 	m.updateStatusBar()
 
 	return m, tea.Batch(cmds...)
