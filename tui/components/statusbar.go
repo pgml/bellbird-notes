@@ -56,6 +56,7 @@ func NewStatusBar() *StatusBar {
 	ti := textinput.New()
 	ti.Prompt = ":"
 	ti.CharLimit = 100
+	ti.VirtualCursor = true
 
 	statusBar := &StatusBar{
 		Prompt: ti,
