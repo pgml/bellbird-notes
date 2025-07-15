@@ -490,17 +490,18 @@ func (e *Editor) SetFocus(focus bool) {
 }
 
 func (e *Editor) breadcrumb() string {
-	noteName := filepath.Base(e.CurrentBuffer.path)
+	noteName := e.CurrentBuffer.Name()
 	pathSeparator := string(os.PathSeparator)
+	breadcrumbSeparator := " › "
 
-	relPath := utils.RelativePath(e.CurrentBuffer.path, false)
-	relPath = strings.ReplaceAll(relPath, pathSeparator, " › ")
-	breadcrumb := strings.ReplaceAll(relPath, noteName, "")
+	p := filepath.Dir(e.CurrentBuffer.Path(false))
+	relPath := utils.RelativePath(p, false)
+	breadcrumb := strings.ReplaceAll(relPath, pathSeparator, breadcrumbSeparator)
 
 	iconDir := theme.Icon(theme.IconDirClosed, e.conf.NerdFonts())
 	iconNote := theme.Icon(theme.IconNote, e.conf.NerdFonts())
 
-	return iconDir + breadcrumb + iconNote + " " + noteName
+	return iconDir + breadcrumb + breadcrumbSeparator + iconNote + " " + noteName
 }
 
 // bufferExists returns whether a buffer is in memory
