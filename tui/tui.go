@@ -33,6 +33,7 @@ type Model struct {
 	editor     *components.Editor
 	bufferList *components.BufferList
 	statusBar  *components.StatusBar
+	Buffers    components.Buffers
 	conf       *config.Config
 }
 
@@ -56,6 +57,7 @@ func InitialModel() *Model {
 		editor:       components.NewEditor(conf),
 		bufferList:   components.NewBufferList(conf),
 		statusBar:    components.NewStatusBar(),
+		Buffers:      make([]components.Buffer, 0),
 		conf:         conf,
 	}
 
@@ -73,7 +75,7 @@ func (m Model) Init() tea.Cmd {
 	return tea.Batch(editorCmd, statusBarCmd)
 }
 
-func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 
 	switch msg := msg.(type) {
@@ -178,8 +180,14 @@ func (m *Model) componentsInit() {
 	statusBarHeight := m.statusBar.Height + reserverdLines
 
 	m.dirTree.ID = m.layout.Add("width 30")
+
 	m.notesList.ID = m.layout.Add("width 30")
+	m.notesList.SetBuffers(&m.Buffers)
+
 	m.editor.ID = m.layout.Add("grow")
+	m.editor.SetBuffers(&m.Buffers)
+
+	m.bufferList.SetBuffers(&m.Buffers)
 
 	m.statusBar.ID = m.layout.Dock(bl.Dock{
 		Cardinal:  bl.SOUTH,
@@ -203,7 +211,7 @@ func (m *Model) updateComponents(msg tea.Msg) []tea.Cmd {
 	}
 
 	// focus notes list if not buffer is open
-	if m.editor.Ready && len(m.editor.Buffers) == 0 {
+	if m.editor.Ready && len(m.Buffers) == 0 {
 		m.focusColumn(2)
 	}
 
@@ -240,7 +248,7 @@ func (m *Model) updateComponents(msg tea.Msg) []tea.Cmd {
 	}
 
 	// let the buffer list know if anything changes
-	if len(m.bufferList.Items()) != len(m.editor.Buffers) {
+	if m.bufferList.NeedsUpdate() {
 		cmds = append(cmds, m.editor.SendBuffersChangedMsg())
 	}
 

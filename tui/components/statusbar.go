@@ -224,7 +224,7 @@ func (s *StatusBar) ConfirmAction(
 	case "config":
 		statusMsg = e.OpenConfig()
 	case "bd":
-		e.DeleteBuffer()
+		e.DeleteCurrentBuffer()
 	case "%bd": // temporary
 		e.DeleteAllBuffers()
 	case "buffers":

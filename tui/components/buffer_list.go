@@ -75,6 +75,8 @@ type BufferList struct {
 
 	Width  int
 	Height int
+
+	Buffers *Buffers
 }
 
 func NewBufferList(conf *config.Config) *BufferList {
@@ -100,14 +102,9 @@ func (l *BufferList) Init() tea.Cmd {
 func (l *BufferList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 
-	switch msg := msg.(type) {
+	switch msg.(type) {
 	case BuffersChangedMsg:
-		buffers := *msg.Buffers
-		l.items = make([]BufferListItem, 0, len(buffers))
-
-		for i, buf := range buffers {
-			l.items = append(l.items, l.createListItem(buf, i))
-		}
+		l.buildItems()
 	}
 
 	if l.focused {
@@ -122,6 +119,15 @@ func (l *BufferList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	return l, cmd
+}
+
+func (l *BufferList) buildItems() {
+	buffers := *l.Buffers
+	l.items = make([]BufferListItem, 0, len(buffers))
+
+	for i, buf := range buffers {
+		l.items = append(l.items, l.createListItem(buf, i))
+	}
 }
 
 func (l *BufferList) View() string {
@@ -141,6 +147,10 @@ func (l *BufferList) View() string {
 	view.WriteString(l.viewport.View())
 
 	return view.String()
+}
+
+func (l *BufferList) SetBuffers(b *Buffers) {
+	l.Buffers = b
 }
 
 func (l *BufferList) RefreshSize() {
@@ -207,4 +217,28 @@ func (l *BufferList) CancelAction(cb func()) message.StatusBarMsg {
 	l.SetSelectedIndex(0)
 
 	return message.StatusBarMsg{}
+}
+
+func (l *BufferList) NeedsUpdate() bool {
+	if len(l.items) != len(*l.Buffers) {
+		l.buildItems()
+		return true
+	}
+
+	found := 0
+
+	for _, buf := range *l.Buffers {
+		for _, item := range l.items {
+			if buf.path == item.path {
+				found++
+			}
+		}
+	}
+
+	if found != len(l.items) {
+		l.buildItems()
+		return true
+	}
+
+	return false
 }

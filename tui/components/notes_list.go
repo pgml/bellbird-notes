@@ -37,6 +37,7 @@ type NotesList struct {
 
 	// Contains dirty buffers of the current notes list
 	DirtyBuffers []Buffer
+	Buffers      *Buffers
 }
 
 type PinnedNotes struct {
@@ -275,6 +276,10 @@ func (l *NotesList) BuildHeader(width int, rebuild bool) string {
 	return header
 }
 
+func (l *NotesList) SetBuffers(b *Buffers) {
+	l.Buffers = b
+}
+
 // Refresh updates the notes list
 //
 // If `resetIndex` is set to true, 'l.selectedIndex' will be set to 0
@@ -492,21 +497,24 @@ func (l *NotesList) Remove() message.StatusBarMsg {
 }
 
 // ConfirmAction confirms a user action
-func (l *NotesList) ConfirmAction() (string, message.StatusBarMsg) {
+func (l *NotesList) ConfirmAction() message.StatusBarMsg {
 	// if editingindex is set it most likely means that we are
 	// renaming or creating a directory
 	if l.editIndex != nil {
 		selectedNote := l.SelectedItem(nil)
 		ext := notes.Ext
+
 		if selectedNote != nil {
 			ext = filepath.Ext(selectedNote.path)
 		}
+
+		oldPath := ""
 		newPath := filepath.Join(l.CurrentPath, l.input.Value()+ext)
 		resultMsg := ""
 
 		switch l.EditState {
 		case EditStates.Rename:
-			oldPath := selectedNote.path
+			oldPath = selectedNote.path
 
 			if err := notes.Rename(oldPath, newPath); err == nil {
 				selectedNote.name = filepath.Base(newPath)
@@ -518,6 +526,12 @@ func (l *NotesList) ConfirmAction() (string, message.StatusBarMsg) {
 
 					if err != nil {
 						debug.LogErr(err)
+					}
+
+					// Update Buffers so that all other components know
+					// what's going on
+					if buf, ok, _ := l.Buffers.Contains(oldPath); ok {
+						buf.path = newPath
 					}
 
 					l.Refresh(false, true)
@@ -542,14 +556,14 @@ func (l *NotesList) ConfirmAction() (string, message.StatusBarMsg) {
 			l.Refresh(false, false)
 		})
 
-		return newPath, message.StatusBarMsg{
+		return message.StatusBarMsg{
 			Content: resultMsg,
 			Sender:  message.SenderNotesList,
 			Column:  sbc.General,
 		}
 	}
 
-	return "", message.StatusBarMsg{Sender: message.SenderNotesList}
+	return message.StatusBarMsg{Sender: message.SenderNotesList}
 }
 
 // TogglePinned pins or unpins the current selection

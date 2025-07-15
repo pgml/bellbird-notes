@@ -4,7 +4,6 @@ import (
 	"strconv"
 
 	"bellbird-notes/app/config"
-	"bellbird-notes/app/debug"
 	"bellbird-notes/app/utils"
 	"bellbird-notes/tui/components"
 	"bellbird-notes/tui/components/textarea"
@@ -654,7 +653,7 @@ func (m *Model) KeyInputFn() []ki.KeyFn {
 			Cond: []keyCond{{
 				Mode:       mode.Normal,
 				Components: []c{m.dirTree, m.notesList, m.editor},
-				Action:     m.editor.DeleteBuffer,
+				Action:     m.editor.DeleteCurrentBuffer,
 			}},
 		},
 	}
@@ -760,7 +759,8 @@ func (m *Model) unfocusAllComponents() message.StatusBarMsg {
 	m.notesList.BuildHeader(m.notesList.Size.Width, true)
 
 	m.editor.SetFocus(false)
-	m.editor.BuildHeader(m.notesList.Size.Width, true)
+	m.editor.BuildHeader(m.editor.Size.Width, true)
+
 	m.statusBar.Focused = false
 
 	return message.StatusBarMsg{}
@@ -892,11 +892,12 @@ func (m *Model) confirmAction() message.StatusBarMsg {
 		!m.editor.Focused() {
 
 		editState := m.notesList.EditState
-		if n, msg := f.ConfirmAction(); n != "" {
-			if editState == components.EditStates.Rename {
-				debug.LogDebug(n)
-			}
-			statusMsg = msg
+		statusMsg = f.ConfirmAction()
+
+		// Update the editor in case we're renaming the currently open buffer
+		if editState == components.EditStates.Rename {
+			m.editor.BuildHeader(m.editor.Size.Width, true)
+			m.editor.UpdateMetaInfo()
 		}
 	} else {
 		// only open stuff if we're in normal mode

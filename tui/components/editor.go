@@ -116,15 +116,27 @@ func (b *Buffer) redo() (string, textarea.CursorPos) {
 }
 
 type BuffersChangedMsg struct {
-	Buffers *[]Buffer
+	Buffers *Buffers
 }
 
 func (e *Editor) SendBuffersChangedMsg() tea.Cmd {
 	return func() tea.Msg {
 		return BuffersChangedMsg{
-			Buffers: &e.Buffers,
+			Buffers: e.Buffers,
 		}
 	}
+}
+
+type Buffers []Buffer
+
+// Contains returns whether a buffer is in memory
+func (b Buffers) Contains(path string) (*Buffer, bool, int) {
+	for i := range b {
+		if b[i].path == path {
+			return &b[i], true, i
+		}
+	}
+	return nil, false, 0
 }
 
 type Input struct {
@@ -142,7 +154,7 @@ type Editor struct {
 	Component
 
 	// Buffers holds all the open buffers
-	Buffers []Buffer
+	Buffers *Buffers
 
 	// CurrentBuffer is the currently active buffer
 	CurrentBuffer *Buffer
@@ -203,7 +215,6 @@ func NewEditor(conf *config.Config) *Editor {
 		CanInsert:          false,
 		Textarea:           ta,
 		Component:          Component{},
-		Buffers:            []Buffer{},
 		CurrentBuffer:      &Buffer{},
 		isAtLineEnd:        false,
 		isAtLineStart:      false,
@@ -293,6 +304,10 @@ func (e *Editor) RefreshSize() {
 	e.setTextareaSize()
 }
 
+func (e *Editor) SetBuffers(b *Buffers) {
+	e.Buffers = b
+}
+
 // NewBuffer creates a new buffer, sets the textareas content
 // and creates a new history for the buffer
 func (e *Editor) NewBuffer(path string) message.StatusBarMsg {
@@ -307,7 +322,7 @@ func (e *Editor) NewBuffer(path string) message.StatusBarMsg {
 	cursorPos := e.cursorPosFromConf(path)
 
 	buf := Buffer{
-		Index:             len(e.Buffers) + 1,
+		Index:             len(*e.Buffers) + 1,
 		path:              path,
 		Content:           noteContent,
 		History:           textarea.NewHistory(),
@@ -316,8 +331,9 @@ func (e *Editor) NewBuffer(path string) message.StatusBarMsg {
 		CursorPos:         cursorPos,
 	}
 
-	e.Buffers = append(e.Buffers, buf)
-	e.CurrentBuffer = &e.Buffers[len(e.Buffers)-1]
+	*e.Buffers = append(*e.Buffers, buf)
+	buffers := *e.Buffers
+	e.CurrentBuffer = &buffers[len(buffers)-1]
 
 	content := ""
 	if e.CurrentBuffer.path == path {
@@ -338,7 +354,7 @@ func (e *Editor) NewBuffer(path string) message.StatusBarMsg {
 	e.Textarea.RepositionView()
 
 	e.saveLineLength()
-	e.updateMetaInfo()
+	e.UpdateMetaInfo()
 
 	return message.StatusBarMsg{}
 }
@@ -354,9 +370,9 @@ func (e *Editor) OpenBuffer(path string) message.StatusBarMsg {
 		Column:  sbc.FileInfo,
 	}
 
-	buf, exists, _ := e.bufferExists(path)
+	buf, exists, _ := e.Buffers.Contains(path)
 	// create new buffer if we can't find anything
-	if len(e.Buffers) <= 0 || !exists {
+	if len(*e.Buffers) <= 0 || !exists {
 		e.NewBuffer(path)
 		return statusMsg
 	}
@@ -372,7 +388,7 @@ func (e *Editor) OpenBuffer(path string) message.StatusBarMsg {
 	e.Textarea.RepositionView()
 
 	e.saveLineLength()
-	e.updateMetaInfo()
+	e.UpdateMetaInfo()
 
 	return statusMsg
 }
@@ -409,15 +425,20 @@ func (e *Editor) SaveBuffer() message.StatusBarMsg {
 	return statusMsg
 }
 
+func (e *Editor) DeleteCurrentBuffer() message.StatusBarMsg {
+	return e.DeleteBuffer(e.CurrentBuffer.path)
+}
+
 // DeleteBuffer closes the currently active buffer or resets the editor if
 // none is available
-func (e *Editor) DeleteBuffer() message.StatusBarMsg {
-	if _, ok, index := e.bufferExists(e.CurrentBuffer.path); ok {
-		e.Buffers = slices.Delete(e.Buffers, index, index+1)
+func (e *Editor) DeleteBuffer(path string) message.StatusBarMsg {
+	if _, ok, index := e.Buffers.Contains(path); ok {
+		*e.Buffers = slices.Delete(*e.Buffers, index, index+1)
 	}
 
-	if len(e.Buffers) > 0 {
-		lastBuf := e.Buffers[len(e.Buffers)-1]
+	buffers := *e.Buffers
+	if len(buffers) > 0 {
+		lastBuf := buffers[len(buffers)-1]
 		e.OpenBuffer(lastBuf.path)
 	} else {
 		e.reset()
@@ -432,16 +453,17 @@ func (e *Editor) DeleteAllBuffers() message.StatusBarMsg {
 }
 
 // DirtyBuffers collects all the dirty, dirty buffers
-func (e *Editor) DirtyBuffers() []Buffer {
-	bufs := make([]Buffer, 0)
+func (e *Editor) DirtyBuffers() Buffers {
+	dirty := make(Buffers, 0)
+	buffers := *e.Buffers
 
-	for i := range e.Buffers {
-		if e.Buffers[i].Dirty {
-			bufs = append(bufs, e.Buffers[i])
+	for i := range buffers {
+		if buffers[i].Dirty {
+			dirty = append(dirty, buffers[i])
 		}
 	}
 
-	return bufs
+	return dirty
 }
 
 // BuildHeader builds title of the editor column
@@ -504,22 +526,12 @@ func (e *Editor) breadcrumb() string {
 	return iconDir + breadcrumb + breadcrumbSeparator + iconNote + " " + noteName
 }
 
-// bufferExists returns whether a buffer is in memory
-func (e *Editor) bufferExists(path string) (*Buffer, bool, int) {
-	for i := range e.Buffers {
-		if e.Buffers[i].path == path {
-			return &e.Buffers[i], true, i
-		}
-	}
-	return nil, false, 0
-}
-
 // reset puts the editor to default by clearing the textarea, resetting the
 // meta value for current note and deleting the current buffer
 func (e *Editor) reset() {
 	e.Textarea.SetValue("")
 	e.conf.SetMetaValue("", config.LastOpenNote, "")
-	e.Buffers = []Buffer{}
+	e.Buffers = &Buffers{}
 	e.CurrentBuffer = &Buffer{}
 }
 
@@ -1297,12 +1309,12 @@ func (e *Editor) saveCursorPosToConf() {
 	)
 }
 
-// updateMetaInfo records the current state of the editor by updating
+// UpdateMetaInfo records the current state of the editor by updating
 // metadata values for recently opened notes and the currently opened note.
-func (e *Editor) updateMetaInfo() {
-	notePaths := make([]string, 0, len(e.Buffers))
+func (e *Editor) UpdateMetaInfo() {
+	notePaths := make([]string, 0, len(*e.Buffers))
 
-	for _, buf := range e.Buffers {
+	for _, buf := range *e.Buffers {
 		notePaths = append(notePaths, buf.Path(true))
 	}
 

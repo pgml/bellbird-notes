@@ -854,7 +854,7 @@ func (t *DirectoryTree) Remove() message.StatusBarMsg {
 }
 
 // ConfirmAction confirms a user action
-func (t *DirectoryTree) ConfirmAction() (string, message.StatusBarMsg) {
+func (t *DirectoryTree) ConfirmAction() message.StatusBarMsg {
 	// if editingindex is set it most likely means that we are
 	// renaming or creating a directory
 	if t.editIndex != nil {
@@ -887,10 +887,10 @@ func (t *DirectoryTree) ConfirmAction() (string, message.StatusBarMsg) {
 			t.Refresh(false, false)
 		})
 
-		return "", message.StatusBarMsg{Content: "yep"}
+		return message.StatusBarMsg{Content: "yep"}
 	}
 
-	return "", message.StatusBarMsg{}
+	return message.StatusBarMsg{}
 }
 
 // ContentInfo returns the info about the currently selected directory

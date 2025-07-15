@@ -11,7 +11,7 @@ type Focusable interface {
 	GoToBottom() message.StatusBarMsg
 	TogglePinned() message.StatusBarMsg
 	ConfirmRemove() message.StatusBarMsg
-	ConfirmAction() (string, message.StatusBarMsg)
+	ConfirmAction() message.StatusBarMsg
 	CancelAction(cb func()) message.StatusBarMsg
 	Refresh(resetSelectedIndex bool, resetPinned bool) message.StatusBarMsg
 	Remove() message.StatusBarMsg

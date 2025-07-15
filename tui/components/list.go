@@ -206,8 +206,8 @@ func (l *List[T]) Rename(origName string) message.StatusBarMsg {
 	return message.StatusBarMsg{}
 }
 
-func (l *BufferList) ConfirmAction() (string, message.StatusBarMsg) {
-	return "", message.StatusBarMsg{}
+func (l *BufferList) ConfirmAction() message.StatusBarMsg {
+	return message.StatusBarMsg{}
 }
 
 // CancelAction cancels the current action and blurs the editor
