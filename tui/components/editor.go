@@ -2,6 +2,7 @@ package components
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
 	"slices"
@@ -67,8 +68,8 @@ type Buffer struct {
 	// CursorPos is the position of the cursor
 	CursorPos textarea.CursorPos
 
-	// Path is the path of the buffer
-	Path    string
+	// path is the path of the buffer
+	path    string
 	Content string
 
 	// History is the input history of the buffer per session
@@ -85,10 +86,25 @@ type Buffer struct {
 	header *string
 }
 
+// Name returns the name of the buffer without its suffix.
 func (b *Buffer) Name() string {
-	name := filepath.Base(b.Path)
+	name := filepath.Base(b.Path(false))
 	name = strings.TrimSuffix(name, filepath.Ext(name))
 	return name
+}
+
+// Path returns the path of the buffer.
+// If encoded is true it returns a url path save for writing to a config file.
+func (b *Buffer) Path(encoded bool) string {
+	if encoded {
+		p := &url.URL{
+			Scheme: "file",
+			Path:   filepath.ToSlash(b.path),
+		}
+		return p.String()
+	}
+
+	return b.path
 }
 
 func (b *Buffer) undo() (string, textarea.CursorPos) {
@@ -292,7 +308,7 @@ func (e *Editor) NewBuffer(path string) message.StatusBarMsg {
 
 	buf := Buffer{
 		Index:             len(e.Buffers) + 1,
-		Path:              path,
+		path:              path,
 		Content:           noteContent,
 		History:           textarea.NewHistory(),
 		CurrentLine:       0,
@@ -304,7 +320,7 @@ func (e *Editor) NewBuffer(path string) message.StatusBarMsg {
 	e.CurrentBuffer = &e.Buffers[len(e.Buffers)-1]
 
 	content := ""
-	if e.CurrentBuffer.Path == path {
+	if e.CurrentBuffer.path == path {
 		content = e.CurrentBuffer.Content
 	}
 
@@ -322,7 +338,7 @@ func (e *Editor) NewBuffer(path string) message.StatusBarMsg {
 	e.Textarea.RepositionView()
 
 	e.saveLineLength()
-	e.conf.SetMetaValue("", config.CurrentNote, path)
+	e.updateMetaInfo()
 
 	return message.StatusBarMsg{}
 }
@@ -354,9 +370,9 @@ func (e *Editor) OpenBuffer(path string) message.StatusBarMsg {
 		buf.CursorPos.ColumnOffset,
 	)
 	e.Textarea.RepositionView()
-	e.saveLineLength()
 
-	e.conf.SetMetaValue("", config.CurrentNote, path)
+	e.saveLineLength()
+	e.updateMetaInfo()
 
 	return statusMsg
 }
@@ -370,7 +386,7 @@ func (e *Editor) SaveBuffer() message.StatusBarMsg {
 	}
 
 	rootDir, _ := app.NotesRootDir()
-	path := e.CurrentBuffer.Path
+	path := e.CurrentBuffer.path
 	relativePath := strings.ReplaceAll(path, rootDir+"/", "")
 	bufContent := e.Textarea.Value()
 	bytes, err := notes.Write(path, bufContent)
@@ -396,13 +412,13 @@ func (e *Editor) SaveBuffer() message.StatusBarMsg {
 // DeleteBuffer closes the currently active buffer or resets the editor if
 // none is available
 func (e *Editor) DeleteBuffer() message.StatusBarMsg {
-	if _, ok, index := e.bufferExists(e.CurrentBuffer.Path); ok {
+	if _, ok, index := e.bufferExists(e.CurrentBuffer.path); ok {
 		e.Buffers = slices.Delete(e.Buffers, index, index+1)
 	}
 
 	if len(e.Buffers) > 0 {
 		lastBuf := e.Buffers[len(e.Buffers)-1]
-		e.OpenBuffer(lastBuf.Path)
+		e.OpenBuffer(lastBuf.path)
 	} else {
 		e.reset()
 	}
@@ -438,7 +454,7 @@ func (e *Editor) BuildHeader(width int, rebuild bool) string {
 	}
 
 	title := "EDITOR"
-	if e.CurrentBuffer.Path != "" {
+	if e.CurrentBuffer.path != "" {
 		title = e.breadcrumb()
 	}
 
@@ -447,10 +463,18 @@ func (e *Editor) BuildHeader(width int, rebuild bool) string {
 	return header
 }
 
-func (e *Editor) OpenLastNote() {
-	note, err := e.conf.MetaValue("", config.CurrentNote)
-	if err == nil && note != "" {
-		e.OpenBuffer(note)
+func (e *Editor) OpenLastNotes() {
+	lastNotes, lastNotesErr := e.conf.MetaValue("", config.LastNotes)
+	lastNote, err := e.conf.MetaValue("", config.LastOpenNote)
+
+	if lastNotesErr == nil && lastNotes != "" {
+		for n := range strings.SplitSeq(lastNotes, ",") {
+			e.OpenBuffer(utils.PathFromUrl(n))
+		}
+	}
+
+	if err == nil && lastNote != "" {
+		e.OpenBuffer(utils.PathFromUrl(lastNote))
 	}
 }
 
@@ -466,10 +490,10 @@ func (e *Editor) SetFocus(focus bool) {
 }
 
 func (e *Editor) breadcrumb() string {
-	noteName := filepath.Base(e.CurrentBuffer.Path)
+	noteName := filepath.Base(e.CurrentBuffer.path)
 	pathSeparator := string(os.PathSeparator)
 
-	relPath := utils.RelativePath(e.CurrentBuffer.Path, false)
+	relPath := utils.RelativePath(e.CurrentBuffer.path, false)
 	relPath = strings.ReplaceAll(relPath, pathSeparator, " › ")
 	breadcrumb := strings.ReplaceAll(relPath, noteName, "")
 
@@ -482,7 +506,7 @@ func (e *Editor) breadcrumb() string {
 // bufferExists returns whether a buffer is in memory
 func (e *Editor) bufferExists(path string) (*Buffer, bool, int) {
 	for i := range e.Buffers {
-		if e.Buffers[i].Path == path {
+		if e.Buffers[i].path == path {
 			return &e.Buffers[i], true, i
 		}
 	}
@@ -493,7 +517,7 @@ func (e *Editor) bufferExists(path string) (*Buffer, bool, int) {
 // meta value for current note and deleting the current buffer
 func (e *Editor) reset() {
 	e.Textarea.SetValue("")
-	e.conf.SetMetaValue("", config.CurrentNote, "")
+	e.conf.SetMetaValue("", config.LastOpenNote, "")
 	e.Buffers = []Buffer{}
 	e.CurrentBuffer = &Buffer{}
 }
@@ -1266,10 +1290,25 @@ func (e *Editor) saveCursorPosToConf() {
 	pos := e.Textarea.CursorPos()
 
 	e.conf.SetMetaValue(
-		e.CurrentBuffer.Path,
+		e.CurrentBuffer.path,
 		config.CursorPosition,
 		pos.String(),
 	)
+}
+
+// updateMetaInfo records the current state of the editor by updating
+// metadata values for recently opened notes and the currently opened note.
+func (e *Editor) updateMetaInfo() {
+	notePaths := make([]string, 0, len(e.Buffers))
+
+	for _, buf := range e.Buffers {
+		notePaths = append(notePaths, buf.Path(true))
+	}
+
+	noteStr := strings.Join(notePaths[:], ",")
+
+	e.conf.SetMetaValue("", config.LastNotes, noteStr)
+	e.conf.SetMetaValue("", config.LastOpenNote, e.CurrentBuffer.Path(true))
 }
 
 // LineNumbers returns whether line numbers are enabled in the config file

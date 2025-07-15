@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"net/url"
 	"os"
 	"path/filepath"
 	"slices"
@@ -8,6 +9,7 @@ import (
 	"strings"
 
 	"bellbird-notes/app"
+	"bellbird-notes/app/debug"
 
 	"github.com/charmbracelet/lipgloss/v2"
 )
@@ -79,4 +81,21 @@ func RelativePath(path string, trailingSlash bool) string {
 
 	relPath := strings.ReplaceAll(path, rootDir, "")
 	return filepath.FromSlash(relPath)
+}
+
+func PathFromUrl(path string) string {
+	u, err := url.Parse(path)
+
+	if err != nil {
+		debug.LogErr(u)
+	}
+
+	p, err := url.PathUnescape(u.Path)
+
+	if err != nil {
+		debug.LogErr(err)
+		return ""
+	}
+
+	return filepath.FromSlash(p)
 }

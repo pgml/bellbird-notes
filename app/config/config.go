@@ -41,10 +41,10 @@ type Option int
 
 const (
 	NotesDirectory Option = iota
+	LastNotes
+	LastOpenNote
 	CurrentDirectory
-	CurrentNote
 	CurrentComponent
-	OpenNotes
 	Visible
 	Width
 	CursorPosition
@@ -57,10 +57,10 @@ const (
 // Map of Option enum values to their string names as used in the ini file
 var options = map[Option]string{
 	NotesDirectory:   "NotesDirectory",
+	LastNotes:        "LastNotes",
+	LastOpenNote:     "LastOpenNote",
 	CurrentDirectory: "CurrentDirectory",
-	CurrentNote:      "CurrentNote",
 	CurrentComponent: "CurrentComponent",
-	OpenNotes:        "OpenNotes",
 	Visible:          "Visible",
 	Width:            "Width",
 	CursorPosition:   "CursorPosition",
@@ -171,12 +171,12 @@ func (c *Config) SetDefaults() {
 		c.SetValue(General, NotesDirectory, notesRootDir)
 	}
 
-	if n, err := c.MetaValue("", OpenNotes); err == nil && n == "" {
-		c.SetMetaValue("", OpenNotes, "")
+	if n, err := c.MetaValue("", LastNotes); err == nil && n == "" {
+		c.SetMetaValue("", LastNotes, "")
 	}
 
-	if n, err := c.MetaValue("", CurrentNote); err == nil && n == "" {
-		c.SetMetaValue("", CurrentNote, "")
+	if n, err := c.MetaValue("", LastOpenNote); err == nil && n == "" {
+		c.SetMetaValue("", LastOpenNote, "")
 	}
 }
 

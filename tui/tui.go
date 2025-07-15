@@ -198,7 +198,7 @@ func (m *Model) updateComponents(msg tea.Msg) []tea.Cmd {
 	m.editor.RefreshSize()
 
 	if m.componentsReady() && !m.editor.LastOpenNoteLoaded {
-		m.editor.OpenLastNote()
+		m.editor.OpenLastNotes()
 		m.editor.LastOpenNoteLoaded = true
 	}
 
@@ -283,7 +283,7 @@ func (m *Model) restoreState() {
 	}
 
 	// focus notes list if there's not open note in meta conf but
-	currentNote, err := m.conf.MetaValue("", config.CurrentNote)
+	currentNote, err := m.conf.MetaValue("", config.LastOpenNote)
 	if err == nil && currentNote == "" {
 		colIndex = 2
 	}

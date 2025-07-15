@@ -186,7 +186,7 @@ func (l *BufferList) createListItem(buf Buffer, index int) BufferListItem {
 		Item: Item{
 			index:     index,
 			name:      buf.Name(),
-			path:      buf.Path,
+			path:      buf.Path(false),
 			selected:  index == l.selectedIndex,
 			styles:    NotesListStyle(),
 			nerdFonts: l.conf.NerdFonts(),

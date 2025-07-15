@@ -65,7 +65,7 @@ func (p PinnedNotes) contains(note NoteItem) bool {
 func (p *PinnedNotes) remove(note NoteItem) {
 	for i, n := range p.notes {
 		if n.Path() == note.Path() {
-			p.notes = append(p.notes[:i], p.notes[i+1:]...)
+			p.notes = slices.Delete(p.notes, i, i+1)
 			return
 		}
 	}
@@ -231,7 +231,7 @@ func (l NotesList) build() string {
 
 	dirtyMap := make(map[string]struct{}, len(l.DirtyBuffers))
 	for _, buf := range l.DirtyBuffers {
-		dirtyMap[buf.Path] = struct{}{}
+		dirtyMap[buf.path] = struct{}{}
 	}
 
 	for i, note := range l.items {

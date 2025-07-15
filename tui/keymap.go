@@ -677,7 +677,7 @@ func (m *Model) focusColumn(index int) message.StatusBarMsg {
 	m.keyInput.FetchKeyMap(true)
 
 	if index == 3 {
-		relPath := utils.RelativePath(m.editor.CurrentBuffer.Path, true)
+		relPath := utils.RelativePath(m.editor.CurrentBuffer.Path(false), true)
 		icon := theme.Icon(theme.IconNote, m.conf.NerdFonts())
 		return message.StatusBarMsg{
 			Content: icon + " " + relPath,
