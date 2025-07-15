@@ -492,7 +492,7 @@ func (l *NotesList) Remove() message.StatusBarMsg {
 }
 
 // ConfirmAction confirms a user action
-func (l *NotesList) ConfirmAction() message.StatusBarMsg {
+func (l *NotesList) ConfirmAction() (string, message.StatusBarMsg) {
 	// if editingindex is set it most likely means that we are
 	// renaming or creating a directory
 	if l.editIndex != nil {
@@ -542,14 +542,14 @@ func (l *NotesList) ConfirmAction() message.StatusBarMsg {
 			l.Refresh(false, false)
 		})
 
-		return message.StatusBarMsg{
+		return newPath, message.StatusBarMsg{
 			Content: resultMsg,
 			Sender:  message.SenderNotesList,
 			Column:  sbc.General,
 		}
 	}
 
-	return message.StatusBarMsg{Sender: message.SenderNotesList}
+	return "", message.StatusBarMsg{Sender: message.SenderNotesList}
 }
 
 // TogglePinned pins or unpins the current selection

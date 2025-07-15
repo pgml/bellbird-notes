@@ -4,6 +4,7 @@ import (
 	"strconv"
 
 	"bellbird-notes/app/config"
+	"bellbird-notes/app/debug"
 	"bellbird-notes/app/utils"
 	"bellbird-notes/tui/components"
 	"bellbird-notes/tui/components/textarea"
@@ -890,7 +891,13 @@ func (m *Model) confirmAction() message.StatusBarMsg {
 		!m.statusBar.Focused &&
 		!m.editor.Focused() {
 
-		statusMsg = f.ConfirmAction()
+		editState := m.notesList.EditState
+		if n, msg := f.ConfirmAction(); n != "" {
+			if editState == components.EditStates.Rename {
+				debug.LogDebug(n)
+			}
+			statusMsg = msg
+		}
 	} else {
 		// only open stuff if we're in normal mode
 		if m.mode.Current != mode.Normal {
