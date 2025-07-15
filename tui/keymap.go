@@ -488,7 +488,14 @@ func (m *Model) KeyInputFn() []ki.KeyFn {
 		},
 		{
 			Bindings: ki.KeyBindings("yy"),
-			Cond:     []keyCond{m.editorInputAction(n, m.editor.YankLine)},
+			Cond: []keyCond{
+				{
+					Mode:       n,
+					Components: []c{m.dirTree, m.notesList},
+					Action:     m.yankListItem,
+				},
+				m.editorInputAction(n, m.editor.YankLine),
+			},
 		},
 		{
 			Bindings: ki.KeyBindings("yiw"),
@@ -501,6 +508,11 @@ func (m *Model) KeyInputFn() []ki.KeyFn {
 		{
 			Bindings: ki.KeyBindings("p"),
 			Cond: []keyCond{
+				{
+					Mode:       n,
+					Components: []c{m.dirTree, m.notesList},
+					Action:     m.pasteListItem,
+				},
 				m.editorInputAction(n, m.editor.Paste),
 				//m.editorInputAction(v, m.editor.DeleteRune),
 			},
@@ -952,6 +964,23 @@ func (m *Model) cancelAction() message.StatusBarMsg {
 		Content: "",
 		Column:  sbc.General,
 	}
+}
+
+func (m *Model) yankListItem() message.StatusBarMsg {
+	if f := m.focusedComponent(); f != nil {
+		f.YankSelection()
+	}
+
+	return message.StatusBarMsg{}
+}
+
+func (m *Model) pasteListItem() message.StatusBarMsg {
+	if f := m.focusedComponent(); f != nil {
+		dir := m.dirTree.SelectedDir().Path()
+		f.PasteSelection(dir)
+	}
+
+	return message.StatusBarMsg{}
 }
 
 func (m *Model) enterNormalMode() message.StatusBarMsg {

@@ -93,7 +93,7 @@ func (n NoteItem) Index() int { return n.index }
 // Path returns the index of a Note-Item
 func (n NoteItem) Path() string { return n.path }
 
-// Name returns the index of a Note-Item
+// Name returns the name of a Note-Item
 func (n NoteItem) Name() string { return n.name }
 
 // String is string representation of a Note
@@ -514,9 +514,13 @@ func (l *NotesList) ConfirmAction() message.StatusBarMsg {
 
 				if oldPath != newPath {
 					// update the meta file so we don't lose meta data
-					if err := l.conf.RenameMetaSection(oldPath, newPath); err == nil {
-						l.Refresh(false, true)
+					err := l.conf.RenameMetaSection(oldPath, newPath)
+
+					if err != nil {
+						debug.LogErr(err)
 					}
+
+					l.Refresh(false, true)
 				}
 			}
 
@@ -584,6 +588,8 @@ func (l *NotesList) TogglePinned() message.StatusBarMsg {
 	return message.StatusBarMsg{}
 }
 
+// NoteItemByPath returns the NoteItem with the given path from the NotesList.
+// If no such item exists, it returns an empty NoteItem and an error.
 func (l *NotesList) NoteItemByPath(path string) (NoteItem, error) {
 	for _, item := range l.items {
 		if item.path == path {
@@ -592,4 +598,58 @@ func (l *NotesList) NoteItemByPath(path string) (NoteItem, error) {
 	}
 
 	return NoteItem{}, errors.New("couldn't find NoteItem")
+}
+
+// YankSelection clears the yankedItems list and adds the currently selected item
+// from the NotesList to it. This simulates copying an item for later pasting.
+func (l *NotesList) YankSelection() {
+	sel := l.items[l.selectedIndex]
+	l.yankedItems = []*NoteItem{}
+	l.yankedItems = append(l.yankedItems, &sel)
+}
+
+// PasteSelection duplicates all yanked notes into the specified directory path.
+// It handles name conflicts by appending " Copy" to the note name until a unique
+// path is found. Returns an error if any note cannot be created.
+func (l *NotesList) PasteSelection(dirPath string) error {
+	for _, note := range l.yankedItems {
+		name := note.name
+		var newPath string
+
+		// Ensure we always have a valid path
+		for {
+			name = l.checkName(dirPath, name)
+			newPath = notes.CheckPath(dirPath + "/" + name)
+
+			if !notes.Exists(newPath) {
+				break
+			}
+		}
+
+		if err := notes.Copy(note.Path(), newPath); err == nil {
+			l.Refresh(true, true)
+
+			if note, err := l.NoteItemByPath(newPath); err == nil {
+				l.selectedIndex = note.index
+			}
+		} else {
+			debug.LogErr(err)
+			return err
+		}
+
+	}
+
+	return nil
+}
+
+// checkName ensures that the note name does not conflict with existing notes
+// in the specified directory. If a conflict exists, it appends " Copy" to the name.
+func (l *NotesList) checkName(dirPath string, noteName string) string {
+	newPath := notes.CheckPath(dirPath + "/" + noteName)
+
+	if notes.Exists(newPath) {
+		noteName += " Copy"
+	}
+
+	return noteName
 }

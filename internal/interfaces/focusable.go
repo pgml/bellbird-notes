@@ -15,4 +15,6 @@ type Focusable interface {
 	CancelAction(cb func()) message.StatusBarMsg
 	Refresh(resetSelectedIndex bool, resetPinned bool) message.StatusBarMsg
 	Remove() message.StatusBarMsg
+	YankSelection()
+	PasteSelection(dirPath string) error
 }

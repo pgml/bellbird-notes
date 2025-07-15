@@ -2,6 +2,7 @@ package notes
 
 import (
 	"errors"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -11,6 +12,12 @@ import (
 	"bellbird-notes/app/utils"
 	"bellbird-notes/tui/bb_errors"
 	"bellbird-notes/tui/message"
+)
+
+const (
+	Ext       = ".txt"
+	legacyExt = ".note"
+	confExt   = ".conf"
 )
 
 type Note struct {
@@ -40,12 +47,6 @@ func (n Note) NameWithExt() string {
 	name.WriteString(n.Ext())
 	return name.String()
 }
-
-const (
-	Ext       = ".txt"
-	legacyExt = ".note"
-	confExt   = ".conf"
-)
 
 func (n Note) Ext() string { return Ext }
 
@@ -105,7 +106,7 @@ func List(notePath string) ([]Note, error) {
 
 // Create creates a new note file at the specified path.
 func Create(path string) (Note, error) {
-	path = checkPath(path)
+	path = CheckPath(path)
 	note := Note{}
 
 	if Exists(path) {
@@ -122,7 +123,7 @@ func Create(path string) (Note, error) {
 
 // Write replaces the contents of a note at the given path with the provided string.
 func Write(path string, content string) (int, error) {
-	path = checkPath(path)
+	path = CheckPath(path)
 
 	if !Exists(path) {
 		return 0, errors.New(message.StatusBar.NoteExists)
@@ -147,7 +148,7 @@ func Write(path string, content string) (int, error) {
 
 // Rename changes the name or path of a note file.
 func Rename(oldPath string, newPath string) error {
-	newPath = checkPath(newPath)
+	newPath = CheckPath(newPath)
 
 	if err := os.Rename(oldPath, newPath); err != nil {
 		debug.LogErr(err)
@@ -158,7 +159,7 @@ func Rename(oldPath string, newPath string) error {
 
 // Delete removes the specified note file.
 func Delete(path string) error {
-	path = checkPath(path)
+	path = CheckPath(path)
 
 	if _, err := os.Stat(path); err != nil {
 		debug.LogErr(err)
@@ -181,14 +182,38 @@ func Exists(path string) bool {
 	return true
 }
 
+func Copy(oldPath, newPath string) error {
+	r, err := os.Open(oldPath)
+	if err != nil {
+		return err
+	}
+	defer r.Close() // ignore error: file was opened read-only.
+
+	w, err := os.Create(newPath)
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		// Report the error, if any, from Close, but do so
+		// only if there isn't already an outgoing error.
+		if c := w.Close(); err == nil {
+			err = c
+		}
+	}()
+
+	_, err = io.Copy(w, r)
+	return err
+}
+
 // isHidden returns true if the file or directory is hidden
 func isHidden(path string) bool {
 	return path[0] == 46
 }
 
-// checkPath ensures that the path ends with a valid extension.
+// CheckPath ensures that the path ends with a valid extension.
 // If not, it appends the default extension.
-func checkPath(path string) string {
+func CheckPath(path string) string {
 	if strings.HasSuffix(path, Ext) ||
 		strings.HasSuffix(path, legacyExt) ||
 		strings.HasSuffix(path, confExt) {

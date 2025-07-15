@@ -55,6 +55,8 @@ type List[T ListItem] struct {
 	// Stores the list items
 	items []T
 
+	yankedItems []*T
+
 	// We set the length manually because len(items) won't be possible
 	// for the directories since the multidimensial []items
 	// doesn't reflect the actual displayed list items when T is Dir
@@ -221,6 +223,12 @@ func (l *List[T]) resetEditor() {
 		l.EditState = EditStates.None
 		l.input.Blur()
 	}
+}
+
+func (l *List[T]) YankSelection() {}
+
+func (l *List[T]) PasteSelection(dirPath string) error {
+	return nil
 }
 
 func (l *List[T]) SelectedIndex() int {
