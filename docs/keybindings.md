@@ -27,16 +27,18 @@
 
 ## Notes
 
-| Key        | Action            | Info                      |
-| ---------- | ----------------- | ------------------------- |
-| `j`        | Note down         |                           |
-| `k`        | Note up           |                           |
-| `%` or `n` | Create new note   |                           |
-| `D`        | Delete Note       | Deletes the selected note |
-| `R`        | Rename folder     |                           |
-| `gg`       | Go to top         |                           |
-| `G`        | Go to bottom      |                           |
-| `P`        | Pin/Unpin Note    |                           |
+| Key        | Action             | Info                      |
+| ---------- | ------------------ | ------------------------- |
+| `j`        | Note down          |                           |
+| `k`        | Note up            |                           |
+| `%` or `n` | Create new note    |                           |
+| `D`        | Delete Note        | Deletes the selected note |
+| `R`        | Rename folder      |                           |
+| `gg`       | Go to top          |                           |
+| `G`        | Go to bottom       |                           |
+| `P`        | Pin/Unpin Note     |                           |
+| `yy`       | Yank note          | Yanks selected note       |
+| `p`        | Paste note         | pastes the yanked note into the current directory |
 
 
 ## Editor
