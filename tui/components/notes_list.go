@@ -37,7 +37,9 @@ type NotesList struct {
 
 	// Contains dirty buffers of the current notes list
 	DirtyBuffers []Buffer
-	Buffers      *Buffers
+
+	// Buffers holds all the open buffers
+	Buffers *Buffers
 }
 
 type PinnedNotes struct {
@@ -85,6 +87,7 @@ func (p *PinnedNotes) toggle(note NoteItem) {
 type NoteItem struct {
 	Item
 	isPinned bool
+	isCut    bool
 	IsDirty  bool
 }
 
@@ -99,28 +102,32 @@ func (n NoteItem) Name() string { return n.name }
 
 // String is string representation of a Note
 func (n NoteItem) String() string {
-	base := n.styles.base
-	icn := n.styles.icon
+	baseStyle := n.styles.base
+	iconStyle := n.styles.icon
 	name := utils.TruncateText(n.Name(), 24)
 
 	if n.selected {
-		base = n.styles.selected
-		icn = n.styles.iconSelected
+		baseStyle = n.styles.selected
+		iconStyle = n.styles.iconSelected
 	}
 
 	var icon strings.Builder
 	icon.WriteByte(' ')
 
 	if n.IsDirty {
-		icn = icn.Foreground(theme.ColourDirty)
+		iconStyle = iconStyle.Foreground(theme.ColourDirty)
 		icon.WriteString(theme.Icon(theme.IconDot, n.nerdFonts))
+	} else if n.isCut {
+		baseStyle = baseStyle.Foreground(theme.ColourBorder)
+		iconStyle = iconStyle.Foreground(theme.ColourBorder)
+		icon.WriteString(theme.Icon(theme.IconNote, n.nerdFonts))
 	} else if n.isPinned {
 		icon.WriteString(theme.Icon(theme.IconPin, n.nerdFonts))
 	} else {
 		icon.WriteString(theme.Icon(theme.IconNote, n.nerdFonts))
 	}
 
-	return icn.Render(icon.String()) + base.Render(name)
+	return iconStyle.Render(icon.String()) + baseStyle.Render(name)
 }
 
 // Init initialises the Model on program load.
@@ -334,6 +341,9 @@ func (l *NotesList) Refresh(
 	for i, note := range notesList {
 		_, isPinned := pinnedMap[note.Path]
 		noteItem := l.createNoteItem(note, i, isPinned)
+
+		_, ok := l.YankedItemsContain(note.Path)
+		noteItem.isCut = ok
 
 		if isPinned {
 			pinnedItems = append(pinnedItems, noteItem)
@@ -616,10 +626,15 @@ func (l *NotesList) NoteItemByPath(path string) (NoteItem, error) {
 
 // YankSelection clears the yankedItems list and adds the currently selected item
 // from the NotesList to it. This simulates copying an item for later pasting.
-func (l *NotesList) YankSelection() {
-	sel := l.items[l.selectedIndex]
+func (l *NotesList) YankSelection(markCut bool) {
+	sel := l.SelectedItem(nil)
+
 	l.yankedItems = []*NoteItem{}
-	l.yankedItems = append(l.yankedItems, &sel)
+	l.yankedItems = append(l.yankedItems, sel)
+
+	if markCut {
+		sel.isCut = true
+	}
 }
 
 // PasteSelection duplicates all yanked notes into the specified directory path.
@@ -629,6 +644,16 @@ func (l *NotesList) PasteSelection(dirPath string) error {
 	for _, note := range l.yankedItems {
 		name := note.name
 		var newPath string
+
+		// If we're trying to paste a cut note into the original directory
+		// do nothing and remove isCut flag
+		if note.isCut {
+			if item, ok := l.ItemsContain(note.path); ok {
+				l.selectedIndex = item.index
+				item.isCut = false
+				return nil
+			}
+		}
 
 		// Ensure we always have a valid path
 		for {
@@ -643,8 +668,16 @@ func (l *NotesList) PasteSelection(dirPath string) error {
 		if err := notes.Copy(note.Path(), newPath); err == nil {
 			l.Refresh(true, true)
 
+			// select the currently pasted item
 			if note, err := l.NoteItemByPath(newPath); err == nil {
 				l.selectedIndex = note.index
+			}
+
+			// Remove the original note if it's marked for moving (cut)
+			if note.isCut {
+				if err := notes.Delete(note.path); err != nil {
+					debug.LogErr(err)
+				}
 			}
 		} else {
 			debug.LogErr(err)

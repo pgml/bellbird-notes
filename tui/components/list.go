@@ -123,6 +123,25 @@ func (l *List[T]) SelectedItem(items []T) *T {
 	return nil
 }
 
+func (l List[T]) ItemsContain(path string) (*T, bool) {
+	for i := range l.items {
+		if l.items[i].Path() == path {
+			return &l.items[i], true
+		}
+	}
+	return nil, false
+}
+
+func (l List[T]) YankedItemsContain(path string) (*T, bool) {
+	for i := range l.yankedItems {
+		item := *l.yankedItems[i]
+		if item.Path() == path {
+			return &item, true
+		}
+	}
+	return nil, false
+}
+
 // indexByPath returns the interal list index by the given path
 // if no items are provided it takes the cached items
 func (l List[T]) indexByPath(path string, items *[]T) int {
@@ -225,7 +244,7 @@ func (l *List[T]) resetEditor() {
 	}
 }
 
-func (l *List[T]) YankSelection() {}
+func (l *List[T]) YankSelection(markCut bool) {}
 
 func (l *List[T]) PasteSelection(dirPath string) error {
 	return nil

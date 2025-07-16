@@ -76,6 +76,7 @@ type BufferList struct {
 	Width  int
 	Height int
 
+	// Buffers holds all the open buffers
 	Buffers *Buffers
 }
 

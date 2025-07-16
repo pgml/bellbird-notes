@@ -336,7 +336,14 @@ func (m *Model) KeyInputFn() []ki.KeyFn {
 		},
 		{
 			Bindings: ki.KeyBindings("dd"),
-			Cond:     []keyCond{m.editorInputAction(n, m.editor.DeleteLine)},
+			Cond: []keyCond{
+				{
+					Mode:       n,
+					Components: []c{m.dirTree, m.notesList},
+					Action:     m.cutListItem,
+				},
+				m.editorInputAction(n, m.editor.DeleteLine),
+			},
 		},
 		{
 			Bindings: ki.KeyBindings("diw"),
@@ -976,7 +983,15 @@ func (m *Model) cancelAction() message.StatusBarMsg {
 
 func (m *Model) yankListItem() message.StatusBarMsg {
 	if f := m.focusedComponent(); f != nil {
-		f.YankSelection()
+		f.YankSelection(false)
+	}
+
+	return message.StatusBarMsg{}
+}
+
+func (m *Model) cutListItem() message.StatusBarMsg {
+	if f := m.focusedComponent(); f != nil {
+		f.YankSelection(true)
 	}
 
 	return message.StatusBarMsg{}
