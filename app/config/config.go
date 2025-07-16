@@ -265,7 +265,12 @@ func (c *Config) RenameMetaSection(oldName string, newName string) error {
 		return errors.New("could not find config file")
 	}
 
-	oldSection, _ := c.metaFile.GetSection(oldName)
+	oldSection, err := c.metaFile.GetSection(oldName)
+
+	if err != nil {
+		return err
+	}
+
 	newSection, err := c.metaFile.NewSection(newName)
 
 	if err != nil {
