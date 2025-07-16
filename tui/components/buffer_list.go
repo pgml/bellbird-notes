@@ -12,7 +12,6 @@ import (
 	"bellbird-notes/app"
 	"bellbird-notes/app/config"
 	"bellbird-notes/app/utils"
-	"bellbird-notes/tui/components/textarea"
 	"bellbird-notes/tui/message"
 	"bellbird-notes/tui/mode"
 	"bellbird-notes/tui/theme"
@@ -20,15 +19,17 @@ import (
 
 type BufferListItem struct {
 	Item
-	cursorPos textarea.CursorPos
+
+	buffer *Buffer
 }
 
-// Index returns the index of a Note-Item
+// Index returns the index of a BufferListItem
 func (b BufferListItem) Index() int { return b.index }
 
-// Path returns the index of a Note-Item
+// Path returns the path of a BufferListItem
 func (b BufferListItem) Path() string { return b.path }
 
+// PathOnly returns the relative path of a BufferListItem wihout the filename
 func (b BufferListItem) PathOnly() string {
 	p := path.Dir(b.Path())
 
@@ -41,33 +42,54 @@ func (b BufferListItem) PathOnly() string {
 	return p
 }
 
-// String is string representation of a Note
-func (b BufferListItem) String() string {
-	baseStyle := b.styles.base.Width(b.width)
-	selectedStyle := b.styles.selected.Width(b.width)
-	fadedStyle := lipgloss.NewStyle().Foreground(theme.ColourBorder)
+func (b BufferListItem) render(
+	content string,
+	faded bool,
+	dirty bool,
+	w, pl, pr int,
+) string {
+	style := lipgloss.NewStyle().
+		Foreground(lipgloss.NoColor{}).
+		PaddingLeft(pl).
+		PaddingRight(pr).
+		Width(w)
 
-	if b.selected {
-		baseStyle = selectedStyle
-		fadedStyle = fadedStyle.Background(theme.ColourBgSelected)
+	if faded {
+		style = style.Foreground(theme.ColourBorder)
+	} else if dirty {
+		style = style.Foreground(theme.ColourDirty)
 	}
 
-	var list strings.Builder
+	if b.selected {
+		style = style.Background(theme.ColourBgSelected)
+	}
 
-	list.WriteString("  " + strconv.Itoa(b.index+1))
-	list.WriteString("  " + theme.Icon(theme.IconNote, b.nerdFonts))
-	list.WriteString("  " + b.name)
+	return style.Render(content)
+}
 
-	truncWidth := b.width - lipgloss.Width(list.String()) - 2
+// String is string representation of a Note
+func (b BufferListItem) String() string {
+	index := b.render(strconv.Itoa(b.index+1), false, false, 0, 0, 2)
+	name := b.render(b.name, false, false, 0, 0, 2)
 
-	list.WriteString(fadedStyle.Render(
-		utils.TruncateText(
-			"  "+utils.RelativePath(b.PathOnly(), true),
-			truncWidth,
-		),
-	))
+	icon := theme.Icon(theme.IconNote, b.nerdFonts)
+	if b.buffer.Dirty {
+		icon = theme.Icon(theme.IconDot, b.nerdFonts)
+	}
+	iconRender := b.render(icon, false, b.buffer.Dirty, 3, 0, 0)
 
-	return baseStyle.Render(list.String())
+	pathWidth := b.width - lipgloss.Width(index) - lipgloss.Width(iconRender) - lipgloss.Width(name)
+	ellipsisWidth := 4
+	path := utils.TruncateText(
+		utils.RelativePath(b.PathOnly(), true),
+		pathWidth-ellipsisWidth,
+	)
+	path = b.render(path, true, false, pathWidth, 0, 0)
+
+	return lipgloss.JoinHorizontal(
+		lipgloss.Center,
+		index, iconRender, name, path,
+	)
 }
 
 type BufferList struct {
@@ -126,8 +148,8 @@ func (l *BufferList) buildItems() {
 	buffers := *l.Buffers
 	l.items = make([]BufferListItem, 0, len(buffers))
 
-	for i, buf := range buffers {
-		l.items = append(l.items, l.createListItem(buf, i))
+	for i := range buffers {
+		l.items = append(l.items, l.createListItem(&buffers[i], i))
 	}
 }
 
@@ -192,18 +214,17 @@ func (l *BufferList) render() string {
 	return list.String()
 }
 
-func (l *BufferList) createListItem(buf Buffer, index int) BufferListItem {
+func (l *BufferList) createListItem(buf *Buffer, index int) BufferListItem {
 	item := BufferListItem{
 		Item: Item{
 			index:     index,
 			name:      buf.Name(),
 			path:      buf.Path(false),
 			selected:  index == l.selectedIndex,
-			styles:    NotesListStyle(),
 			nerdFonts: l.conf.NerdFonts(),
 			width:     l.Width,
 		},
-		cursorPos: buf.CursorPos,
+		buffer: buf,
 	}
 
 	return item
