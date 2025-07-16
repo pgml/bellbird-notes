@@ -342,8 +342,9 @@ func (l *NotesList) Refresh(
 		_, isPinned := pinnedMap[note.Path]
 		noteItem := l.createNoteItem(note, i, isPinned)
 
-		_, ok := l.YankedItemsContain(note.Path)
-		noteItem.isCut = ok
+		if buf, ok := l.YankedItemsContain(note.Path); ok {
+			noteItem.isCut = buf.isCut
+		}
 
 		if isPinned {
 			pinnedItems = append(pinnedItems, noteItem)
@@ -628,13 +629,10 @@ func (l *NotesList) NoteItemByPath(path string) (NoteItem, error) {
 // from the NotesList to it. This simulates copying an item for later pasting.
 func (l *NotesList) YankSelection(markCut bool) {
 	sel := l.SelectedItem(nil)
+	sel.isCut = markCut
 
 	l.yankedItems = []*NoteItem{}
 	l.yankedItems = append(l.yankedItems, sel)
-
-	if markCut {
-		sel.isCut = true
-	}
 }
 
 // PasteSelection duplicates all yanked notes into the specified directory path.
