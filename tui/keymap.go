@@ -927,12 +927,15 @@ func (m *Model) confirmAction() message.StatusBarMsg {
 
 		case m.bufferList:
 			items := m.bufferList.Items()
-			selected := items[m.bufferList.SelectedIndex()].Path()
-			// close buffer list overlay
-			m.editor.ListBuffers = false
-			m.editor.OpenBuffer(selected)
-			m.bufferList.SetSelectedIndex(0)
-			m.focusEditor()
+			sel := items[m.bufferList.SelectedIndex()]
+
+			if buf, ok, _ := m.Buffers.Contains(sel.Path()); ok {
+				// close buffer list overlay
+				m.editor.ListBuffers = false
+				m.editor.OpenBuffer(buf.Path(false))
+				m.bufferList.SetSelectedIndex(0)
+				m.focusEditor()
+			}
 
 		default:
 			f.ConfirmAction()

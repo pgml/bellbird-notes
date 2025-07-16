@@ -568,9 +568,8 @@ func (e *Editor) EnterNormalMode() message.StatusBarMsg {
 	}
 
 	e.saveCursorPos()
+	e.updateBufferContent()
 
-	e.CurrentBuffer.Content = e.Textarea.Value()
-	e.updateHistoryEntry()
 	e.Textarea.ResetSelection()
 	e.Textarea.SetCursorColor(mode.Normal.Colour())
 
@@ -992,7 +991,7 @@ func (e *Editor) DeleteLine() message.StatusBarMsg {
 	e.saveLineLength()
 	e.YankLine()
 	e.Textarea.DeleteLine()
-	e.updateHistoryEntry()
+	e.updateBufferContent()
 
 	return e.ResetSelectedRowsCount()
 }
@@ -1002,7 +1001,7 @@ func (e *Editor) DeleteLine() message.StatusBarMsg {
 func (e *Editor) DeleteInnerWord(enterInsertMode bool) message.StatusBarMsg {
 	e.newHistoryEntry()
 	e.Textarea.DeleteInnerWord()
-	e.updateHistoryEntry()
+	e.updateBufferContent()
 
 	if enterInsertMode {
 		e.EnterInsertMode(false)
@@ -1017,7 +1016,7 @@ func (e *Editor) DeleteInnerWord(enterInsertMode bool) message.StatusBarMsg {
 func (e *Editor) DeleteOuterWord(enterInsertMode bool) message.StatusBarMsg {
 	e.newHistoryEntry()
 	e.Textarea.DeleteOuterWord()
-	e.updateHistoryEntry()
+	e.updateBufferContent()
 
 	if enterInsertMode {
 		e.EnterInsertMode(false)
@@ -1030,7 +1029,7 @@ func (e *Editor) DeleteOuterWord(enterInsertMode bool) message.StatusBarMsg {
 func (e *Editor) DeleteAfterCursor(overshoot bool) message.StatusBarMsg {
 	e.newHistoryEntry()
 	e.Textarea.DeleteAfterCursor(overshoot)
-	e.updateHistoryEntry()
+	e.updateBufferContent()
 	return e.ResetSelectedRowsCount()
 }
 
@@ -1038,7 +1037,7 @@ func (e *Editor) DeleteAfterCursor(overshoot bool) message.StatusBarMsg {
 func (e *Editor) DeleteNLines(lines int, up bool) message.StatusBarMsg {
 	e.newHistoryEntry()
 	e.Textarea.DeleteLines(lines, up)
-	e.updateHistoryEntry()
+	e.updateBufferContent()
 	e.Textarea.RepositionView()
 	return e.ResetSelectedRowsCount()
 }
@@ -1055,7 +1054,7 @@ func (e *Editor) DeleteWordRight() message.StatusBarMsg {
 func (e *Editor) MergeLineBelow() message.StatusBarMsg {
 	e.newHistoryEntry()
 	e.Textarea.VimMergeLineBelow(e.CurrentBuffer.CursorPos.Row)
-	e.updateHistoryEntry()
+	e.updateBufferContent()
 	return message.StatusBarMsg{}
 }
 
@@ -1145,7 +1144,9 @@ func (e *Editor) Undo() message.StatusBarMsg {
 		cursorPos.ColumnOffset,
 	)
 	e.Textarea.RepositionView()
+	e.CurrentBuffer.Content = e.Textarea.Value()
 	e.saveCursorPos()
+
 	return message.StatusBarMsg{}
 }
 
@@ -1161,6 +1162,8 @@ func (e *Editor) Redo() message.StatusBarMsg {
 		cursorPos.ColumnOffset,
 	)
 	e.Textarea.RepositionView()
+	e.CurrentBuffer.Content = e.Textarea.Value()
+
 	return message.StatusBarMsg{}
 }
 
@@ -1263,8 +1266,9 @@ func (e *Editor) Paste() message.StatusBarMsg {
 		// insert clipboard content
 		e.Textarea.InsertString(cnt)
 		e.Textarea.MoveCursor(row, rowOffset, col)
-		e.updateHistoryEntry()
 		e.Textarea.RepositionView()
+
+		e.updateBufferContent()
 	}
 	return message.StatusBarMsg{}
 }
@@ -1307,6 +1311,11 @@ func (e *Editor) saveCursorPosToConf() {
 		config.CursorPosition,
 		pos.String(),
 	)
+}
+
+func (e *Editor) updateBufferContent() {
+	e.CurrentBuffer.Content = e.Textarea.Value()
+	e.updateHistoryEntry()
 }
 
 // UpdateMetaInfo records the current state of the editor by updating

@@ -57,7 +57,7 @@ func InitialModel() *Model {
 		editor:       components.NewEditor(conf),
 		bufferList:   components.NewBufferList(conf),
 		statusBar:    components.NewStatusBar(),
-		Buffers:      make([]components.Buffer, 0),
+		Buffers:      make(components.Buffers, 0),
 		conf:         conf,
 	}
 
