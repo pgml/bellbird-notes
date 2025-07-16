@@ -532,9 +532,6 @@ func (e *Editor) reset() {
 	e.Textarea.SetValue("")
 	e.conf.SetMetaValue("", config.LastOpenNote, "")
 	e.conf.SetMetaValue("", config.LastNotes, "")
-
-	buffers := make(Buffers, 0)
-	e.Buffers = &buffers
 	e.CurrentBuffer = &Buffer{}
 }
 
