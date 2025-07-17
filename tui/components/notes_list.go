@@ -249,9 +249,8 @@ func (l NotesList) build() string {
 		note.selected = (l.selectedIndex == i)
 		note.index = i
 
-		if _, ok := dirtyMap[note.path]; ok {
-			note.IsDirty = true
-		}
+		_, isDirty := dirtyMap[note.path]
+		note.IsDirty = isDirty
 
 		if *app.Debug {
 			// prepend list item indices for debugging purposes
