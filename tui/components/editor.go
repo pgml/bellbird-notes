@@ -1003,6 +1003,7 @@ func (e *Editor) DeleteLine() message.StatusBarMsg {
 	e.YankLine()
 	e.Textarea.DeleteLine()
 	e.updateBufferContent()
+	e.EnterNormalMode()
 
 	return e.ResetSelectedRowsCount()
 }
