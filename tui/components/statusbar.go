@@ -3,6 +3,7 @@ package components
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"bellbird-notes/app/utils"
 	"bellbird-notes/internal/interfaces"
@@ -235,6 +236,12 @@ func (s *StatusBar) ConfirmAction(
 
 	s.SetColContent(statusMsg.Column, &statusMsg.Content)
 	s.BlurPrompt()
+
+	statusMsg.Cmd = func() tea.Msg {
+		time.Sleep(100 * time.Millisecond)
+		s.Focused = false
+		return DeferredActionMsg{}
+	}
 
 	return statusMsg
 }
