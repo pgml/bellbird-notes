@@ -80,6 +80,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
+		m.keyInput.AllowSequences = !m.statusBar.Focused
 		statusMsg := m.keyInput.HandleSequences(msg.Key())
 
 		// If space is pressed, reset it after a certain delay

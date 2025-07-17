@@ -96,16 +96,18 @@ type Action struct {
 // list of all configured key actions.
 type Input struct {
 	KeySequence    string
+	AllowSequences bool
 	sequenceKeys   []string
 	sequenceLength int
 
 	// sequenceTimeOut is Time in milliseconds to wait for a mapped
 	// sequence to complete. This is basically `timeoutlen` from Vim.
 	sequenceTimeOut time.Duration
-	Space           bool
-	Ctrl            bool
-	Alt             bool
-	Mode            mode.Mode
+
+	Space bool
+	Ctrl  bool
+	Alt   bool
+	Mode  mode.Mode
 
 	// contains the keymap of all availaböe functions
 	Functions []KeyFn
@@ -122,6 +124,7 @@ func New() *Input {
 		Alt:              false,
 		Mode:             mode.Normal,
 		KeySequence:      "",
+		AllowSequences:   true,
 		sequenceTimeOut:  300,
 		sequenceKeys:     []string{},
 		sequenceLength:   0,
@@ -178,7 +181,7 @@ func (ki *Input) HandleSequences(key tea.Key) []message.StatusBarMsg {
 	}
 
 	keyInfoMsg := message.StatusBarMsg{Content: "", Column: sbc.KeyInfo}
-	if ki.Mode != mode.Command && !ki.isBinding(ki.KeySequence) {
+	if ki.Mode != mode.Command && !ki.isBinding(ki.KeySequence) && ki.AllowSequences {
 		mod, isModifier := ki.isModifier(key.String())
 
 		if slices.Contains(ki.sequenceKeys, ki.KeySequence) || isModifier {
