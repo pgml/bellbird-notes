@@ -201,6 +201,7 @@ func (s *StatusBar) ConfirmAction(
 	case message.Response.Yes:
 		if s.DirTree.EditState == EditStates.Delete ||
 			s.NotesList.EditState == EditStates.Delete {
+
 			statusMsg = c.Remove()
 		}
 

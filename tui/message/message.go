@@ -3,6 +3,7 @@ package message
 import (
 	"image/color"
 
+	tea "github.com/charmbracelet/bubbletea/v2"
 	"github.com/charmbracelet/lipgloss/v2"
 
 	statusbarcolumn "bellbird-notes/tui/types/statusbar_column"
@@ -40,5 +41,6 @@ type StatusBarMsg struct {
 	Type    Type
 	Sender  Sender
 	Arg     any
+	Cmd     tea.Cmd
 	Column  statusbarcolumn.Column
 }

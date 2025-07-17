@@ -97,6 +97,10 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		statusMsg = append(statusMsg, m.editor.StatusBarInfo())
 
+		for _, m := range statusMsg {
+			cmds = append(cmds, m.Cmd)
+		}
+
 		m.statusBar = m.statusBar.Update(statusMsg, msg)
 		m.keyInput.Mode = m.mode.Current
 		m.statusBar.Mode = m.mode.Current

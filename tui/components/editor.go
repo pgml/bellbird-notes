@@ -8,6 +8,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 
 	"bellbird-notes/app"
 	"bellbird-notes/app/config"
@@ -574,6 +575,16 @@ func (e *Editor) EnterNormalMode() message.StatusBarMsg {
 	e.Textarea.SetCursorColor(mode.Normal.Colour())
 
 	return statusMsg
+}
+
+// SendEnterNormalModeDeferredMsg returns a bubbletea command that enters
+// normal mode after a 150ms delay
+func (e *Editor) SendEnterNormalModeDeferredMsg() tea.Cmd {
+	return func() tea.Msg {
+		time.Sleep(150 * time.Millisecond)
+		e.EnterNormalMode()
+		return DeferredActionMsg{}
+	}
 }
 
 // EnterInsertMode sets the current editor mode to insert
@@ -1176,41 +1187,49 @@ func (e *Editor) Yank(str string) message.StatusBarMsg {
 // YankSelection copies the current selection to the clipboard.
 // If keepCursorPos is true the cursor position remains the same
 // otherwise the cursor is moved to the beginning of the selection
-func (e *Editor) YankSelection(keepCursorPos bool) message.StatusBarMsg {
+func (e *Editor) YankSelection(keepCursor bool) message.StatusBarMsg {
 	sel := e.Textarea.SelectionStr()
 	clipboard.Write(clipboard.FmtText, []byte(sel))
-	buf := e.CurrentBuffer
+	var cursorDeferredCmd tea.Cmd
 
-	if keepCursorPos {
+	if keepCursor {
 		e.Textarea.SetCursorColumn(e.CurrentBuffer.CursorPos.ColumnOffset)
 	} else {
+		buf := e.CurrentBuffer
 		startRow := e.Textarea.Selection.StartRow
 		startCol := e.Textarea.Selection.StartCol
+
 		if e.Vim.Mode.Current == mode.VisualLine {
 			startCol = 0
 		}
-		// move the cursor to the beginning of the selection
-		e.Textarea.MoveCursor(startRow, buf.CursorPos.RowOffset, startCol)
+
+		// move the cursor to the beginning of the selection after
+		// a short delay to briefly show the selection
+		cursorDeferredCmd = func() tea.Msg {
+			time.Sleep(150 * time.Millisecond)
+			e.Textarea.MoveCursor(startRow, buf.CursorPos.RowOffset, startCol)
+			return DeferredActionMsg{}
+		}
 	}
 
-	e.EnterNormalMode()
-	return message.StatusBarMsg{}
+	return message.StatusBarMsg{
+		Cmd: tea.Batch(
+			cursorDeferredCmd,
+			e.SendEnterNormalModeDeferredMsg(),
+		),
+	}
 }
 
 // YankLine copies the current line to the clipboard
 func (e *Editor) YankLine() message.StatusBarMsg {
 	e.saveCursorPos()
-	row := e.CurrentBuffer.CursorPos.Row
-	e.Textarea.SelectRange(
-		textarea.SelectVisualLine,
-		textarea.CursorPos{Row: row, ColumnOffset: 0},
-		textarea.CursorPos{Row: row, ColumnOffset: e.Textarea.LineLength(-1)},
-	)
+	e.EnterVisualMode(textarea.SelectVisualLine)
 	return e.YankSelection(true)
 }
 
 // YankInnerWord copies the current word to the clipboard
 func (e *Editor) YankInnerWord() message.StatusBarMsg {
+	e.EnterVisualMode(textarea.SelectVisual)
 	e.Textarea.SelectInnerWord()
 	return e.YankSelection(false)
 }
@@ -1218,6 +1237,7 @@ func (e *Editor) YankInnerWord() message.StatusBarMsg {
 // YankOuterWord copies the current word to the clipboard including the
 // trailing whitespace
 func (e *Editor) YankOuterWord() message.StatusBarMsg {
+	e.EnterVisualMode(textarea.SelectVisual)
 	e.Textarea.SelectOuterWord()
 	return e.YankSelection(false)
 }
@@ -1313,6 +1333,8 @@ func (e *Editor) saveCursorPosToConf() {
 	)
 }
 
+// updateBufferContent replaces the content of the current buffer with the
+// current textarea value
 func (e *Editor) updateBufferContent() {
 	e.CurrentBuffer.Content = e.Textarea.Value()
 	e.updateHistoryEntry()

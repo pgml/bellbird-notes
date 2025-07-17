@@ -7,6 +7,8 @@ import (
 	"bellbird-notes/tui/mode"
 )
 
+type DeferredActionMsg struct{}
+
 type Component struct {
 	ID   bl.ID
 	Size bl.Size
