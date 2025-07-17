@@ -26,6 +26,9 @@ type BufferListItem struct {
 // Index returns the index of a BufferListItem
 func (b BufferListItem) Index() int { return b.index }
 
+// Name returns the path of a BufferListItem
+func (b BufferListItem) Name() string { return b.name }
+
 // Path returns the path of a BufferListItem
 func (b BufferListItem) Path() string { return b.path }
 
@@ -41,6 +44,12 @@ func (b BufferListItem) PathOnly() string {
 
 	return p
 }
+
+// IsCut returns whether a bufferlist item is cut
+func (b BufferListItem) IsCut() bool { return b.isCut }
+
+// SetIsCut returns whether the buffer list item is cut
+func (b *BufferListItem) SetIsCut(isCut bool) { b.isCut = isCut }
 
 func (b BufferListItem) render(
 	content string,
@@ -93,7 +102,7 @@ func (b BufferListItem) String() string {
 }
 
 type BufferList struct {
-	List[BufferListItem]
+	List[*BufferListItem]
 
 	Width  int
 	Height int
@@ -106,7 +115,7 @@ func NewBufferList(conf *config.Config) *BufferList {
 	termW, _ := theme.TerminalSize()
 
 	panel := &BufferList{
-		List:   List[BufferListItem]{conf: conf},
+		List:   List[*BufferListItem]{conf: conf},
 		Height: 10,
 		Width:  termW / 3,
 	}
@@ -146,10 +155,11 @@ func (l *BufferList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (l *BufferList) buildItems() {
 	buffers := *l.Buffers
-	l.items = make([]BufferListItem, 0, len(buffers))
+	l.items = make([]*BufferListItem, 0, len(buffers))
 
 	for i := range buffers {
-		l.items = append(l.items, l.createListItem(&buffers[i], i))
+		item := l.createListItem(&buffers[i], i)
+		l.items = append(l.items, &item)
 	}
 }
 
@@ -230,7 +240,7 @@ func (l *BufferList) createListItem(buf *Buffer, index int) BufferListItem {
 	return item
 }
 
-func (l *BufferList) Items() []BufferListItem {
+func (l *BufferList) Items() []*BufferListItem {
 	return l.items
 }
 

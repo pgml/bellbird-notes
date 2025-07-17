@@ -1,8 +1,11 @@
 package directories
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
+
+	cp "github.com/otiai10/copy"
 
 	"bellbird-notes/app/config"
 	"bellbird-notes/app/debug"
@@ -153,6 +156,29 @@ func Delete(path string, deleteContent bool) error {
 		}
 	}
 	return nil
+}
+
+func Copy(oldPath, newPath string) error {
+	err := cp.Copy(oldPath, newPath, cp.Options{
+		//Skip: func(srcinfo os.FileInfo, src string, dest string) (bool, error) {
+		//	return strings
+		//},
+	})
+
+	if err != nil {
+		debug.LogErr(oldPath, newPath)
+		return err
+	}
+
+	return nil
+}
+
+// Exists checks whether a file exists at the given path.
+func Exists(path string) bool {
+	if _, err := os.Stat(path); errors.Is(err, os.ErrNotExist) {
+		return false
+	}
+	return true
 }
 
 // isHidden returns true if the given filename or path starts with a dot ('.')

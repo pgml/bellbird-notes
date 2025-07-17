@@ -31,7 +31,7 @@ type TreeItem struct {
 	// Used to make expanding and collapsing a directory possible
 	// using DirectoryTree.dirsListFlat
 	parent      int
-	children    []TreeItem
+	children    []*TreeItem
 	isLastChild bool
 
 	// Indicates whether a directory is expanded
@@ -61,24 +61,22 @@ type TreeItem struct {
 }
 
 // Index returns the index of a Dir-Item
-func (d TreeItem) Index() int {
-	return d.index
-}
+func (d TreeItem) Index() int { return d.index }
 
 // Path returns the path of a Dir-Item
-func (d TreeItem) Path() string {
-	return d.path
-}
+func (d TreeItem) Path() string { return d.path }
 
 // Name returns the name of a Dir-Item
-func (d TreeItem) Name() string {
-	return d.name
-}
+func (d TreeItem) Name() string { return d.name }
 
 // Expanded returns the name of a Dir-Item
-func (d TreeItem) Expanded() bool {
-	return d.expanded
-}
+func (d TreeItem) Expanded() bool { return d.expanded }
+
+// IsCut returns whether the dir item is cut
+func (d TreeItem) IsCut() bool { return d.isCut }
+
+// SetIsCut returns whether the dir item is cut
+func (d *TreeItem) SetIsCut(isCut bool) { d.isCut = isCut }
 
 // setIndentation sets the visual indentation for the tree item based on its level
 // and whether line markers (like │ or ╰) should be shown.
@@ -201,10 +199,10 @@ func (d *TreeItem) String(input bool) string {
 
 // DirectoryTree represents the bubbletea model.
 type DirectoryTree struct {
-	List[TreeItem]
+	List[*TreeItem]
 
 	// A flattened representation to make vertical navigation easier
-	dirsListFlat []TreeItem
+	dirsListFlat []*TreeItem
 
 	// Stores currently expanded directories
 	expandedDirs map[string]bool
@@ -284,11 +282,11 @@ func (t *DirectoryTree) View() string {
 // NewDirectoryTree creates a new model with default settings.
 func NewDirectoryTree(conf *config.Config) *DirectoryTree {
 	tree := &DirectoryTree{
-		List: List[TreeItem]{
+		List: List[*TreeItem]{
 			selectedIndex: 0,
 			editIndex:     nil,
 			EditState:     EditStates.None,
-			items:         make([]TreeItem, 0),
+			items:         make([]*TreeItem, 0),
 			conf:          conf,
 		},
 		expandedDirs: make(map[string]bool),
@@ -307,7 +305,7 @@ func NewDirectoryTree(conf *config.Config) *DirectoryTree {
 	}
 
 	// append root directory
-	tree.items = append(tree.items, TreeItem{
+	tree.items = append(tree.items, &TreeItem{
 		Item: Item{
 			index:     0,
 			name:      app.Name(),
@@ -414,8 +412,8 @@ func (t *DirectoryTree) render() string {
 }
 
 // getChildren reads a directory and returns a slice of a directory Dir
-func (t *DirectoryTree) getChildren(path string, level int) []TreeItem {
-	var dirs []TreeItem
+func (t *DirectoryTree) getChildren(path string, level int) []*TreeItem {
+	var dirs []*TreeItem
 	childDir, _ := directories.List(path)
 
 	for _, dir := range childDir {
@@ -426,7 +424,7 @@ func (t *DirectoryTree) getChildren(path string, level int) []TreeItem {
 		}
 
 		dirItem.expanded = dir.IsExpanded
-		dirs = append(dirs, dirItem)
+		dirs = append(dirs, &dirItem)
 	}
 
 	return dirs
@@ -555,12 +553,12 @@ func (t *DirectoryTree) refreshFlatList() {
 // flatten converts a slice of Dir and its sub slices into
 // a one dimensional slice that we use to render the directory tree
 func (t *DirectoryTree) flatten(
-	dirs []TreeItem,
+	dirs []*TreeItem,
 	level int,
 	parent int,
 	nextIndex *int,
-) []TreeItem {
-	var result []TreeItem
+) []*TreeItem {
+	var result []*TreeItem
 	for i, dir := range dirs {
 		dir.index = *nextIndex
 		dir.parent = parent
@@ -610,7 +608,7 @@ func (t *DirectoryTree) getLastChild(index int) *TreeItem {
 	// If the selected directory is root, bail out early
 	// with the last item of the flattend directory tree
 	if dir.index == 0 {
-		return &lastChild
+		return lastChild
 	}
 
 	if len(dir.children) > 0 {
@@ -625,7 +623,7 @@ func (t *DirectoryTree) getLastChild(index int) *TreeItem {
 		}
 	}
 
-	return &lastChild
+	return lastChild
 }
 
 // Inserts an item after `afterIndex`
@@ -638,7 +636,7 @@ func (m *DirectoryTree) insertDirAfter(afterIndex int, directory TreeItem) {
 		if dir.index == afterIndex {
 			m.dirsListFlat = append(
 				m.dirsListFlat[:i+1],
-				append([]TreeItem{directory}, m.dirsListFlat[i+1:]...)...,
+				append([]*TreeItem{&directory}, m.dirsListFlat[i+1:]...)...,
 			)
 			break
 		}
@@ -664,10 +662,10 @@ func (t *DirectoryTree) dirExists(dirPath string) bool {
 }
 
 // findDirInTree recursively searches for a directory by its path
-func findDirInTree(directories []TreeItem, path string) *TreeItem {
+func findDirInTree(directories []*TreeItem, path string) *TreeItem {
 	for i := range directories {
 		if directories[i].path == path {
-			return &directories[i]
+			return directories[i]
 		}
 
 		if directories[i].expanded {
@@ -787,7 +785,7 @@ func (t *DirectoryTree) Create(
 		// if the selected directory has no children yet
 		// we append and empty Dir so that we get a correct result
 		if selDir.index != 0 && len(selDir.children) == 0 {
-			selDir.children = append(selDir.children, TreeItem{})
+			selDir.children = append(selDir.children, &TreeItem{})
 		}
 
 		lastChild := t.lastChildOfSelection()
@@ -932,4 +930,57 @@ func (t *DirectoryTree) ContentInfo() message.StatusBarMsg {
 
 func (t *DirectoryTree) TogglePinned() message.StatusBarMsg {
 	return message.StatusBarMsg{}
+}
+
+// YankSelection clears the yankedItems list and adds the currently selected item
+// from the NotesList to it. This simulates copying an item for later pasting.
+func (t *DirectoryTree) YankSelection(markCut bool) {
+	sel := t.SelectedDir()
+	sel.isCut = markCut
+
+	t.yankedItems = []*TreeItem{}
+	t.yankedItems = append(t.yankedItems, sel)
+}
+
+// PasteSelection duplicates all yanked notes into the specified directory path.
+// It handles name conflicts by appending " Copy" to the note name until a unique
+// path is found. Returns an error if any note cannot be created.
+func (t *DirectoryTree) PasteSelection(dirPath string) message.StatusBarMsg {
+	statusMsg := message.StatusBarMsg{}
+
+	for _, dir := range t.yankedItems {
+		t.pasteSelection(dir, dirPath, func(newPath string) {
+			if err := directories.Copy(dir.Path(), newPath); err == nil {
+				t.Refresh(false, false)
+
+				// select the currently pasted item
+				if dir, ok := t.ItemsContain(newPath); ok {
+					t.selectedIndex = dir.index
+				}
+
+				// Remove the original note if it's marked for moving (cut)
+				if dir.isCut {
+					if err := directories.Delete(dir.path, true); err != nil {
+						debug.LogErr(err)
+					}
+				}
+			} else {
+				debug.LogErr(err)
+			}
+		})
+	}
+
+	return statusMsg
+}
+
+// ItemByPath returns the ListItem with the given path from the List.
+// If no such item exists, it returns a nil and an error.
+func (t *DirectoryTree) ItemsContain(path string) (*TreeItem, bool) {
+	for _, item := range t.dirsListFlat {
+		if item.Path() == path {
+			return item, true
+		}
+	}
+
+	return nil, false
 }

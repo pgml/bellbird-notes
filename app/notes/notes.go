@@ -16,8 +16,8 @@ import (
 
 const (
 	Ext       = ".txt"
-	legacyExt = ".note"
-	confExt   = ".conf"
+	LegacyExt = ".note"
+	ConfExt   = ".conf"
 )
 
 type Note struct {
@@ -52,7 +52,7 @@ func (n Note) Ext() string { return Ext }
 
 // LegacyExt is the extension used in the old rust version
 // of bellbird notes and is just here for compatibility reasons
-func (n Note) LegacyExt() string { return legacyExt }
+func (n Note) LegacyExt() string { return LegacyExt }
 
 func NewNote(path string, isPinned bool) Note {
 	return Note{
@@ -84,7 +84,7 @@ func List(notePath string) ([]Note, error) {
 
 		// skip unsupported files
 		if !strings.HasSuffix(child.Name(), Ext) &&
-			!strings.HasSuffix(child.Name(), legacyExt) {
+			!strings.HasSuffix(child.Name(), LegacyExt) {
 
 			continue
 		}
@@ -215,8 +215,8 @@ func isHidden(path string) bool {
 // If not, it appends the default extension.
 func CheckPath(path string) string {
 	if strings.HasSuffix(path, Ext) ||
-		strings.HasSuffix(path, legacyExt) ||
-		strings.HasSuffix(path, confExt) {
+		strings.HasSuffix(path, LegacyExt) ||
+		strings.HasSuffix(path, ConfExt) {
 
 		return path
 	}

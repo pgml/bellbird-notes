@@ -1,7 +1,6 @@
 package components
 
 import (
-	"errors"
 	"fmt"
 	"path/filepath"
 	"slices"
@@ -24,7 +23,7 @@ import (
 )
 
 type NotesList struct {
-	List[NoteItem]
+	List[*NoteItem]
 
 	// Contains all pinned notes of the current directory
 	PinnedNotes PinnedNotes
@@ -86,9 +85,7 @@ func (p *PinnedNotes) toggle(note NoteItem) {
 
 type NoteItem struct {
 	Item
-	isPinned bool
-	isCut    bool
-	IsDirty  bool
+	IsDirty bool
 }
 
 // Index returns the index of a Note-Item
@@ -99,6 +96,12 @@ func (n NoteItem) Path() string { return n.path }
 
 // Name returns the name of a Note-Item
 func (n NoteItem) Name() string { return n.name }
+
+// IsCut returns whether the note item is cut
+func (n NoteItem) IsCut() bool { return n.isCut }
+
+// SetIsCut returns whether the note item is cut
+func (n *NoteItem) SetIsCut(isCut bool) { n.isCut = isCut }
 
 // String is string representation of a Note
 func (n NoteItem) String() string {
@@ -215,14 +218,14 @@ func NewNotesList(conf *config.Config) *NotesList {
 	}
 
 	list := &NotesList{
-		List: List[NoteItem]{
+		List: List[*NoteItem]{
 			selectedIndex:    0,
 			editIndex:        nil,
 			EditState:        EditStates.None,
 			input:            ti,
 			lastVisibleLine:  0,
 			firstVisibleLine: 0,
-			items:            make([]NoteItem, 0),
+			items:            make([]*NoteItem, 0),
 			conf:             conf,
 		},
 		PinnedNotes: PinnedNotes{},
@@ -315,7 +318,7 @@ func (l *NotesList) Refresh(
 	if cap(l.items) >= len(notesList) {
 		l.items = l.items[:0]
 	} else {
-		l.items = make([]NoteItem, 0, len(notesList))
+		l.items = make([]*NoteItem, 0, len(notesList))
 	}
 
 	if !l.PinnedNotes.loaded {
@@ -334,8 +337,8 @@ func (l *NotesList) Refresh(
 	}
 
 	var (
-		pinnedItems   []NoteItem
-		unpinnedItems []NoteItem
+		pinnedItems   []*NoteItem
+		unpinnedItems []*NoteItem
 	)
 
 	for i, note := range notesList {
@@ -347,9 +350,9 @@ func (l *NotesList) Refresh(
 		}
 
 		if isPinned {
-			pinnedItems = append(pinnedItems, noteItem)
+			pinnedItems = append(pinnedItems, &noteItem)
 		} else {
-			unpinnedItems = append(unpinnedItems, noteItem)
+			unpinnedItems = append(unpinnedItems, &noteItem)
 		}
 	}
 
@@ -380,7 +383,6 @@ func (l *NotesList) createNoteItem(note notes.Note, index int, isPinned bool) No
 			styles:    style,
 			nerdFonts: l.conf.NerdFonts(),
 		},
-		isPinned: isPinned,
 	}
 
 	noteItem.isPinned = isPinned
@@ -411,9 +413,9 @@ func (l *NotesList) createVirtualNote() NoteItem {
 }
 
 // getLastChild returns the last NoteItem in the current directory
-func (l NotesList) getLastChild() NoteItem {
+func (l NotesList) getLastChild() *NoteItem {
 	if len(l.items) <= 0 {
-		return NoteItem{}
+		return nil
 	}
 	return l.items[len(l.items)-1]
 }
@@ -427,7 +429,7 @@ func (l *NotesList) insertNoteAfter(afterIndex int, note NoteItem) {
 		if dir.index == afterIndex {
 			l.items = append(
 				l.items[:i+1],
-				append([]NoteItem{note}, l.items[i+1:]...)...,
+				append([]*NoteItem{&note}, l.items[i+1:]...)...,
 			)
 			break
 		}
@@ -450,7 +452,7 @@ func (l *NotesList) Create(
 		lastChild := l.getLastChild()
 
 		if lastChild.name == "" {
-			l.items = append(l.items, vrtNote)
+			l.items = append(l.items, &vrtNote)
 		} else {
 			l.insertNoteAfter(lastChild.index, vrtNote)
 			l.selectedIndex = lastChild.index + 1
@@ -467,11 +469,11 @@ func (l *NotesList) Create(
 }
 
 func (l *NotesList) ConfirmRemove() message.StatusBarMsg {
-	selectedNote := l.SelectedItem(nil)
+	selectedNote := *l.SelectedItem(nil)
 	msgType := message.PromptError
 
 	rootDir, _ := app.NotesRootDir()
-	path := strings.TrimPrefix(selectedNote.path, rootDir+"/")
+	path := strings.TrimPrefix(selectedNote.Path(), rootDir+"/")
 	resultMsg := fmt.Sprintf(message.StatusBar.RemovePrompt, path)
 
 	l.EditState = EditStates.Delete
@@ -486,7 +488,7 @@ func (l *NotesList) ConfirmRemove() message.StatusBarMsg {
 
 // Remove deletes the selected note from the file system
 func (l *NotesList) Remove() message.StatusBarMsg {
-	note := l.SelectedItem(nil)
+	note := *l.SelectedItem(nil)
 	index := l.selectedIndex
 	resultMsg := "213"
 	msgType := message.Success
@@ -553,10 +555,10 @@ func (l *NotesList) ConfirmAction() message.StatusBarMsg {
 			if _, err := notes.Create(newPath); err == nil {
 				l.Refresh(true, true)
 
-				if note, err := l.NoteItemByPath(newPath); err == nil {
+				if note, ok := l.ItemsContain(newPath); ok {
 					l.selectedIndex = note.index
 				} else {
-					debug.LogErr(err)
+					debug.LogErr(ok)
 				}
 			} else {
 				debug.LogErr(err)
@@ -613,18 +615,6 @@ func (l *NotesList) TogglePinned() message.StatusBarMsg {
 	return message.StatusBarMsg{}
 }
 
-// NoteItemByPath returns the NoteItem with the given path from the NotesList.
-// If no such item exists, it returns an empty NoteItem and an error.
-func (l *NotesList) NoteItemByPath(path string) (NoteItem, error) {
-	for _, item := range l.items {
-		if item.path == path {
-			return item, nil
-		}
-	}
-
-	return NoteItem{}, errors.New("couldn't find NoteItem")
-}
-
 // YankSelection clears the yankedItems list and adds the currently selected item
 // from the NotesList to it. This simulates copying an item for later pasting.
 func (l *NotesList) YankSelection(markCut bool) {
@@ -638,63 +628,30 @@ func (l *NotesList) YankSelection(markCut bool) {
 // PasteSelection duplicates all yanked notes into the specified directory path.
 // It handles name conflicts by appending " Copy" to the note name until a unique
 // path is found. Returns an error if any note cannot be created.
-func (l *NotesList) PasteSelection(dirPath string) error {
+func (l *NotesList) PasteSelection(dirPath string) message.StatusBarMsg {
+	statusMsg := message.StatusBarMsg{}
+
 	for _, note := range l.yankedItems {
-		name := note.name
-		var newPath string
+		l.pasteSelection(note, dirPath, func(newPath string) {
+			if err := notes.Copy(note.Path(), newPath); err == nil {
+				l.Refresh(true, true)
 
-		// If we're trying to paste a cut note into the original directory
-		// do nothing and remove isCut flag
-		if note.isCut {
-			if item, ok := l.ItemsContain(note.path); ok {
-				l.selectedIndex = item.index
-				item.isCut = false
-				return nil
-			}
-		}
-
-		// Ensure we always have a valid path
-		for {
-			name = l.checkName(dirPath, name)
-			newPath = notes.CheckPath(dirPath + "/" + name)
-
-			if !notes.Exists(newPath) {
-				break
-			}
-		}
-
-		if err := notes.Copy(note.Path(), newPath); err == nil {
-			l.Refresh(true, true)
-
-			// select the currently pasted item
-			if note, err := l.NoteItemByPath(newPath); err == nil {
-				l.selectedIndex = note.index
-			}
-
-			// Remove the original note if it's marked for moving (cut)
-			if note.isCut {
-				if err := notes.Delete(note.path); err != nil {
-					debug.LogErr(err)
+				// select the currently pasted item
+				if note, ok := l.ItemsContain(newPath); ok {
+					l.selectedIndex = note.index
 				}
+
+				// Remove the original note if it's marked for moving (cut)
+				if note.isCut {
+					if err := notes.Delete(note.path); err != nil {
+						debug.LogErr(err)
+					}
+				}
+			} else {
+				debug.LogErr(err)
 			}
-		} else {
-			debug.LogErr(err)
-			return err
-		}
-
+		})
 	}
 
-	return nil
-}
-
-// checkName ensures that the note name does not conflict with existing notes
-// in the specified directory. If a conflict exists, it appends " Copy" to the name.
-func (l *NotesList) checkName(dirPath string, noteName string) string {
-	newPath := notes.CheckPath(dirPath + "/" + noteName)
-
-	if notes.Exists(newPath) {
-		noteName += " Copy"
-	}
-
-	return noteName
+	return statusMsg
 }

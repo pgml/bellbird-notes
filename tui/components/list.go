@@ -1,7 +1,11 @@
 package components
 
 import (
+	"strings"
+
 	"bellbird-notes/app/config"
+	"bellbird-notes/app/directories"
+	"bellbird-notes/app/notes"
 	"bellbird-notes/tui/message"
 
 	"github.com/charmbracelet/bubbles/v2/textinput"
@@ -33,10 +37,15 @@ type ListActions interface {
 
 type ListItem interface {
 	Index() int
+	Name() string
 	Path() string
+	IsCut() bool
+	SetIsCut(isCut bool)
 }
 
-// List represents a bubbletea model
+// List represents a bubbletea model and holds items that implement ListItem.
+// Important: T must be a pointer type, otherwise methods like SetIsCut() won't work.
+// This allows us to mutate fields inside the list items when needed.
 type List[T ListItem] struct {
 	Component
 
@@ -55,7 +64,7 @@ type List[T ListItem] struct {
 	// Stores the list items
 	items []T
 
-	yankedItems []*T
+	yankedItems []T
 
 	// We set the length manually because len(items) won't be possible
 	// for the directories since the multidimensial []items
@@ -86,6 +95,9 @@ type Item struct {
 	width  int
 
 	nerdFonts bool
+
+	isPinned bool
+	isCut    bool
 }
 
 type statusMsg string
@@ -107,39 +119,46 @@ func (l *List[T]) UpdateViewportInfo() {
 }
 
 // SelectedItem returns the currently selected item of the list
-func (l *List[T]) SelectedItem(items []T) *T {
+func (l *List[T]) SelectedItem(items []T) T {
+	var none T
 	if l.length == 0 {
-		return nil
+		return none
 	}
 
 	if items == nil {
 		items = l.items
 	}
 
-	if l.selectedIndex >= 0 && l.selectedIndex < l.length {
-		return &items[l.selectedIndex]
+	if l.selectedIndex >= 0 && l.selectedIndex <= l.length {
+		return items[l.selectedIndex]
 	}
 
-	return nil
+	return none
 }
 
-func (l List[T]) ItemsContain(path string) (*T, bool) {
+// ItemsContain returns the ListItem with the given path from the List.
+// If no such item exists, it returns a nil and an error.
+func (l List[T]) ItemsContain(path string) (T, bool) {
 	for i := range l.items {
 		if l.items[i].Path() == path {
-			return &l.items[i], true
+			return l.items[i], true
 		}
 	}
-	return nil, false
+
+	var none T
+	return none, false
 }
 
-func (l List[T]) YankedItemsContain(path string) (*T, bool) {
+func (l List[T]) YankedItemsContain(path string) (T, bool) {
 	for i := range l.yankedItems {
-		item := *l.yankedItems[i]
+		item := l.yankedItems[i]
 		if item.Path() == path {
-			return &item, true
+			return item, true
 		}
 	}
-	return nil, false
+
+	var none T
+	return none, false
 }
 
 // indexByPath returns the interal list index by the given path
@@ -246,8 +265,76 @@ func (l *List[T]) resetEditor() {
 
 func (l *List[T]) YankSelection(markCut bool) {}
 
-func (l *List[T]) PasteSelection(dirPath string) error {
-	return nil
+// func (l *List[T]) pasteSelection(i int, dirPath string, cb func(string)) {
+func (l *List[T]) pasteSelection(item T, dirPath string, cb func(string)) {
+	isNote := l.isNote(item.Path())
+	name := item.Name()
+
+	var newPath string
+
+	if !isNote {
+		newPath = item.Path()
+	}
+
+	if item.IsCut() {
+		if item, ok := l.ItemsContain(item.Path()); ok {
+			l.selectedIndex = item.Index()
+			item.SetIsCut(false)
+			return
+		}
+	}
+
+	// Ensure we always have a valid path
+	for {
+		if isNote {
+			name = l.CheckName(dirPath, name)
+			newPath = notes.CheckPath(dirPath + "/" + name)
+
+			if !notes.Exists(newPath) {
+				break
+			}
+		} else {
+			newPath = l.CheckName(newPath, "")
+
+			if !directories.Exists(newPath) {
+				break
+			}
+		}
+	}
+
+	cb(newPath)
+}
+
+func (l *List[T]) PasteSelection(dirPath string) message.StatusBarMsg {
+	return message.StatusBarMsg{}
+}
+
+// checkName ensures that the note name does not conflict with existing notes
+// in the specified directory. If a conflict exists, it appends " Copy" to the name.
+func (l *List[T]) CheckName(dirPath string, name string) string {
+	if l.isNote(name) || name != "" {
+		// In case this is a note we check for the extension.
+		// If it's not a name it should return
+		newPath := notes.CheckPath(dirPath + "/" + name)
+
+		if notes.Exists(newPath) {
+			name += " Copy"
+		}
+
+		return name
+	} else {
+		if directories.Exists(dirPath) {
+			dirPath += " Copy"
+		}
+
+		return dirPath
+	}
+}
+
+func (l *List[T]) isNote(name string) bool {
+	return strings.HasSuffix(name, notes.Ext) ||
+		strings.HasSuffix(name, notes.LegacyExt) ||
+		strings.HasSuffix(name, notes.ConfExt)
 }
 
 func (l *List[T]) SelectedIndex() int {
