@@ -807,7 +807,7 @@ func (t *DirectoryTree) Create(
 	return statusMsg
 }
 
-// ConfirmRemove Confirms returns a status bar prompt
+// ConfirmRemove returns a status bar prompt
 // to confirm or cancel the removal of a directory
 func (t *DirectoryTree) ConfirmRemove() message.StatusBarMsg {
 	selectedDir := t.SelectedDir()
@@ -835,11 +835,12 @@ func (t *DirectoryTree) ConfirmRemove() message.StatusBarMsg {
 func (t *DirectoryTree) Remove() message.StatusBarMsg {
 	dir := t.SelectedDir()
 	index := t.selectedIndex
+	parent := dir.parent
 	resultMsg := ""
 	msgType := message.Success
 
 	if err := directories.Delete(dir.path, true); err == nil {
-		// delte the directory from the flat list
+		// delete the directory from the flat list
 		t.dirsListFlat = slices.Delete(
 			t.dirsListFlat,
 			index,
@@ -850,7 +851,7 @@ func (t *DirectoryTree) Remove() message.StatusBarMsg {
 		resultMsg = err.Error()
 	}
 
-	t.RefreshBranch(dir.parent, index)
+	t.RefreshBranch(parent, index)
 
 	return message.StatusBarMsg{
 		Content: resultMsg,
