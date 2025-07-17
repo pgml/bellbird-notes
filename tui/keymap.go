@@ -1009,8 +1009,7 @@ func (m *Model) cutListItem() message.StatusBarMsg {
 
 func (m *Model) pasteListItem() message.StatusBarMsg {
 	if f := m.focusedComponent(); f != nil {
-		dir := m.dirTree.SelectedDir().Path()
-		return f.PasteSelection(dir)
+		return f.PasteSelection()
 	}
 
 	return message.StatusBarMsg{}

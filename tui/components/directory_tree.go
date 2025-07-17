@@ -945,8 +945,10 @@ func (t *DirectoryTree) YankSelection(markCut bool) {
 // PasteSelection duplicates all yanked notes into the specified directory path.
 // It handles name conflicts by appending " Copy" to the note name until a unique
 // path is found. Returns an error if any note cannot be created.
-func (t *DirectoryTree) PasteSelection(dirPath string) message.StatusBarMsg {
+func (t *DirectoryTree) PasteSelection() message.StatusBarMsg {
 	statusMsg := message.StatusBarMsg{}
+
+	dirPath := t.SelectedDir().Path()
 
 	for _, dir := range t.yankedItems {
 		t.pasteSelection(dir, dirPath, func(newPath string) {

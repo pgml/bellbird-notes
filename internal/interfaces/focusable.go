@@ -16,5 +16,5 @@ type Focusable interface {
 	Refresh(resetSelectedIndex bool, resetPinned bool) message.StatusBarMsg
 	Remove() message.StatusBarMsg
 	YankSelection(markCut bool)
-	PasteSelection(dirPath string) message.StatusBarMsg
+	PasteSelection() message.StatusBarMsg
 }

@@ -628,8 +628,10 @@ func (l *NotesList) YankSelection(markCut bool) {
 // PasteSelection duplicates all yanked notes into the specified directory path.
 // It handles name conflicts by appending " Copy" to the note name until a unique
 // path is found. Returns an error if any note cannot be created.
-func (l *NotesList) PasteSelection(dirPath string) message.StatusBarMsg {
+func (l *NotesList) PasteSelection() message.StatusBarMsg {
 	statusMsg := message.StatusBarMsg{}
+
+	dirPath := l.CurrentPath
 
 	for _, note := range l.yankedItems {
 		l.pasteSelection(note, dirPath, func(newPath string) {

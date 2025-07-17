@@ -305,7 +305,7 @@ func (l *List[T]) pasteSelection(item T, dirPath string, cb func(string)) {
 	cb(newPath)
 }
 
-func (l *List[T]) PasteSelection(dirPath string) message.StatusBarMsg {
+func (l *List[T]) PasteSelection() message.StatusBarMsg {
 	return message.StatusBarMsg{}
 }
 
