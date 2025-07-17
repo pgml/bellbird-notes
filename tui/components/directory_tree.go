@@ -811,6 +811,12 @@ func (t *DirectoryTree) Create(
 // to confirm or cancel the removal of a directory
 func (t *DirectoryTree) ConfirmRemove() message.StatusBarMsg {
 	selectedDir := t.SelectedDir()
+
+	// prevent deleting root directory
+	if selectedDir == nil || t.SelectedIndex() == 0 {
+		return message.StatusBarMsg{Type: message.None}
+	}
+
 	t.EditState = EditStates.Delete
 
 	rootDir, _ := app.NotesRootDir()

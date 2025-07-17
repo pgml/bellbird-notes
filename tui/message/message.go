@@ -16,6 +16,7 @@ const (
 	Error
 	Prompt
 	PromptError
+	None
 )
 
 var msgColours = map[Type]color.Color{
@@ -23,6 +24,7 @@ var msgColours = map[Type]color.Color{
 	Error:       lipgloss.Color("#d75a7d"),
 	Prompt:      lipgloss.NoColor{},
 	PromptError: lipgloss.Color("#d75a7d"),
+	None:        lipgloss.NoColor{},
 }
 
 func (m Type) Colour() color.Color {

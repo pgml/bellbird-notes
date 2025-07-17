@@ -848,11 +848,18 @@ func (m *Model) remove() message.StatusBarMsg {
 	// confirmation before deleting anything
 	m.mode.Current = mode.Insert
 
+	statusMsg := message.StatusBarMsg{}
+
 	if f := m.focusedComponent(); f != nil {
 		m.statusBar.Focused = true
-		return f.ConfirmRemove()
+		statusMsg = f.ConfirmRemove()
 	}
-	return message.StatusBarMsg{}
+
+	if statusMsg.Type == message.None {
+		m.mode.Current = mode.Normal
+	}
+
+	return statusMsg
 }
 
 // goToTop moves the focused list to its first item
