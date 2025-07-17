@@ -875,12 +875,8 @@ func (t *DirectoryTree) ConfirmAction() message.StatusBarMsg {
 
 		switch t.EditState {
 		case EditStates.Rename:
-			if err := directories.Rename(oldPath, newPath); err == nil {
-				t.Refresh(false, false)
-				t.selectedIndex = t.indexByPath(
-					newPath,
-					&t.dirsListFlat,
-				)
+			if err := directories.Rename(oldPath, newPath); err != nil {
+				debug.LogErr(err)
 			}
 
 		case EditStates.Create:
@@ -888,6 +884,10 @@ func (t *DirectoryTree) ConfirmAction() message.StatusBarMsg {
 				directories.Create(newPath)
 			}
 		}
+
+		// selected the newly renamed or created directory
+		t.Refresh(false, false)
+		t.selectedIndex = t.indexByPath(newPath, &t.dirsListFlat)
 
 		t.CancelAction(func() {
 			t.Refresh(false, false)
