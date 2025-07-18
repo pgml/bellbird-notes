@@ -265,16 +265,10 @@ func (l *List[T]) resetEditor() {
 
 func (l *List[T]) YankSelection(markCut bool) {}
 
-// func (l *List[T]) pasteSelection(i int, dirPath string, cb func(string)) {
 func (l *List[T]) pasteSelection(item T, dirPath string, cb func(string)) {
-	isNote := l.isNote(item.Path())
 	name := item.Name()
 
 	var newPath string
-
-	if !isNote {
-		newPath = item.Path()
-	}
 
 	if item.IsCut() {
 		if item, ok := l.ItemsContain(item.Path()); ok {
@@ -286,7 +280,7 @@ func (l *List[T]) pasteSelection(item T, dirPath string, cb func(string)) {
 
 	// Ensure we always have a valid path
 	for {
-		if isNote {
+		if l.isNote(item.Path()) {
 			name = l.CheckName(dirPath, name)
 			newPath = notes.CheckPath(dirPath + "/" + name)
 
@@ -294,9 +288,10 @@ func (l *List[T]) pasteSelection(item T, dirPath string, cb func(string)) {
 				break
 			}
 		} else {
-			newPath = l.CheckName(newPath, "")
+			name = l.CheckName(dirPath, name)
+			newPath = dirPath + "/" + name
 
-			if !directories.Exists(newPath) {
+			if _, err := directories.Exists(newPath); err != nil {
 				break
 			}
 		}
@@ -312,7 +307,7 @@ func (l *List[T]) PasteSelection() message.StatusBarMsg {
 // checkName ensures that the note name does not conflict with existing notes
 // in the specified directory. If a conflict exists, it appends " Copy" to the name.
 func (l *List[T]) CheckName(dirPath string, name string) string {
-	if l.isNote(name) || name != "" {
+	if l.isNote(name) {
 		// In case this is a note we check for the extension.
 		// If it's not a name it should return
 		newPath := notes.CheckPath(dirPath + "/" + name)
@@ -320,15 +315,13 @@ func (l *List[T]) CheckName(dirPath string, name string) string {
 		if notes.Exists(newPath) {
 			name += " Copy"
 		}
-
-		return name
 	} else {
-		if directories.Exists(dirPath) {
-			dirPath += " Copy"
+		if _, err := directories.Exists(dirPath + "/" + name); err == nil {
+			name += " Copy"
 		}
-
-		return dirPath
 	}
+
+	return name
 }
 
 func (l *List[T]) isNote(name string) bool {

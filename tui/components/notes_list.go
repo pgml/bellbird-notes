@@ -634,22 +634,24 @@ func (l *NotesList) PasteSelection() message.StatusBarMsg {
 
 	for _, note := range l.yankedItems {
 		l.pasteSelection(note, dirPath, func(newPath string) {
-			if err := notes.Copy(note.Path(), newPath); err == nil {
-				l.Refresh(true, true)
+			err := notes.Copy(note.Path(), newPath)
 
-				// select the currently pasted item
-				if note, ok := l.ItemsContain(newPath); ok {
-					l.selectedIndex = note.index
-				}
-
-				// Remove the original note if it's marked for moving (cut)
-				if note.isCut {
-					if err := notes.Delete(note.path); err != nil {
-						debug.LogErr(err)
-					}
-				}
-			} else {
+			if err != nil {
 				debug.LogErr(err)
+			}
+
+			l.Refresh(true, true)
+
+			// select the currently pasted item
+			if note, ok := l.ItemsContain(newPath); ok {
+				l.selectedIndex = note.index
+			}
+
+			// Remove the original note if it's marked for moving (cut)
+			if note.isCut {
+				if err := notes.Delete(note.path); err != nil {
+					debug.LogErr(err)
+				}
 			}
 		})
 	}

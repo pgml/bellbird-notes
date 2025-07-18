@@ -72,10 +72,11 @@ func (d TreeItem) Name() string { return d.name }
 // Expanded returns the name of a Dir-Item
 func (d TreeItem) Expanded() bool { return d.expanded }
 
+func (d *TreeItem) SetExpanded(isExpanded bool) { d.expanded = isExpanded }
+
 // IsCut returns whether the dir item is cut
 func (d TreeItem) IsCut() bool { return d.isCut }
 
-// SetIsCut returns whether the dir item is cut
 func (d *TreeItem) SetIsCut(isCut bool) { d.isCut = isCut }
 
 // setIndentation sets the visual indentation for the tree item based on its level
@@ -948,26 +949,31 @@ func (t *DirectoryTree) YankSelection(markCut bool) {
 func (t *DirectoryTree) PasteSelection() message.StatusBarMsg {
 	statusMsg := message.StatusBarMsg{}
 
-	dirPath := t.SelectedDir().Path()
+	sel := t.SelectedDir()
 
 	for _, dir := range t.yankedItems {
-		t.pasteSelection(dir, dirPath, func(newPath string) {
-			if err := directories.Copy(dir.Path(), newPath); err == nil {
-				t.Refresh(false, false)
+		t.pasteSelection(dir, sel.Path(), func(newPath string) {
+			err := directories.Copy(dir.Path(), newPath)
 
-				// select the currently pasted item
-				if dir, ok := t.ItemsContain(newPath); ok {
-					t.selectedIndex = dir.index
-				}
-
-				// Remove the original note if it's marked for moving (cut)
-				if dir.isCut {
-					if err := directories.Delete(dir.path, true); err != nil {
-						debug.LogErr(err)
-					}
-				}
-			} else {
+			if err != nil {
 				debug.LogErr(err)
+				return
+			}
+
+			//t.Refresh(false, false)
+			t.RefreshBranch(sel.index, -1)
+			t.Expand()
+
+			// select the currently pasted item
+			if dir, ok := t.ItemsContain(newPath); ok {
+				t.selectedIndex = dir.index
+			}
+
+			// Remove the original note if it's marked for moving (cut)
+			if dir.isCut {
+				if err := directories.Delete(dir.path, true); err != nil {
+					debug.LogErr(err)
+				}
 			}
 		})
 	}

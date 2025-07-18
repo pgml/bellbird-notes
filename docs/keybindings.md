@@ -13,17 +13,19 @@
 
 ## Folders
 
-| Key        | Action            | Info                                                     |
-| ---------- | ----------------- | -------------------------------------------------------- |
-| `j`        | Folder down       |                                                          |
-| `k`        | Folder up         |                                                          |
-| `h`        | Collapse folder   |                                                          |
-| `l`        | Expand folder     |                                                          |
-| `d` or `n` | Create new folder | Creates a new folder as a sibling of the selected folder |
-| `D`        | Delete folder     | Deletes the selected folder                              |
-| `R`        | Rename folder     |                                                          |
-| `gg`       | Go to top         |                                                          |
-| `G`        | Go to bottom      |                                                          |
+| Key        | Action            | Info                                                       |
+| ---------- | ----------------- | ---------------------------------------------------------- |
+| `j`        | Folder down       |                                                            |
+| `k`        | Folder up         |                                                            |
+| `h`        | Collapse folder   |                                                            |
+| `l`        | Expand folder     |                                                            |
+| `d` or `n` | Create new folder | Creates a new folder as a sibling of the selected folder   |
+| `D`        | Delete folder     | Deletes the selected folder                                |
+| `R`        | Rename folder     |                                                            |
+| `gg`       | Go to top         |                                                            |
+| `G`        | Go to bottom      |                                                            |
+| `yy`       | Yank note         | Yanks selected directory                                   |
+| `p`        | Paste note        | pastes the yanked directory into the selected directory    |
 
 ## Notes
 

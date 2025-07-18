@@ -5,10 +5,9 @@ import (
 	"os"
 	"path/filepath"
 
-	cp "github.com/otiai10/copy"
-
 	"bellbird-notes/app/config"
 	"bellbird-notes/app/debug"
+	"bellbird-notes/app/notes"
 	"bellbird-notes/app/utils"
 	"bellbird-notes/tui/bb_errors"
 )
@@ -158,27 +157,67 @@ func Delete(path string, deleteContent bool) error {
 	return nil
 }
 
-func Copy(oldPath, newPath string) error {
-	err := cp.Copy(oldPath, newPath, cp.Options{
-		//Skip: func(srcinfo os.FileInfo, src string, dest string) (bool, error) {
-		//	return strings
-		//},
-	})
+func Copy(src, dst string) error {
+	src = filepath.Clean(src)
+	dst = filepath.Clean(dst)
 
+	fi, err := Exists(src)
 	if err != nil {
-		debug.LogErr(oldPath, newPath)
+		debug.LogErr(err)
 		return err
 	}
 
-	return nil
+	err = os.MkdirAll(dst, fi.Mode())
+	if err != nil {
+		debug.LogErr(err)
+		return err
+	}
+
+	entries, err := os.ReadDir(src)
+	if err != nil {
+		debug.LogErr(err)
+		return err
+	}
+
+	for _, entry := range entries {
+		srcPath := filepath.Join(src, entry.Name())
+		dstPath := filepath.Join(dst, entry.Name())
+
+		// skip if we are copying into the directory that we yanked
+		// to prevent an infinite loop
+		if entry.Name() == filepath.Base(src) {
+			continue
+		}
+
+		if entry.IsDir() {
+			err = Copy(srcPath, dstPath)
+
+			if err != nil {
+				debug.LogErr(err)
+				return err
+			}
+		} else {
+			err = notes.Copy(srcPath, dstPath)
+
+			if err != nil {
+				debug.LogErr(err)
+				return err
+			}
+		}
+	}
+
+	return err
 }
 
 // Exists checks whether a file exists at the given path.
-func Exists(path string) bool {
-	if _, err := os.Stat(path); errors.Is(err, os.ErrNotExist) {
-		return false
+func Exists(path string) (os.FileInfo, error) {
+	info, err := os.Stat(path)
+
+	if errors.Is(err, os.ErrNotExist) {
+		return info, err
 	}
-	return true
+
+	return info, nil
 }
 
 // isHidden returns true if the given filename or path starts with a dot ('.')
