@@ -981,7 +981,7 @@ func (t *DirectoryTree) PasteSelection() message.StatusBarMsg {
 	return statusMsg
 }
 
-// ItemByPath returns the ListItem with the given path from the List.
+// ItemsContain returns the ListItem with the given path from the List.
 // If no such item exists, it returns a nil and an error.
 func (t *DirectoryTree) ItemsContain(path string) (*TreeItem, bool) {
 	for _, item := range t.dirsListFlat {

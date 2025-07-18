@@ -79,8 +79,8 @@ type Buffer struct {
 	// Dirty indicates whether the buffer has unsaved changes
 	Dirty bool
 
-	// LastSavedContent is the last saved content of the buffer
-	LastSavedContent *string
+	// LastSavedContentHash is the hash of the last saved content of the buffer
+	LastSavedContentHash string
 
 	// Header is the title of the buffer
 	// If not nil, the path as a breadcrumb is displayed
@@ -323,13 +323,14 @@ func (e *Editor) NewBuffer(path string) message.StatusBarMsg {
 	cursorPos := e.cursorPosFromConf(path)
 
 	buf := Buffer{
-		Index:             len(*e.Buffers) + 1,
-		path:              path,
-		Content:           noteContent,
-		History:           textarea.NewHistory(),
-		CurrentLine:       0,
-		CurrentLineLength: 0,
-		CursorPos:         cursorPos,
+		Index:                len(*e.Buffers) + 1,
+		path:                 path,
+		Content:              noteContent,
+		History:              textarea.NewHistory(),
+		CurrentLine:          0,
+		CurrentLineLength:    0,
+		CursorPos:            cursorPos,
+		LastSavedContentHash: "",
 	}
 
 	*e.Buffers = append(*e.Buffers, buf)
@@ -344,7 +345,8 @@ func (e *Editor) NewBuffer(path string) message.StatusBarMsg {
 	e.newHistoryEntry()
 
 	e.CurrentBuffer.History.UpdateEntry(content, buf.CursorPos)
-	e.CurrentBuffer.LastSavedContent = &content
+	contentHash := utils.HashContent(content)
+	e.CurrentBuffer.LastSavedContentHash = contentHash
 
 	e.Textarea.SetValue(content)
 	e.Textarea.MoveCursor(
@@ -420,7 +422,8 @@ func (e *Editor) SaveBuffer() message.StatusBarMsg {
 		relativePath, e.Textarea.LineCount(), bytes,
 	)
 
-	e.CurrentBuffer.LastSavedContent = &bufContent
+	contentHash := utils.HashContent(bufContent)
+	e.CurrentBuffer.LastSavedContentHash = contentHash
 
 	statusMsg.Content = resultMsg
 	return statusMsg
@@ -641,8 +644,8 @@ func (e *Editor) updateHistoryEntry() {
 // buffer is unsaved and the content differs from the saved content's file
 // func (e *Editor) checkDirty(fn func()) bool {
 func (e *Editor) checkDirty() bool {
-	if saved := e.CurrentBuffer.LastSavedContent; saved != nil {
-		isDirty := e.Textarea.Value() != *saved
+	if saved := e.CurrentBuffer.LastSavedContentHash; saved != "" {
+		isDirty := utils.HashContent(e.Textarea.Value()) != saved
 		e.CurrentBuffer.Dirty = isDirty
 		return isDirty
 	}
@@ -1136,7 +1139,7 @@ func (e *Editor) Undo() message.StatusBarMsg {
 	curBuf := e.CurrentBuffer
 
 	// dirty check
-	curBuf.Dirty = val != *curBuf.LastSavedContent
+	curBuf.Dirty = val != curBuf.LastSavedContentHash
 	e.Textarea.SetValue(val)
 
 	entryIndex := curBuf.History.EntryIndex
@@ -1166,7 +1169,7 @@ func (e *Editor) Undo() message.StatusBarMsg {
 func (e *Editor) Redo() message.StatusBarMsg {
 	val, cursorPos := e.CurrentBuffer.redo()
 	// dirty check
-	e.CurrentBuffer.Dirty = val != *e.CurrentBuffer.LastSavedContent
+	e.CurrentBuffer.Dirty = val != e.CurrentBuffer.LastSavedContentHash
 	e.Textarea.SetValue(val)
 	e.Textarea.MoveCursor(
 		cursorPos.Row,

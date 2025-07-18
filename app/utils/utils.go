@@ -1,6 +1,8 @@
 package utils
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -98,4 +100,9 @@ func PathFromUrl(path string) string {
 	}
 
 	return filepath.FromSlash(p)
+}
+
+func HashContent(s string) string {
+	sum := sha256.New().Sum([]byte(s))
+	return hex.EncodeToString(sum)
 }
