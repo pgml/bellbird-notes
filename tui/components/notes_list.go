@@ -236,6 +236,8 @@ func NewNotesList(conf *config.Config) *NotesList {
 	return list
 }
 
+func (l NotesList) Name() string { return "Notes" }
+
 // build prepares the notes list as a string
 func (l NotesList) build() string {
 	var list strings.Builder

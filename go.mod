@@ -25,6 +25,7 @@ require (
 	github.com/charmbracelet/x/windows v0.2.1 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
 	github.com/muesli/cancelreader v0.2.2 // indirect
+	github.com/tailscale/hujson v0.0.0-20250605163823-992244df8c5a // indirect
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
 	golang.org/x/exp/shiny v0.0.0-20250606033433-dcc06ee1d476 // indirect
 	golang.org/x/image v0.28.0 // indirect

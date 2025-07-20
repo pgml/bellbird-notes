@@ -4,7 +4,7 @@ import tea "github.com/charmbracelet/bubbletea/v2"
 
 func (e *Editor) handleInsertMode(msg tea.KeyMsg) tea.Cmd {
 	if msg.String() == "esc" {
-		e.EnterNormalMode()
+		e.EnterNormalMode(true)
 		return nil
 	}
 

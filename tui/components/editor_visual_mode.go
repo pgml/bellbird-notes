@@ -7,7 +7,7 @@ import (
 func (e *Editor) handleVisualMode(msg tea.KeyMsg) tea.Cmd {
 	if msg.String() == "esc" {
 		e.Textarea.ResetSelection()
-		e.EnterNormalMode()
+		e.EnterNormalMode(true)
 		return nil
 	}
 

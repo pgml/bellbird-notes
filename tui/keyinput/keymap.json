@@ -1,0 +1,148 @@
+[
+	{
+		"components": ["Folders", "Notes", "Editor"],
+		"mode": "normal",
+		"bindings": {
+			":": "EnterCommand",
+			"enter": "ConfirmAction",
+			"esc": "CancelAction",
+			"gg": "GoToTop",
+			"G": "GoToBottom",
+			"ctrl+w l": "FocusNextColumn",
+			"ctrl+w ctrl+l": "FocusNextColumn",
+			"ctrl+w h": "FocusPrevColumn",
+			"ctrl+w ctrl+h": "FocusPrevColumn",
+			"space e": "ShowOpenNotes",
+			"space q": "CloseNote",
+		}
+	},
+	{
+		"components": ["Folders", "Notes", "Editor"],
+		"mode": "command",
+		"bindings": {
+			"enter": "ConfirmAction",
+			"esc": "CancelAction",
+		}
+	},
+	{
+		"components": ["Folders", "Notes"],
+		"mode": "normal",
+		"bindings": {
+			"R": "RenameListItem",
+			"D": "DeleteListItem",
+			"P": "TogglePinListItem",
+			"yy": "YankListItem",
+			"dd": "CutListItem",
+			"p": "PasteListItem",
+		}
+	},
+	{
+		"components": ["Folders", "Notes"],
+		"mode": "insert",
+		"bindings": {
+			"enter": "ConfirmAction",
+			"esc": "CancelAction",
+		}
+	},
+	{
+		"components": ["Folders"],
+		"mode": "normal",
+		"bindings": {
+			"j": "LineDown",
+			"k": "LineUp",
+			"l": "TreeExpand",
+			"h": "TreeCollapse",
+			"d": "CreateFolder",
+			"v": "ToggleVisual",
+			"V": "ToggleVisualLine",
+		}
+	},
+	{
+		"components": ["Notes"],
+		"mode": "normal",
+		"bindings": {
+			"j": "LineDown",
+			"k": "LineUp",
+			"%": "CreateNote",
+		}
+	},
+	{
+		"components": ["Editor"],
+		"bindings": {
+			"j": ["LineDown", { "multiline": false }],
+			"k": ["LineUp", { "multiline": false }],
+			"l": "CharacterRight",
+			"h": "CharacterLeft",
+			"gj": ["LineDown", { "multiline": true }],
+			"gk": ["LineUp", { "multiline": true }],
+			"ctrl+d": "DownHalfPage",
+			"ctrl+u": "UpHalfPage",
+			"v": "ToggleVisual",
+			"V": "ToggleVisualLine",
+			//"ctrl+v": "ToggleVisualBlock",
+			"w": ["NextWord", { "end": false }],
+			"e": ["NextWord", { "end": true }],
+			"b": ["PrevWord", { "end": false }],
+			"ge": ["PrevWord", { "end": true }],
+			"^": "GoToFirstNonWhiteSpace",
+			"_": "GoToFirstNonWhiteSpace",
+			"0": "GoToLineStart",
+			"$": "GoToLineEnd",
+			"J": ["MergeLines", { "with_space": false }],
+			//"gJ": ["MergeLines", { "with_space": true }],
+			"s": "SubstituteText",
+			"x": "DeleteCharacter",
+			"p": "Paste",
+		},
+	},
+	{
+		"components": ["Editor"],
+		"mode": "normal",
+		"bindings": {
+			"i": "InsertBefore",
+			"I": "InsertBeforeLine",
+			"a": "InsertAfter",
+			"A": "InsertAfterLine",
+			"u": "Undo",
+			"ctrl+r": "Redo",
+			"o": "InsertBelow",
+			"O": "InsertAbove",
+			"r": "Replace",
+			"dd": "DeleteLine",
+			"dw": ["DeleteWord", { "remaining": true }],
+			"diw": ["DeleteWord", { "outer": false }],
+			"daw": ["DeleteWord", { "outer": true }],
+			"D": "DeleteAfterCursor",
+			"C": "ChangeAfterCursor",
+			"cc": "ChangeLine",
+			"ciw": ["ChangeWord", { "outer": false }],
+			"caw": ["ChangeWord", { "outer": true }],
+			"yy": "YankLine",
+			"yiw": ["YankWord", { "outer": false }],
+			"yaw": ["YankWord", { "outer": true }],
+		}
+	},
+	{
+		"components": ["Editor"],
+		"mode": "visual",
+		"bindings": {
+			"iw": ["SelectWord", { "outer": false }],
+			"aw": ["SelectWord", { "outer": true }],
+			"d": "DeleteSelection",
+			"D": "DeleteLine",
+			"c": "SubstituteText",
+			"y": "YankSelection",
+		}
+	},
+	{
+		"components": ["Editor"],
+		"mode": "visual_line",
+		"bindings": {
+			"d": "DeleteSelection",
+			"D": "DeleteLine",
+			"c": ["SubstituteText", { "new_line": true }],
+			"y": "YankSelection",
+		}
+	},
+]
+

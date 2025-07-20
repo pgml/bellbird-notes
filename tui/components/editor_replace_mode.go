@@ -1,10 +1,12 @@
 package components
 
-import tea "github.com/charmbracelet/bubbletea/v2"
+import (
+	tea "github.com/charmbracelet/bubbletea/v2"
+)
 
 func (e *Editor) handleReplaceMode(msg tea.KeyMsg) tea.Cmd {
 	if msg.String() == "esc" {
-		e.EnterNormalMode()
+		e.EnterNormalMode(true)
 		return nil
 	}
 
@@ -15,7 +17,7 @@ func (e *Editor) handleReplaceMode(msg tea.KeyMsg) tea.Cmd {
 		// convert string character to rune
 		rune := []rune(msg.String())[0]
 		e.Textarea.ReplaceRune(rune)
-		e.EnterNormalMode()
+		e.EnterNormalMode(true)
 	}
 
 	return nil

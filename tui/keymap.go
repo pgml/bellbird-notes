@@ -14,663 +14,74 @@ import (
 	sbc "bellbird-notes/tui/types/statusbar_column"
 )
 
-type c = ki.FocusedComponent
-type keyAction = ki.KeyFn
-type keyCond = ki.KeyCondition
-type binding = ki.KeyBinding
-
-const (
-	n  = mode.Normal
-	v  = mode.Visual
-	vl = mode.VisualLine
-	vb = mode.VisualBlock
-)
-
-func (m *Model) KeyInputFn() []ki.KeyFn {
-	return []keyAction{
-		// LINE DOWN
-		{
-			Bindings: ki.KeyBindings("j"),
-			Cond: []keyCond{
-				{
-					Mode:       mode.Normal,
-					Components: []c{m.dirTree, m.notesList, m.bufferList},
-					Action:     m.lineDown,
-				},
-				m.editorInputAction(n, m.editor.LineDown),
-				m.editorInputAction(v, m.editor.LineDown),
-				m.editorInputAction(vl, m.editor.LineDown),
-				m.editorInputAction(vb, m.editor.LineDown),
-			},
-		},
-
-		// LINE UP
-		{
-			Bindings: ki.KeyBindings("k"),
-			Cond: []keyCond{
-				{
-					Mode:       mode.Normal,
-					Components: []c{m.dirTree, m.notesList, m.bufferList},
-					Action:     m.lineUp,
-				},
-				m.editorInputAction(n, m.editor.LineUp),
-				m.editorInputAction(v, m.editor.LineUp),
-				m.editorInputAction(vl, m.editor.LineUp),
-				m.editorInputAction(vb, m.editor.LineUp),
-			},
-		},
-
-		// TREE COLLAPSE, EDITOR CHARACTER LEFT
-		{
-			Bindings: ki.KeyBindings("h"),
-			Cond: []keyCond{
-				{
-					Mode:       mode.Normal,
-					Components: []c{m.dirTree},
-					Action:     m.dirTree.Collapse,
-				},
-				m.editorInputAction(n, m.editor.MoveCharacterLeft),
-				m.editorInputAction(v, m.editor.MoveCharacterLeft),
-				m.editorInputAction(vl, m.editor.MoveCharacterLeft),
-				m.editorInputAction(vb, m.editor.MoveCharacterLeft),
-			},
-		},
-
-		// TREE EXPAND, EDITOR CHARACTER RIGHT
-		{
-			Bindings: ki.KeyBindings("l"),
-			Cond: []keyCond{
-				{
-					Mode:       mode.Normal,
-					Components: []c{m.dirTree},
-					Action:     m.dirTree.Expand,
-				},
-				m.editorInputAction(n, m.editor.MoveCharacterRight),
-				m.editorInputAction(v, m.editor.MoveCharacterRight),
-				m.editorInputAction(vl, m.editor.MoveCharacterRight),
-				m.editorInputAction(vb, m.editor.MoveCharacterRight),
-			},
-		},
-
-		// Editor multiline down
-		{
-			Bindings: ki.KeyBindings("gj"),
-			Cond: []keyCond{
-				{
-					Mode:       mode.Normal,
-					Components: []c{m.dirTree},
-					Action:     m.dirTree.Expand,
-				},
-				m.editorInputAction(n, m.editor.MultiLineDown),
-				m.editorInputAction(v, m.editor.MultiLineDown),
-				m.editorInputAction(vl, m.editor.MultiLineDown),
-				m.editorInputAction(vb, m.editor.MultiLineDown),
-			},
-		},
-
-		// Editor multiline up
-		{
-			Bindings: ki.KeyBindings("gk"),
-			Cond: []keyCond{
-				{
-					Mode:       mode.Normal,
-					Components: []c{m.dirTree},
-					Action:     m.dirTree.Expand,
-				},
-				m.editorInputAction(n, m.editor.MultiLineUp),
-				m.editorInputAction(v, m.editor.MultiLineUp),
-				m.editorInputAction(vl, m.editor.MultiLineUp),
-				m.editorInputAction(vb, m.editor.MultiLineUp),
-			},
-		},
-
-		// CREATE DIR
-		{
-			Bindings: ki.KeyBindings("d", "n"),
-			Cond: []keyCond{{
-				Mode:       mode.Normal,
-				Components: []c{m.dirTree},
-				Action:     m.createDir,
-			}},
-		},
-
-		// DELETE DIR/NOTE
-		{
-			Bindings: ki.KeyBindings("D"),
-			Cond: []keyCond{{
-				Mode:       mode.Normal,
-				Components: []c{m.dirTree, m.notesList},
-				Action:     m.remove,
-			}},
-		},
-
-		// CREATE NOTE
-		{
-			Bindings: ki.KeyBindings("%", "n"),
-			Cond: []keyCond{{
-				Mode:       mode.Normal,
-				Components: []c{m.notesList},
-				Action:     m.createNote,
-			}},
-		},
-
-		// TREE/NOTE RENAME
-		{
-			Bindings: ki.KeyBindings("R"),
-			Cond: []keyCond{{
-				Mode:       mode.Normal,
-				Components: []c{m.dirTree, m.notesList},
-				Action:     m.rename,
-			}},
-		},
-
-		// Pin/unpin
-		{
-			Bindings: ki.KeyBindings("P"),
-			Cond: []keyCond{{
-				Mode:       mode.Normal,
-				Components: []c{m.dirTree, m.notesList},
-				Action:     m.TogglePin,
-			}},
-		},
-
-		{
-			Bindings: ki.KeyBindings("gg"),
-			Cond: []keyCond{
-				{
-					Mode:       mode.Normal,
-					Components: []c{m.dirTree, m.notesList},
-					Action:     m.goToTop,
-				},
-				m.editorInputAction(n, m.editor.GoToTop),
-				m.editorInputAction(v, m.editor.GoToTop),
-				m.editorInputAction(vl, m.editor.GoToTop),
-				m.editorInputAction(vb, m.editor.GoToTop),
-			},
-		},
-		{
-			Bindings: ki.KeyBindings("G"),
-			Cond: []keyCond{
-				{
-					Mode:       mode.Normal,
-					Components: []c{m.dirTree, m.notesList},
-					Action:     m.goToBottom,
-				},
-				m.editorInputAction(n, m.editor.GoToBottom),
-				m.editorInputAction(v, m.editor.GoToBottom),
-				m.editorInputAction(vl, m.editor.GoToBottom),
-				m.editorInputAction(vb, m.editor.GoToBottom),
-			},
-		},
-
-		{
-			Bindings: ki.KeyBindings("i"),
-			Cond: []keyCond{m.editorInputAction(n, func() message.StatusBarMsg {
-				return m.editor.EnterInsertMode(true)
-			})},
-		},
-		{
-			Bindings: ki.KeyBindings("I"),
-			Cond:     []keyCond{m.editorInputAction(n, m.editor.InsertLineStart)},
-		},
-		{
-			Bindings: ki.KeyBindings("a"),
-			Cond:     []keyCond{m.editorInputAction(n, m.editor.InsertAfter)},
-		},
-		{
-			Bindings: ki.KeyBindings("A"),
-			Cond:     []keyCond{m.editorInputAction(n, m.editor.InsertLineEnd)},
-		},
-		{
-			Bindings: ki.KeyBindings("r"),
-			Cond:     []keyCond{m.editorInputAction(n, m.editor.EnterReplaceMode)},
-		},
-		{
-			Bindings: ki.KeyBindings("v"),
-			Cond: []keyCond{
-				m.editorInputAction(n, func() message.StatusBarMsg {
-					return m.editor.EnterVisualMode(textarea.SelectVisual)
-				}),
-				m.editorInputAction(v, m.editor.EnterNormalMode),
-				m.editorInputAction(vl, func() message.StatusBarMsg {
-					return m.editor.EnterVisualMode(textarea.SelectVisual)
-				}),
-				m.editorInputAction(vb, func() message.StatusBarMsg {
-					return m.editor.EnterVisualMode(textarea.SelectVisual)
-				}),
-			},
-		},
-		{
-			Bindings: ki.KeyBindings("iw"),
-			Cond:     []keyCond{m.editorInputAction(v, m.editor.SelectInnerWord)},
-		},
-		{
-			Bindings: ki.KeyBindings("aw"),
-			Cond:     []keyCond{m.editorInputAction(v, m.editor.SelectOuterWord)},
-		},
-		{
-			Bindings: ki.KeyBindings("V"),
-			Cond: []keyCond{
-				m.editorInputAction(n, func() message.StatusBarMsg {
-					return m.editor.EnterVisualMode(textarea.SelectVisualLine)
-				}),
-				m.editorInputAction(v, func() message.StatusBarMsg {
-					return m.editor.EnterVisualMode(textarea.SelectVisualLine)
-				}),
-				m.editorInputAction(vl, m.editor.EnterNormalMode),
-			},
-		},
-		{
-			Bindings: ki.KeyBindings("u"),
-			Cond:     []keyCond{m.editorInputAction(n, m.editor.Undo)},
-		},
-		{
-			Bindings: ki.KeyBindings("ctrl+r"),
-			Cond:     []keyCond{m.editorInputAction(n, m.editor.Redo)},
-		},
-		{
-			Bindings: ki.KeyBindings("w"),
-			Cond: []keyCond{
-				m.editorInputAction(n, m.editor.WordRightStart),
-				m.editorInputAction(v, m.editor.WordRightStart),
-				m.editorInputAction(vl, m.editor.WordRightStart),
-				m.editorInputAction(vb, m.editor.WordRightStart),
-			},
-		},
-		{
-			Bindings: ki.KeyBindings("e"),
-			Cond: []keyCond{
-				m.editorInputAction(n, m.editor.WordRightEnd),
-				m.editorInputAction(v, m.editor.WordRightEnd),
-				m.editorInputAction(vl, m.editor.WordRightEnd),
-				m.editorInputAction(vb, m.editor.WordRightEnd),
-			},
-		},
-		{
-			Bindings: ki.KeyBindings("b"),
-			Cond: []keyCond{
-				m.editorInputAction(n, m.editor.WordBack),
-				m.editorInputAction(v, m.editor.WordBack),
-				m.editorInputAction(vl, m.editor.WordBack),
-				m.editorInputAction(vb, m.editor.WordBack),
-			},
-		},
-		{
-			Bindings: ki.KeyBindings("^", "_"),
-			Cond: []keyCond{
-				m.editorInputAction(n, m.editor.GoToInputStart),
-				m.editorInputAction(v, m.editor.GoToInputStart),
-				m.editorInputAction(vl, m.editor.GoToInputStart),
-				m.editorInputAction(vb, m.editor.GoToInputStart),
-			},
-		},
-		{
-			Bindings: ki.KeyBindings("0"),
-			Cond: []keyCond{
-				m.editorInputAction(n, m.editor.GoToLineStart),
-				m.editorInputAction(v, m.editor.GoToLineStart),
-				m.editorInputAction(vl, m.editor.GoToLineStart),
-				m.editorInputAction(vb, m.editor.GoToLineStart),
-			},
-		},
-		{
-			Bindings: ki.KeyBindings("$"),
-			Cond: []keyCond{
-				m.editorInputAction(n, m.editor.GoToLineEnd),
-				m.editorInputAction(v, m.editor.GoToLineEnd),
-				m.editorInputAction(vl, m.editor.GoToLineEnd),
-				m.editorInputAction(vb, m.editor.GoToLineEnd),
-			},
-		},
-		{
-			Bindings: ki.KeyBindings("J"),
-			Cond:     []keyCond{m.editorInputAction(n, m.editor.MergeLineBelow)},
-		},
-		{
-			Bindings: ki.KeyBindings("o"),
-			Cond:     []keyCond{m.editorInputAction(n, m.editor.InsertLineBelow)},
-		},
-		{
-			Bindings: ki.KeyBindings("O"),
-			Cond:     []keyCond{m.editorInputAction(n, m.editor.InsertLineAbove)},
-		},
-		{
-			Bindings: ki.KeyBindings("dd"),
-			Cond: []keyCond{
-				{
-					Mode:       n,
-					Components: []c{m.dirTree, m.notesList},
-					Action:     m.cutListItem,
-				},
-				m.editorInputAction(n, m.editor.DeleteLine),
-			},
-		},
-		{
-			Bindings: ki.KeyBindings("diw"),
-			Cond: []keyCond{m.editorInputAction(n, func() message.StatusBarMsg {
-				return m.editor.DeleteInnerWord(false)
-			})},
-		},
-		{
-			Bindings: ki.KeyBindings("daw"),
-			Cond: []keyCond{m.editorInputAction(n, func() message.StatusBarMsg {
-				return m.editor.DeleteOuterWord(false)
-			})},
-		},
-		{
-			Bindings: ki.KeyBindings("dj"),
-			Cond: []keyCond{{
-				Mode:       n,
-				Components: []c{m.editor},
-				Action: func() message.StatusBarMsg {
-					return m.editor.DeleteNLines(2, false)
-				},
-			}},
-		},
-		{
-			Bindings: ki.KeyBindings("dk"),
-			Cond: []keyCond{{
-				Mode:       n,
-				Components: []c{m.editor},
-				Action: func() message.StatusBarMsg {
-					return m.editor.DeleteNLines(2, true)
-				},
-			}},
-		},
-		{
-			Bindings: ki.KeyBindings("dw"),
-			Cond:     []keyCond{m.editorInputAction(n, m.editor.DeleteWordRight)},
-		},
-		{
-			Bindings: ki.KeyBindings("D"),
-			Cond: []keyCond{
-				m.editorInputAction(n, func() message.StatusBarMsg {
-					return m.editor.DeleteAfterCursor(false)
-				}),
-				m.editorInputAction(v, m.editor.DeleteLine),
-				m.editorInputAction(vl, m.editor.DeleteLine),
-				m.editorInputAction(vb, m.editor.DeleteLine),
-			},
-		},
-		{
-			Bindings: ki.KeyBindings("d"),
-			Cond: []keyCond{
-				m.editorInputAction(v, func() message.StatusBarMsg {
-					return m.editor.DeleteRune(false, true)
-				}),
-				m.editorInputAction(vl, func() message.StatusBarMsg {
-					return m.editor.DeleteRune(false, true)
-				}),
-				m.editorInputAction(vb, func() message.StatusBarMsg {
-					return m.editor.DeleteRune(false, true)
-				}),
-			},
-		},
-		{
-			Bindings: ki.KeyBindings("s"),
-			Cond: []keyCond{
-				m.editorInputAction(n, func() message.StatusBarMsg {
-					msg := m.editor.DeleteRune(false, true)
-					m.editor.EnterInsertMode(true)
-					return msg
-				}),
-				m.editorInputAction(v, func() message.StatusBarMsg {
-					msg := m.editor.DeleteRune(false, true)
-					m.editor.EnterInsertMode(true)
-					return msg
-				}),
-			},
-		},
-		{
-			Bindings: ki.KeyBindings("x"),
-			Cond: []keyCond{
-				m.editorInputAction(n, func() message.StatusBarMsg {
-					return m.editor.DeleteRune(false, true)
-				}),
-				m.editorInputAction(v, func() message.StatusBarMsg {
-					return m.editor.DeleteRune(false, true)
-				}),
-				m.editorInputAction(vl, func() message.StatusBarMsg {
-					return m.editor.DeleteRune(false, true)
-				}),
-				m.editorInputAction(vb, func() message.StatusBarMsg {
-					return m.editor.DeleteRune(false, true)
-				}),
-			},
-		},
-		{
-			Bindings: ki.KeyBindings("c"),
-			Cond: []keyCond{m.editorInputAction(v, func() message.StatusBarMsg {
-				curMode := m.editor.Textarea.Selection.Mode
-				isVisLine := curMode == textarea.SelectVisualLine
-
-				m.editor.DeleteRune(isVisLine, !isVisLine)
-
-				if isVisLine {
-					m.editor.InsertLineAbove()
-				} else {
-					m.editor.EnterInsertMode(false)
-				}
-
-				return m.editor.ResetSelectedRowsCount()
-			})},
-		},
-		{
-			Bindings: ki.KeyBindings("C"),
-			Cond: []keyCond{m.editorInputAction(n, func() message.StatusBarMsg {
-				m.editor.DeleteAfterCursor(true)
-				m.editor.MoveCharacterRight()
-				m.editor.EnterInsertMode(false)
-				return message.StatusBarMsg{}
-			})},
-		},
-		{
-			Bindings: ki.KeyBindings("cc"),
-			Cond: []keyCond{m.editorInputAction(n, func() message.StatusBarMsg {
-				m.editor.GoToLineStart()
-				m.editor.DeleteAfterCursor(false)
-				m.editor.EnterInsertMode(false)
-				return m.editor.ResetSelectedRowsCount()
-			})},
-		},
-		{
-			Bindings: ki.KeyBindings("ciw"),
-			Cond: []keyCond{m.editorInputAction(n, func() message.StatusBarMsg {
-				return m.editor.DeleteInnerWord(true)
-			})},
-		},
-		{
-			Bindings: ki.KeyBindings("caw"),
-			Cond: []keyCond{m.editorInputAction(n, func() message.StatusBarMsg {
-				return m.editor.DeleteOuterWord(true)
-			})},
-		},
-		{
-			Bindings: ki.KeyBindings("y"),
-			Cond: []keyCond{
-				m.editorInputAction(v, func() message.StatusBarMsg { return m.editor.YankSelection(false) }),
-				m.editorInputAction(vl, func() message.StatusBarMsg { return m.editor.YankSelection(false) }),
-				m.editorInputAction(vb, func() message.StatusBarMsg { return m.editor.YankSelection(false) }),
-			},
-		},
-		{
-			Bindings: ki.KeyBindings("yy"),
-			Cond: []keyCond{
-				{
-					Mode:       n,
-					Components: []c{m.dirTree, m.notesList},
-					Action:     m.yankListItem,
-				},
-				m.editorInputAction(n, m.editor.YankLine),
-			},
-		},
-		{
-			Bindings: ki.KeyBindings("yiw"),
-			Cond:     []keyCond{m.editorInputAction(n, m.editor.YankInnerWord)},
-		},
-		{
-			Bindings: ki.KeyBindings("yaw"),
-			Cond:     []keyCond{m.editorInputAction(n, m.editor.YankOuterWord)},
-		},
-		{
-			Bindings: ki.KeyBindings("p"),
-			Cond: []keyCond{
-				{
-					Mode:       n,
-					Components: []c{m.dirTree, m.notesList},
-					Action:     m.pasteListItem,
-				},
-				m.editorInputAction(n, m.editor.Paste),
-				//m.editorInputAction(v, m.editor.DeleteRune),
-			},
-		},
-		{
-			Bindings: ki.KeyBindings("ctrl+d"),
-			Cond: []keyCond{
-				m.editorInputAction(n, m.editor.DownHalfPage),
-				m.editorInputAction(v, m.editor.DownHalfPage),
-				m.editorInputAction(vl, m.editor.DownHalfPage),
-				m.editorInputAction(vb, m.editor.DownHalfPage),
-			},
-		},
-		{
-			Bindings: ki.KeyBindings("ctrl+u"),
-			Cond: []keyCond{
-				m.editorInputAction(n, m.editor.UpHalfPage),
-				m.editorInputAction(v, m.editor.UpHalfPage),
-				m.editorInputAction(vl, m.editor.UpHalfPage),
-				m.editorInputAction(vb, m.editor.UpHalfPage),
-			},
-		},
-
-		// ENTER CMD MODE
-		{
-			Bindings: ki.KeyBindings(":"),
-			Cond: []keyCond{{
-				Mode:       mode.Normal,
-				Components: []c{m.dirTree, m.notesList, m.editor},
-				Action:     m.enterCmdMode,
-			}},
-		},
-
-		// CONFIRM ACTION
-		{
-			Bindings: ki.KeyBindings("enter"),
-			Cond: []keyCond{{
-				Mode:       mode.Normal,
-				Components: []c{m.dirTree, m.notesList, m.bufferList},
-				Action:     m.confirmAction,
-			}, {
-				Mode:       mode.Insert,
-				Components: []c{m.dirTree, m.notesList},
-				Action:     m.confirmAction,
-			}, {
-				Mode:       mode.Command,
-				Components: []c{m.dirTree, m.notesList, m.editor},
-				Action:     m.confirmAction,
-			}},
-		},
-
-		// CANCEL ACTION
-		{
-			Bindings: ki.KeyBindings("esc"),
-			Cond: []keyCond{{
-				Mode:       mode.Normal,
-				Components: []c{m.dirTree, m.notesList, m.editor, m.bufferList},
-				Action:     m.cancelAction,
-			}, {
-				Mode:       mode.Insert,
-				Components: []c{m.dirTree, m.notesList},
-				Action:     m.cancelAction,
-			}, {
-				Mode:       mode.Command,
-				Components: []c{m.dirTree, m.notesList, m.editor},
-				Action:     m.cancelAction,
-			}, {
-				Mode:       mode.Replace,
-				Components: []c{m.editor},
-				Action:     m.editor.EnterNormalMode,
-			}, {
-				Mode:       mode.Visual,
-				Components: []c{m.editor},
-				Action:     m.editor.EnterNormalMode,
-			}, {
-				Mode:       mode.VisualLine,
-				Components: []c{m.editor},
-				Action:     m.editor.EnterNormalMode,
-			}, {
-				Mode:       mode.VisualBlock,
-				Components: []c{m.editor},
-				Action:     m.editor.EnterNormalMode,
-			}},
-		},
-		{
-			Bindings: ki.KeyBindings("ctrl+w l", "ctrl+w ctrl+l", "alt+e"),
-			Cond: []keyCond{{
-				Mode:       mode.Normal,
-				Components: []c{m.dirTree, m.notesList, m.editor},
-				Action:     m.focusNextColumn,
-			}},
-		},
-		{
-			Bindings: ki.KeyBindings("ctrl+w h", "ctrl+w ctrl+h", "alt+q"),
-			Cond: []keyCond{{
-				Mode:       mode.Normal,
-				Components: []c{m.dirTree, m.notesList, m.editor},
-				Action:     m.focusPrevColumn,
-			}},
-		},
-		{
-			Bindings: ki.KeyBindings("1"),
-			Cond: []keyCond{{
-				Mode:       mode.Normal,
-				Components: []c{m.dirTree, m.notesList, m.editor},
-				Action:     m.focusDirectoryTree,
-			}},
-		},
-		{
-			Bindings: ki.KeyBindings("2"),
-			Cond: []keyCond{{
-				Mode:       mode.Normal,
-				Components: []c{m.dirTree, m.notesList, m.editor},
-				Action:     m.focusNotesList,
-			}},
-		},
-		{
-			Bindings: ki.KeyBindings("3"),
-			Cond: []keyCond{{
-				Mode:       mode.Normal,
-				Components: []c{m.dirTree, m.notesList, m.editor},
-				Action:     m.focusEditor,
-			}},
-		},
-		{
-			Bindings: ki.KeyBindings("space e"),
-			Cond: []keyCond{{
-				Mode:       mode.Normal,
-				Components: []c{m.dirTree, m.notesList, m.editor},
-				Action: func() message.StatusBarMsg {
-					m.OverlayOpenBuffers()
-					return message.StatusBarMsg{}
-				},
-			}},
-		},
-		{
-			Bindings: ki.KeyBindings("space q"),
-			Cond: []keyCond{{
-				Mode:       mode.Normal,
-				Components: []c{m.dirTree, m.notesList, m.editor},
-				Action:     m.editor.DeleteCurrentBuffer,
-			}},
-		},
+func (m *Model) FnRegistry() ki.FnRegistry {
+	return ki.FnRegistry{
+		"LineDown":               m.lineDown,
+		"LineUp":                 m.lineUp,
+		"DownHalfPage":           bind(m.editor.DownHalfPage),
+		"UpHalfPage":             bind(m.editor.UpHalfPage),
+		"CharacterLeft":          bind(m.editor.MoveCharacterLeft),
+		"CharacterRight":         bind(m.editor.MoveCharacterRight),
+		"TreeExpand":             bind(m.dirTree.Expand),
+		"TreeCollapse":           bind(m.dirTree.Collapse),
+		"EnterCommand":           m.enterCmdMode,
+		"EnterNormalMode":        m.enterNormalMode,
+		"ConfirmAction":          m.confirmAction,
+		"CancelAction":           m.cancelAction,
+		"FocusNextColumn":        m.focusNextColumn,
+		"FocusPrevColumn":        m.focusPrevColumn,
+		"ShowOpenNotes":          m.showOpenBuffers,
+		"CloseNote":              bind(m.editor.DeleteCurrentBuffer),
+		"GoToTop":                m.goToTop,
+		"GoToBottom":             m.goToBottom,
+		"InsertBefore":           m.enterInsertMode,
+		"InsertAfter":            bind(m.editor.InsertAfter),
+		"Undo":                   bind(m.editor.Undo),
+		"Redo":                   bind(m.editor.Redo),
+		"InsertBelow":            m.insertBelow,
+		"InsertAbove":            m.insertAbove,
+		"CreateFolder":           m.createDir,
+		"CreateNote":             m.createNote,
+		"RenameListItem":         m.rename,
+		"DeleteListItem":         m.delete,
+		"YankListItem":           m.yankListItem,
+		"CutListItem":            m.cutListItem,
+		"PasteListItem":          m.pasteListItem,
+		"TogglePinListItem":      m.togglePin,
+		"InsertBeforeLine":       bind(m.editor.InsertLineStart),
+		"InsertAfterLine":        bind(m.editor.InsertLineEnd),
+		"Replace":                bind(m.editor.EnterReplaceMode),
+		"ToggleVisual":           m.toggleVisual,
+		"ToggleVisualLine":       m.toggleVisualLine,
+		"ToggleVisualBlock":      m.toggleVisualBlock,
+		"SelectWord":             m.selectWord,
+		"NextWord":               m.nextWord,
+		"PrevWord":               m.prevWord,
+		"GoToFirstNonWhiteSpace": bind(m.editor.GoToInputStart),
+		"GoToLineStart":          bind(m.editor.GoToLineStart),
+		"GoToLineEnd":            bind(m.editor.GoToLineEnd),
+		"MergeLines":             bind(m.editor.MergeLineBelow),
+		"DeleteLine":             bind(m.editor.DeleteLine),
+		"DeleteWord":             m.deleteWord,
+		"DeleteAfterCursor":      m.deleteAfterCursor,
+		"ChangeAfterCursor":      m.changeAfterCursor,
+		"ChangeLine":             m.changeLine,
+		"ChangeWord":             m.changeWord,
+		"DeleteSelection":        m.deleteSelection,
+		"SubstituteText":         m.substituteText,
+		"DeleteCharacter":        m.deleteCharacter,
+		"YankSelection":          m.yankSelection,
+		"YankLine":               bind(m.editor.YankLine),
+		"YankWord":               m.yankWord,
+		"Paste":                  m.paste,
 	}
 }
 
-func (m *Model) editorInputAction(mode mode.Mode, fn func() message.StatusBarMsg) keyCond {
-	return keyCond{
-		Mode:       mode,
-		Components: []c{m.editor},
-		Action:     fn,
+type StatusBarMsg = message.StatusBarMsg
+
+func bind(fn func() StatusBarMsg) ki.CmdFn {
+	return func(ki.Options) func() StatusBarMsg {
+		return fn
 	}
 }
 
@@ -678,9 +89,549 @@ func (m *Model) editorInputAction(mode mode.Mode, fn func() message.StatusBarMsg
 /// Keyboard shortcut delegations
 ///
 
+// lineUp moves the cursor one line up in the currently focused column.
+// Ignores editor since it is handled differently
+func (m *Model) lineDown(opts ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		msg := StatusBarMsg{}
+
+		if f := m.focusedComponent(); f != nil {
+			f.LineDown()
+
+			if f == m.dirTree {
+				msg = m.dirTree.ContentInfo()
+			}
+		}
+
+		if m.editor.Focused() {
+			multiline := opts.GetBool("multiline")
+			msg = m.editor.LineDown(multiline)
+		}
+
+		return msg
+	}
+}
+
+// lineUp moves the cursor one line up in the currently focused column.
+// Ignores editor since it is handled differently
+func (m *Model) lineUp(opts ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		msg := StatusBarMsg{}
+
+		if f := m.focusedComponent(); f != nil {
+			f.LineUp()
+
+			if f == m.dirTree {
+				msg = m.dirTree.ContentInfo()
+			}
+		}
+
+		if m.editor.Focused() {
+			multiline := opts.GetBool("multiline")
+			msg = m.editor.LineUp(multiline)
+		}
+
+		return msg
+	}
+}
+
+// showOpenBuffers opens an overlay showing all open buffers
+func (m *Model) showOpenBuffers(_ ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		m.OverlayOpenBuffers()
+		return StatusBarMsg{}
+	}
+}
+
+// focusNextColumn selects and highlights the respectivley next of the
+// currently selected column.
+func (m *Model) focusNextColumn(_ ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		nbrCols := 3
+		index := min(m.currColFocus+1, nbrCols)
+		return m.focusColumn(index)
+	}
+}
+
+// focusPrevColumn selects and highlights the respectivley previous of the
+// currently selected column.
+func (m *Model) focusPrevColumn(_ ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		firstCol := 1
+		index := max(m.currColFocus-1, firstCol)
+		return m.focusColumn(index)
+	}
+}
+
+// createDir enters insert mode and triggers directory creation
+func (m *Model) createDir(_ ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		return m.dirTree.Create(m.mode, m.statusBar)
+	}
+}
+
+// createNote enters insert mode and triggers notes creation
+func (m *Model) createNote(_ ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		return m.notesList.Create(m.mode, m.statusBar)
+	}
+}
+
+// delete enters insert mode and triggers a delete confirmation
+// for the focused component
+func (m *Model) delete(_ ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		// go into insert mode because we always ask for
+		// confirmation before deleting anything
+		m.mode.Current = mode.Insert
+
+		statusMsg := StatusBarMsg{}
+
+		if f := m.focusedComponent(); f != nil {
+			m.statusBar.Focused = true
+			statusMsg = f.ConfirmRemove()
+		}
+
+		if statusMsg.Type == message.None {
+			m.mode.Current = mode.Normal
+		}
+
+		return statusMsg
+	}
+}
+
+// rename enters insert mode and renames the selected item
+// in the directory or note list
+func (m *Model) rename(_ ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		if m.dirTree.Focused() || m.notesList.Focused() {
+			m.mode.Current = mode.Insert
+			m.statusBar.Focused = false
+		}
+
+		if m.dirTree.Focused() {
+			if m.dirTree.SelectedIndex() > 0 {
+				return m.dirTree.Rename(
+					m.dirTree.SelectedDir().Name(),
+				)
+			}
+			m.mode.Current = mode.Normal
+		}
+
+		if m.notesList.Focused() {
+			return m.notesList.Rename(
+				m.notesList.SelectedItem(nil).Name(),
+			)
+		}
+		return StatusBarMsg{}
+	}
+}
+
+// goToTop moves the current item of focused list to its first item
+func (m *Model) goToTop(_ ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		if f := m.focusedComponent(); f != nil {
+			return f.GoToTop()
+		}
+
+		if m.editor.Focused() {
+			return m.editor.GoToTop()
+		}
+
+		return StatusBarMsg{}
+	}
+}
+
+// goToTop moves the current item of the focused list to its last item
+func (m *Model) goToBottom(_ ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		if f := m.focusedComponent(); f != nil {
+			return f.GoToBottom()
+		}
+
+		if m.editor.Focused() {
+			return m.editor.GoToBottom()
+		}
+
+		return StatusBarMsg{}
+	}
+}
+
+// togglePin pins or unpins the selected item to the top of the list
+func (m *Model) togglePin(_ ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		if f := m.focusedComponent(); f != nil {
+			return f.TogglePinned()
+		}
+		return StatusBarMsg{}
+	}
+}
+
+func (m *Model) enterInsertMode(_ ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		return m.editor.EnterInsertMode(true)
+	}
+}
+
+func (m *Model) toggleVisual(opts ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		if m.mode.Current == mode.Visual {
+			return m.editor.EnterNormalMode(true)
+		}
+
+		return m.editor.EnterVisualMode(textarea.SelectVisual)
+	}
+}
+
+func (m *Model) toggleVisualLine(opts ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		if m.mode.Current == mode.VisualLine {
+			return m.editor.EnterNormalMode(true)
+		}
+
+		return m.editor.EnterVisualMode(textarea.SelectVisualLine)
+	}
+}
+
+func (m *Model) toggleVisualBlock(opts ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		if m.mode.Current == mode.VisualBlock {
+			return m.editor.EnterNormalMode(true)
+		}
+
+		return m.editor.EnterVisualMode(textarea.SelectVisualBlock)
+	}
+}
+
+func (m *Model) selectWord(opts ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		outer := opts.GetBool("outer")
+		return m.editor.SelectWord(outer)
+	}
+}
+
+func (m *Model) nextWord(opts ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		end := opts.GetBool("end")
+		return m.editor.WordForward(end)
+	}
+}
+
+func (m *Model) prevWord(opts ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		end := opts.GetBool("end")
+		return m.editor.WordBack(end)
+	}
+}
+
+func (m *Model) insertBelow(_ ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		return m.editor.InsertLine(false)
+	}
+}
+func (m *Model) insertAbove(_ ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		return m.editor.InsertLine(true)
+	}
+}
+
+func (m *Model) deleteLine(_ ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		return m.editor.DeleteLine()
+	}
+}
+
+func (m *Model) deleteSelection(_ ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		if m.mode.IsAnyVisual() {
+			return m.editor.DeleteRune(false, true, false)
+		}
+		return StatusBarMsg{}
+	}
+}
+
+func (m *Model) deleteWord(opts ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		outer := opts.GetBool("outer")
+
+		if opts.GetBool("remaining") {
+			return m.editor.DeleteWordRight()
+		}
+
+		return m.editor.DeleteWord(outer, false)
+	}
+}
+
+func (m *Model) deleteAfterCursor(opts ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		return m.editor.DeleteAfterCursor(false)
+	}
+}
+
+func (m *Model) changeAfterCursor(opts ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		m.editor.DeleteAfterCursor(true)
+		m.editor.MoveCharacterRight()
+		m.editor.EnterInsertMode(false)
+
+		return StatusBarMsg{}
+	}
+}
+
+func (m *Model) changeLine(_ ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		m.editor.GoToLineStart()
+		m.editor.DeleteAfterCursor(false)
+		m.editor.EnterInsertMode(false)
+
+		return m.editor.ResetSelectedRowsCount()
+	}
+}
+
+func (m *Model) changeWord(opts ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		return m.editor.DeleteWord(opts.GetBool("outer"), true)
+	}
+}
+
+func (m *Model) substituteText(opts ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		msg := m.editor.DeleteRune(false, true, false)
+
+		if opts.GetBool("new_line") {
+			m.editor.Textarea.EmptyLineAbove()
+		}
+
+		m.editor.EnterInsertMode(false)
+
+		return msg
+	}
+}
+
+func (m *Model) deleteCharacter(_ ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		return m.editor.DeleteRune(false, true, false)
+	}
+}
+
+func (m *Model) yankSelection(_ ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		return m.editor.YankSelection(false)
+	}
+}
+
+func (m *Model) yankWord(opts ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		outer := opts.GetBool("outer")
+		return m.editor.YankWord(outer)
+	}
+}
+
+func (m *Model) paste(opts ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		// If we're in any visual mode delete the selection without
+		// history and yanking right away
+		//
+		// @todo when undoing this step the cursor is one character left of
+		// the word we replace - fix this
+		if m.mode.IsAnyVisual() {
+			m.editor.DeleteRune(true, false, true)
+			m.editor.EnterInsertMode(false)
+			m.editor.MoveCharacterLeft()
+		}
+
+		msg := m.editor.Paste()
+
+		m.selectWord(opts)
+		return msg
+	}
+}
+
+// confirmAction performs the primary action for the focused component,
+// or loads note data into the editor if in normal mode.
+func (m *Model) confirmAction(opts ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		statusMsg := StatusBarMsg{}
+
+		f := m.focusedComponent()
+
+		if m.statusBar.Focused {
+			statusMsg = m.statusBar.ConfirmAction(
+				statusMsg.Sender,
+				f,
+				m.editor,
+			)
+			m.editor.Vim.Mode.Current = mode.Normal
+		}
+
+		if m.mode.Current != mode.Normal &&
+			!m.statusBar.Focused &&
+			!m.editor.Focused() {
+
+			editState := m.notesList.EditState
+			statusMsg = f.ConfirmAction()
+
+			// Update the editor in case we're renaming the currently open buffer
+			if editState == components.EditStates.Rename {
+				m.editor.BuildHeader(m.editor.Size.Width, true)
+				m.editor.UpdateMetaInfo()
+			}
+		} else {
+			// only open stuff if we're in normal mode
+			if m.mode.Current != mode.Normal {
+				m.mode.Current = mode.Normal
+				return statusMsg
+			}
+
+			switch f {
+			case m.dirTree:
+				path := m.dirTree.SelectedDir().Path()
+				m.notesList.CurrentPath = path
+				m.conf.SetMetaValue("", config.CurrentDirectory, path)
+				statusMsg = m.notesList.Refresh(true, true)
+
+			case m.notesList:
+				if sel := m.notesList.SelectedItem(nil); sel != nil {
+					statusMsg = m.editor.OpenBuffer(sel.Path())
+				}
+
+			case m.bufferList:
+				items := m.bufferList.Items()
+				sel := items[m.bufferList.SelectedIndex()]
+
+				if buf, ok, _ := m.Buffers.Contains(sel.Path()); ok {
+					// close buffer list overlay
+					m.editor.ListBuffers = false
+					m.editor.OpenBuffer(buf.Path(false))
+					m.bufferList.SetSelectedIndex(0)
+					m.focusEditor()
+				}
+
+				//default:
+				//	f.ConfirmAction()
+			}
+		}
+
+		m.mode.Current = mode.Normal
+
+		return statusMsg
+	}
+}
+
+// cancelAction resets mode to normal
+// and cancels pending actions in the focused component.
+func (m *Model) cancelAction(opts ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		m.mode.Current = mode.Normal
+		m.statusBar.Focused = false
+
+		if m.statusBar.Prompt.Focused() {
+			m.statusBar.CancelAction(func() {})
+			m.enterNormalMode(opts)
+		} else {
+			if f := m.focusedComponent(); f != nil {
+				resetIndex := false
+				stateCreate := components.EditStates.Create
+
+				if m.dirTree.EditState == stateCreate ||
+					m.notesList.EditState == stateCreate {
+					resetIndex = true
+				}
+
+				if f == m.bufferList {
+					m.editor.ListBuffers = false
+					m.focusColumn(m.currColFocus)
+				}
+
+				return f.CancelAction(func() {
+					f.Refresh(resetIndex, false)
+				})
+			}
+		}
+
+		m.keyInput.ResetKeysDown()
+
+		return StatusBarMsg{
+			Content: "",
+			Column:  sbc.General,
+		}
+	}
+}
+
+func (m *Model) yankListItem(_ ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		if f := m.focusedComponent(); f != nil {
+			f.YankSelection(false)
+		}
+
+		return StatusBarMsg{}
+	}
+}
+
+func (m *Model) cutListItem(_ ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		if f := m.focusedComponent(); f != nil {
+			f.YankSelection(true)
+		}
+		return StatusBarMsg{}
+	}
+}
+
+func (m *Model) pasteListItem(_ ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		if f := m.focusedComponent(); f != nil {
+			return f.PasteSelection()
+		}
+
+		return StatusBarMsg{}
+	}
+}
+
+func (m *Model) enterNormalMode(_ ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		m.editor.Vim.Mode.Current = mode.Normal
+		m.mode.Current = mode.Normal
+		m.statusBar.Focused = false
+
+		return StatusBarMsg{
+			Content: "",
+			Type:    message.Prompt,
+			Column:  sbc.General,
+		}
+	}
+}
+
+func (m *Model) enterCmdMode(_ ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		if m.mode.Current != mode.Normal {
+			return StatusBarMsg{}
+		}
+
+		m.editor.Vim.Mode.Current = mode.Command
+		m.mode.Current = mode.Command
+		m.statusBar.Focused = true
+
+		return StatusBarMsg{
+			Type:   message.Prompt,
+			Column: sbc.General,
+		}
+	}
+}
+
+func (m *Model) OverlayOpenBuffers() (string, int, int) {
+	m.editor.ListBuffers = true
+	m.bufferList.SetFocus(true)
+
+	x, y := m.overlayPosition(m.bufferList.Width)
+	overlay := m.bufferList.View()
+
+	m.updateComponents(false)
+	return overlay, x, y
+}
+
 // focusColumn selects and higlights a column with index `index`
 // (1=dirTree, 2=notesList, 3=editor)
-func (m *Model) focusColumn(index int) message.StatusBarMsg {
+func (m *Model) focusColumn(index int) StatusBarMsg {
 	m.conf.SetMetaValue("", config.CurrentComponent, strconv.Itoa(index))
 
 	m.dirTree.SetFocus(index == 1)
@@ -698,47 +649,31 @@ func (m *Model) focusColumn(index int) message.StatusBarMsg {
 	if index == 3 {
 		relPath := utils.RelativePath(m.editor.CurrentBuffer.Path(false), true)
 		icon := theme.Icon(theme.IconNote, m.conf.NerdFonts())
-		return message.StatusBarMsg{
+		return StatusBarMsg{
 			Content: icon + " " + relPath,
 			Column:  sbc.FileInfo,
 		}
 	}
 
-	return message.StatusBarMsg{}
+	return StatusBarMsg{}
 }
 
 // focusDirectoryTree is a helper function
 // for selecting the directory tree
-func (m *Model) focusDirectoryTree() message.StatusBarMsg {
+func (m *Model) focusDirectoryTree() StatusBarMsg {
 	return m.focusColumn(1)
 }
 
 // focusNotesList() is a helper function
 // for selecting the notes list
-func (m *Model) focusNotesList() message.StatusBarMsg {
+func (m *Model) focusNotesList() StatusBarMsg {
 	return m.focusColumn(2)
 }
 
 // focusEditor is a helper function
 // for selecting the editor
-func (m *Model) focusEditor() message.StatusBarMsg {
+func (m *Model) focusEditor() StatusBarMsg {
 	return m.focusColumn(3)
-}
-
-// focusNextColumn selects and highlights the respectivley next of the
-// currently selected column.
-// Selects the first if the currently selected column is the last column...
-func (m *Model) focusNextColumn() message.StatusBarMsg {
-	index := min(m.currColFocus+1, 3)
-	return m.focusColumn(index)
-}
-
-// focusNextColumn selects and highlights the respectivley next of the
-// currently selected column.
-// Selects the first if the currently selected column is the last column...
-func (m *Model) focusPrevColumn() message.StatusBarMsg {
-	index := max(m.currColFocus-1, 1)
-	return m.focusColumn(index)
 }
 
 // focusedComponent returns the component that is currently focused
@@ -758,7 +693,7 @@ func (m *Model) focusedComponent() Focusable {
 	return nil
 }
 
-func (m *Model) unfocusAllComponents() message.StatusBarMsg {
+func (m *Model) unfocusAllComponents() StatusBarMsg {
 	m.dirTree.SetFocus(false)
 	m.dirTree.BuildHeader(m.dirTree.Size.Width, true)
 
@@ -770,285 +705,5 @@ func (m *Model) unfocusAllComponents() message.StatusBarMsg {
 
 	m.statusBar.Focused = false
 
-	return message.StatusBarMsg{}
-}
-
-// lineUp moves the cursor one line up in the currently focused column.
-// Ignores editor since it is handled differently
-func (m *Model) lineUp() message.StatusBarMsg {
-	statusMsg := message.StatusBarMsg{}
-
-	if f := m.focusedComponent(); f != nil {
-		statusMsg = f.LineUp()
-		if f == m.dirTree {
-			statusMsg = m.dirTree.ContentInfo()
-		}
-	}
-
-	return statusMsg
-}
-
-// lineUp moves the cursor one line up in the currently focused column.
-// Ignores editor since it is handled differently
-func (m *Model) lineDown() message.StatusBarMsg {
-	statusMsg := message.StatusBarMsg{}
-
-	if f := m.focusedComponent(); f != nil {
-		statusMsg = f.LineDown()
-
-		if f == m.dirTree {
-			statusMsg = m.dirTree.ContentInfo()
-		}
-	}
-
-	return statusMsg
-}
-
-// createDir enters insert mode
-// and triggers directory creation
-func (m *Model) createDir() message.StatusBarMsg {
-	return m.dirTree.Create(m.mode, m.statusBar)
-}
-
-// createNote enters insert mode
-// and triggers notes creation
-func (m *Model) createNote() message.StatusBarMsg {
-	return m.notesList.Create(m.mode, m.statusBar)
-}
-
-// rename enters insert mode and renames the selected item
-// in the directory or note list
-func (m *Model) rename() message.StatusBarMsg {
-	if m.dirTree.Focused() || m.notesList.Focused() {
-		m.mode.Current = mode.Insert
-		m.statusBar.Focused = false
-	}
-
-	if m.dirTree.Focused() {
-		if m.dirTree.SelectedIndex() > 0 {
-			return m.dirTree.Rename(
-				m.dirTree.SelectedDir().Name(),
-			)
-		}
-		m.mode.Current = mode.Normal
-	}
-
-	if m.notesList.Focused() {
-		return m.notesList.Rename(
-			m.notesList.SelectedItem(nil).Name(),
-		)
-	}
-	return message.StatusBarMsg{}
-}
-
-// remove enters insert mode and triggers a delete confirmation
-// for the focused component
-func (m *Model) remove() message.StatusBarMsg {
-	// go into insert mode because we always ask for
-	// confirmation before deleting anything
-	m.mode.Current = mode.Insert
-
-	statusMsg := message.StatusBarMsg{}
-
-	if f := m.focusedComponent(); f != nil {
-		m.statusBar.Focused = true
-		statusMsg = f.ConfirmRemove()
-	}
-
-	if statusMsg.Type == message.None {
-		m.mode.Current = mode.Normal
-	}
-
-	return statusMsg
-}
-
-// goToTop moves the focused list to its first item
-func (m *Model) goToTop() message.StatusBarMsg {
-	if f := m.focusedComponent(); f != nil {
-		return f.GoToTop()
-	}
-	return message.StatusBarMsg{}
-}
-
-// goToTop moves the focused list to its last item
-func (m *Model) goToBottom() message.StatusBarMsg {
-	if f := m.focusedComponent(); f != nil {
-		return f.GoToBottom()
-	}
-	return message.StatusBarMsg{}
-}
-
-func (m *Model) TogglePin() message.StatusBarMsg {
-	if f := m.focusedComponent(); f != nil {
-		return f.TogglePinned()
-	}
-	return message.StatusBarMsg{}
-}
-
-// confirmAction performs the primary action for the focused component,
-// or loads note data into the editor if in normal mode.
-func (m *Model) confirmAction() message.StatusBarMsg {
-	statusMsg := message.StatusBarMsg{}
-
-	f := m.focusedComponent()
-
-	if m.statusBar.Focused {
-		statusMsg = m.statusBar.ConfirmAction(
-			statusMsg.Sender,
-			f,
-			m.editor,
-		)
-		m.editor.Vim.Mode.Current = mode.Normal
-	}
-
-	if m.mode.Current != mode.Normal &&
-		!m.statusBar.Focused &&
-		!m.editor.Focused() {
-
-		editState := m.notesList.EditState
-		statusMsg = f.ConfirmAction()
-
-		// Update the editor in case we're renaming the currently open buffer
-		if editState == components.EditStates.Rename {
-			m.editor.BuildHeader(m.editor.Size.Width, true)
-			m.editor.UpdateMetaInfo()
-		}
-	} else {
-		// only open stuff if we're in normal mode
-		if m.mode.Current != mode.Normal {
-			m.mode.Current = mode.Normal
-			return statusMsg
-		}
-
-		switch f {
-		case m.dirTree:
-			path := m.dirTree.SelectedDir().Path()
-			m.notesList.CurrentPath = path
-			m.conf.SetMetaValue("", config.CurrentDirectory, path)
-			statusMsg = m.notesList.Refresh(true, true)
-
-		case m.notesList:
-			if sel := m.notesList.SelectedItem(nil); sel != nil {
-				statusMsg = m.editor.OpenBuffer(sel.Path())
-			}
-
-		case m.bufferList:
-			items := m.bufferList.Items()
-			sel := items[m.bufferList.SelectedIndex()]
-
-			if buf, ok, _ := m.Buffers.Contains(sel.Path()); ok {
-				// close buffer list overlay
-				m.editor.ListBuffers = false
-				m.editor.OpenBuffer(buf.Path(false))
-				m.bufferList.SetSelectedIndex(0)
-				m.focusEditor()
-			}
-
-		default:
-			f.ConfirmAction()
-		}
-	}
-
-	m.mode.Current = mode.Normal
-	return statusMsg
-}
-
-// cancelAction resets mode to normal
-// and cancels pending actions in the focused component.
-func (m *Model) cancelAction() message.StatusBarMsg {
-	m.mode.Current = mode.Normal
-	m.statusBar.Focused = false
-
-	if m.statusBar.Prompt.Focused() {
-		m.statusBar.CancelAction(func() {})
-		m.enterNormalMode()
-	} else {
-		if f := m.focusedComponent(); f != nil {
-			resetIndex := false
-			stateCreate := components.EditStates.Create
-
-			if m.dirTree.EditState == stateCreate ||
-				m.notesList.EditState == stateCreate {
-				resetIndex = true
-			}
-
-			if f == m.bufferList {
-				m.editor.ListBuffers = false
-				m.focusColumn(m.currColFocus)
-			}
-
-			return f.CancelAction(func() {
-				f.Refresh(resetIndex, false)
-			})
-		}
-	}
-
-	m.keyInput.ResetKeysDown()
-
-	return message.StatusBarMsg{
-		Content: "",
-		Column:  sbc.General,
-	}
-}
-
-func (m *Model) yankListItem() message.StatusBarMsg {
-	if f := m.focusedComponent(); f != nil {
-		f.YankSelection(false)
-	}
-
-	return message.StatusBarMsg{}
-}
-
-func (m *Model) cutListItem() message.StatusBarMsg {
-	if f := m.focusedComponent(); f != nil {
-		f.YankSelection(true)
-	}
-
-	return message.StatusBarMsg{}
-}
-
-func (m *Model) pasteListItem() message.StatusBarMsg {
-	if f := m.focusedComponent(); f != nil {
-		return f.PasteSelection()
-	}
-
-	return message.StatusBarMsg{}
-}
-
-func (m *Model) enterNormalMode() message.StatusBarMsg {
-	m.editor.Vim.Mode.Current = mode.Normal
-	m.mode.Current = mode.Normal
-	m.statusBar.Focused = false
-
-	return message.StatusBarMsg{
-		Content: "",
-		Type:    message.Prompt,
-		Column:  sbc.General,
-	}
-}
-
-func (m *Model) enterCmdMode() message.StatusBarMsg {
-	if m.mode.Current != mode.Normal {
-		return message.StatusBarMsg{}
-	}
-
-	m.editor.Vim.Mode.Current = mode.Command
-	m.mode.Current = mode.Command
-	m.statusBar.Focused = true
-
-	return message.StatusBarMsg{
-		Type:   message.Prompt,
-		Column: sbc.General,
-	}
-}
-
-func (m *Model) OverlayOpenBuffers() (string, int, int) {
-	m.editor.ListBuffers = true
-	m.bufferList.SetFocus(true)
-
-	x, y := m.overlayPosition(m.bufferList.Width)
-	overlay := m.bufferList.View()
-
-	m.updateComponents(false)
-	return overlay, x, y
+	return StatusBarMsg{}
 }

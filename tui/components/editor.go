@@ -235,6 +235,8 @@ func NewEditor(conf *config.Config) *Editor {
 	return editor
 }
 
+func (e Editor) Name() string { return "Editor" }
+
 // Init initialises the Model on program load.
 // It partially implements the tea.Model interface.
 func (e *Editor) Init() tea.Cmd {
@@ -257,6 +259,9 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case mode.Insert:
 			cmd = e.handleInsertMode(msg)
+
+		case mode.Visual, mode.VisualLine, mode.VisualBlock:
+			cmd = e.handleVisualMode(msg)
 
 		case mode.Replace:
 			cmd = e.handleReplaceMode(msg)
@@ -543,7 +548,7 @@ func (e *Editor) reset() {
 // checks if the cursor position exceeds the line length and
 // saves the cursor position.
 // It also updates the current history entry
-func (e *Editor) EnterNormalMode() message.StatusBarMsg {
+func (e *Editor) EnterNormalMode(withHistory bool) message.StatusBarMsg {
 	statusMsg := message.StatusBarMsg{
 		Content: "",
 		Column:  sbc.General,
@@ -572,7 +577,7 @@ func (e *Editor) EnterNormalMode() message.StatusBarMsg {
 	}
 
 	e.saveCursorPos()
-	e.updateBufferContent()
+	e.updateBufferContent(withHistory)
 
 	e.Textarea.ResetSelection()
 	e.Textarea.SetCursorColor(mode.Normal.Colour())
@@ -585,7 +590,7 @@ func (e *Editor) EnterNormalMode() message.StatusBarMsg {
 func (e *Editor) SendEnterNormalModeDeferredMsg() tea.Cmd {
 	return func() tea.Msg {
 		time.Sleep(150 * time.Millisecond)
-		e.EnterNormalMode()
+		e.EnterNormalMode(true)
 		return DeferredActionMsg{}
 	}
 }
@@ -772,6 +777,11 @@ func (e *Editor) MoveCharacterRight() message.StatusBarMsg {
 	return message.StatusBarMsg{}
 }
 
+func (e *Editor) GoToChar() message.StatusBarMsg {
+	debug.LogDebug("asd")
+	return message.StatusBarMsg{}
+}
+
 // InsertAfter enters insert mode one character after the current cursor's
 // position and saves its position
 func (e *Editor) InsertAfter() message.StatusBarMsg {
@@ -799,20 +809,18 @@ func (e *Editor) InsertLineEnd() message.StatusBarMsg {
 	return message.StatusBarMsg{}
 }
 
-// InsertLineAbove creates and empty line above the current line
-// and enters insert mode
-func (e *Editor) InsertLineAbove() message.StatusBarMsg {
+// InsertLine creates and empty line below the current line
+// and enters insert mode.
+// If above is true it inserts the line above the current line
+func (e *Editor) InsertLine(above bool) message.StatusBarMsg {
 	e.newHistoryEntry()
-	e.Textarea.EmptyLineAbove()
-	e.EnterInsertMode(false)
-	return message.StatusBarMsg{}
-}
 
-// InsertLineBelow creates and empty line below the current line
-// and enters insert mode
-func (e *Editor) InsertLineBelow() message.StatusBarMsg {
-	e.newHistoryEntry()
-	e.Textarea.EmptyLineBelow()
+	if above {
+		e.Textarea.EmptyLineAbove()
+	} else {
+		e.Textarea.EmptyLineBelow()
+	}
+
 	e.EnterInsertMode(false)
 	return message.StatusBarMsg{}
 }
@@ -821,36 +829,26 @@ func (e *Editor) InsertLineBelow() message.StatusBarMsg {
 // to the previous column's offset.
 // If the column offset exceeds the line length, the offset is set
 // to the end of the line
-func (e *Editor) LineUp() message.StatusBarMsg {
+func (e *Editor) LineUp(multiline bool) message.StatusBarMsg {
 	e.Textarea.CursorUp()
 	e.Textarea.RepositionView()
 
-	pos := e.CurrentBuffer.CursorPos
-	// if we have a wrapped line we skip the wrapped part of the line
-	if pos.Row == e.Textarea.CursorPos().Row &&
-		e.Textarea.Line() > 0 {
-		// e.Textarea.CursorUp() doesn't work properly on some occasions
-		// so I'm gonna be a little dirty
-		e.LineUp()
+	if !multiline {
+		pos := e.CurrentBuffer.CursorPos
+		// if we have a wrapped line we skip the wrapped part of the line
+		if pos.Row == e.Textarea.CursorPos().Row &&
+			e.Textarea.Line() > 0 {
+			// e.Textarea.CursorUp() doesn't work properly on some occasions
+			// so I'm gonna be a little dirty
+			e.LineUp(false)
+		}
+
+		e.Textarea.SetCursorColumn(pos.ColumnOffset)
+		if e.Textarea.IsExceedingLine() || e.isAtLineEnd {
+			e.Textarea.CursorLineVimEnd()
+		}
 	}
 
-	e.Textarea.SetCursorColumn(pos.ColumnOffset)
-	e.saveCursorRow()
-	e.saveLineLength()
-
-	if e.Textarea.IsExceedingLine() || e.isAtLineEnd {
-		e.Textarea.CursorLineVimEnd()
-	}
-
-	if e.Vim.Mode.IsAnyVisual() {
-		return e.UpdateSelectedRowsCount()
-	}
-	return message.StatusBarMsg{}
-}
-
-func (e *Editor) MultiLineUp() message.StatusBarMsg {
-	e.Textarea.CursorUp()
-	e.Textarea.RepositionView()
 	e.saveCursorRow()
 	e.saveLineLength()
 
@@ -864,37 +862,27 @@ func (e *Editor) MultiLineUp() message.StatusBarMsg {
 // to the previous column's offset.
 // If the column offset exceeds the line length, the offset is set
 // to the end of the line
-func (e *Editor) LineDown() message.StatusBarMsg {
+func (e *Editor) LineDown(multiline bool) message.StatusBarMsg {
 	e.Textarea.CursorDown()
 	e.Textarea.RepositionView()
 
-	pos := e.CurrentBuffer.CursorPos
+	if !multiline {
+		pos := e.CurrentBuffer.CursorPos
 
-	// If we have a wrapped line we skip the wrapped part of the line
-	if pos.Row == e.Textarea.CursorPos().Row &&
-		e.Textarea.Line() < e.Textarea.LineCount()-1 {
-		// e.Textarea.CursorDown() doesn't work properly for some reason
-		// so I'm gonna be a little dirty again
-		e.LineDown()
+		// If we have a wrapped line we skip the wrapped part of the line
+		if pos.Row == e.Textarea.CursorPos().Row &&
+			e.Textarea.Line() < e.Textarea.LineCount()-1 {
+			// e.Textarea.CursorDown() doesn't work properly for some reason
+			// so I'm gonna be a little dirty again
+			e.LineDown(false)
+		}
+
+		e.Textarea.SetCursorColumn(pos.ColumnOffset)
+		if e.Textarea.IsExceedingLine() || e.isAtLineEnd {
+			e.Textarea.CursorLineVimEnd()
+		}
 	}
 
-	e.Textarea.SetCursorColumn(pos.ColumnOffset)
-	e.saveCursorRow()
-	e.saveLineLength()
-
-	if e.Textarea.IsExceedingLine() || e.isAtLineEnd {
-		e.Textarea.CursorLineVimEnd()
-	}
-
-	if e.Vim.Mode.IsAnyVisual() {
-		return e.UpdateSelectedRowsCount()
-	}
-	return message.StatusBarMsg{}
-}
-
-func (e *Editor) MultiLineDown() message.StatusBarMsg {
-	e.Textarea.CursorDown()
-	e.Textarea.RepositionView()
 	e.saveCursorRow()
 	e.saveLineLength()
 
@@ -949,24 +937,24 @@ func (e *Editor) GoToBottom() message.StatusBarMsg {
 	return e.UpdateSelectedRowsCount()
 }
 
-// WordRightEnd moves the cursor to the end of the next word
-func (e *Editor) WordRightEnd() message.StatusBarMsg {
-	e.Textarea.WordRightEnd()
-	e.saveCursorPos()
-	return message.StatusBarMsg{}
-}
-
 // WordRightStart moves the cursor to the beginning of the next word
-func (e *Editor) WordRightStart() message.StatusBarMsg {
-	e.Textarea.WordRight()
-	//e.Textarea.CharacterRight(false)
+func (e *Editor) WordForward(end bool) message.StatusBarMsg {
+	if end {
+		e.Textarea.WordRightEnd()
+	} else {
+		e.Textarea.WordRight()
+	}
 	e.saveCursorPos()
 	return message.StatusBarMsg{}
 }
 
 // WordBack moves the cursor to the beginning of the next word
-func (e *Editor) WordBack() message.StatusBarMsg {
-	e.Textarea.WordLeft()
+func (e *Editor) WordBack(end bool) message.StatusBarMsg {
+	if end {
+		e.Textarea.WordLeft()
+	} else {
+		e.Textarea.WordLeft()
+	}
 	e.saveCursorPos()
 	return message.StatusBarMsg{}
 }
@@ -983,17 +971,15 @@ func (e *Editor) UpHalfPage() message.StatusBarMsg {
 	return e.UpdateSelectedRowsCount()
 }
 
-// SelectInnerWord selects the inner word.
+// SelectWord selects the  word the cursor is currently on.
+// If outer is true it includes the whitespace after.
 // Only effective if we're in visual mode
-func (e *Editor) SelectInnerWord() message.StatusBarMsg {
-	e.Textarea.SelectInnerWord()
-	return e.UpdateSelectedRowsCount()
-}
-
-// SelectOuterWord selects the outer word.
-// Only effective if we're in visual mode
-func (e *Editor) SelectOuterWord() message.StatusBarMsg {
-	e.Textarea.SelectOuterWord()
+func (e *Editor) SelectWord(outer bool) message.StatusBarMsg {
+	if outer {
+		e.Textarea.SelectOuterWord()
+	} else {
+		e.Textarea.SelectInnerWord()
+	}
 	return e.UpdateSelectedRowsCount()
 }
 
@@ -1005,46 +991,38 @@ func (e *Editor) DeleteLine() message.StatusBarMsg {
 	e.saveLineLength()
 	e.YankLine()
 	e.Textarea.DeleteLine()
-	e.updateBufferContent()
-	e.EnterNormalMode()
+	e.updateBufferContent(true)
+	e.EnterNormalMode(true)
 
 	return e.ResetSelectedRowsCount()
 }
 
-// DeleteInnerWord deletes the word the cursor is on
-// If enterInsertMode is true, we're going straight into inser mode
-func (e *Editor) DeleteInnerWord(enterInsertMode bool) message.StatusBarMsg {
+// DeleteWord deletes the word the cursor is on.
+// If outer is true it includes the trailing space.
+// If enterInsertMode is true, we're going straight into inser mode.
+func (e *Editor) DeleteWord(outer bool, enterInsertMode bool) message.StatusBarMsg {
 	e.newHistoryEntry()
-	e.Textarea.DeleteInnerWord()
-	e.updateBufferContent()
+
+	if outer {
+		e.Textarea.DeleteOuterWord()
+	} else {
+		e.Textarea.DeleteInnerWord()
+	}
+
+	e.updateBufferContent(true)
 
 	if enterInsertMode {
 		e.EnterInsertMode(false)
 	}
 
 	return e.ResetSelectedRowsCount()
-}
-
-// DeleteOuterWord deletes the word the cursor is on including the trailing
-// whitespace
-// If enterInsertMode is true, we're going straight into inser mode
-func (e *Editor) DeleteOuterWord(enterInsertMode bool) message.StatusBarMsg {
-	e.newHistoryEntry()
-	e.Textarea.DeleteOuterWord()
-	e.updateBufferContent()
-
-	if enterInsertMode {
-		e.EnterInsertMode(false)
-	}
-
-	return e.UpdateSelectedRowsCount()
 }
 
 // DeleteAfterCursor deletes all characters after the cursor
 func (e *Editor) DeleteAfterCursor(overshoot bool) message.StatusBarMsg {
 	e.newHistoryEntry()
 	e.Textarea.DeleteAfterCursor(overshoot)
-	e.updateBufferContent()
+	e.updateBufferContent(true)
 	return e.ResetSelectedRowsCount()
 }
 
@@ -1052,7 +1030,7 @@ func (e *Editor) DeleteAfterCursor(overshoot bool) message.StatusBarMsg {
 func (e *Editor) DeleteNLines(lines int, up bool) message.StatusBarMsg {
 	e.newHistoryEntry()
 	e.Textarea.DeleteLines(lines, up)
-	e.updateBufferContent()
+	e.updateBufferContent(true)
 	e.Textarea.RepositionView()
 	return e.ResetSelectedRowsCount()
 }
@@ -1069,14 +1047,18 @@ func (e *Editor) DeleteWordRight() message.StatusBarMsg {
 func (e *Editor) MergeLineBelow() message.StatusBarMsg {
 	e.newHistoryEntry()
 	e.Textarea.VimMergeLineBelow(e.CurrentBuffer.CursorPos.Row)
-	e.updateBufferContent()
+	e.updateBufferContent(true)
 	return message.StatusBarMsg{}
 }
 
 // DeleteRune the rune that the cursor is currently on.
 // If buffer is in visual mode it takes the selection into account
 // If keepMode is true this method doesn't enter normal mode
-func (e *Editor) DeleteRune(keepMode bool, withHistory bool) message.StatusBarMsg {
+func (e *Editor) DeleteRune(
+	keepMode bool,
+	withHistory bool,
+	noYank bool,
+) message.StatusBarMsg {
 	if withHistory {
 		e.newHistoryEntry()
 	}
@@ -1095,10 +1077,12 @@ func (e *Editor) DeleteRune(keepMode bool, withHistory bool) message.StatusBarMs
 		char = e.Textarea.DeleteRune(c.Row, c.ColumnOffset)
 	}
 
-	e.Yank(char)
+	if !noYank {
+		e.Yank(char)
+	}
 
 	if !keepMode {
-		e.EnterNormalMode()
+		e.EnterNormalMode(withHistory)
 	}
 	e.Textarea.RepositionView()
 	return e.ResetSelectedRowsCount()
@@ -1231,18 +1215,17 @@ func (e *Editor) YankLine() message.StatusBarMsg {
 	return e.YankSelection(true)
 }
 
-// YankInnerWord copies the current word to the clipboard
-func (e *Editor) YankInnerWord() message.StatusBarMsg {
+// YankWord copies the current word to the clipboard.
+// If outer is set to true it copies the space after the word.
+func (e *Editor) YankWord(outer bool) message.StatusBarMsg {
 	e.EnterVisualMode(textarea.SelectVisual)
-	e.Textarea.SelectInnerWord()
-	return e.YankSelection(false)
-}
 
-// YankOuterWord copies the current word to the clipboard including the
-// trailing whitespace
-func (e *Editor) YankOuterWord() message.StatusBarMsg {
-	e.EnterVisualMode(textarea.SelectVisual)
-	e.Textarea.SelectOuterWord()
+	if outer {
+		e.Textarea.SelectOuterWord()
+	} else {
+		e.Textarea.SelectInnerWord()
+	}
+
 	return e.YankSelection(false)
 }
 
@@ -1292,7 +1275,7 @@ func (e *Editor) Paste() message.StatusBarMsg {
 		e.Textarea.MoveCursor(row, rowOffset, col)
 		e.Textarea.RepositionView()
 
-		e.updateBufferContent()
+		e.updateBufferContent(true)
 	}
 	return message.StatusBarMsg{}
 }
@@ -1339,9 +1322,12 @@ func (e *Editor) saveCursorPosToConf() {
 
 // updateBufferContent replaces the content of the current buffer with the
 // current textarea value
-func (e *Editor) updateBufferContent() {
+func (e *Editor) updateBufferContent(withHistory bool) {
 	e.CurrentBuffer.Content = e.Textarea.Value()
-	e.updateHistoryEntry()
+
+	if withHistory {
+		e.updateHistoryEntry()
+	}
 }
 
 // UpdateMetaInfo records the current state of the editor by updating

@@ -67,6 +67,8 @@ func NewStatusBar() *StatusBar {
 	return statusBar
 }
 
+func (s StatusBar) Name() string { return "StatusBar" }
+
 // Init initialises the Model on program load.
 // It partly implements the tea.Model interface.
 func (s *StatusBar) Init() tea.Cmd {
@@ -177,7 +179,7 @@ func (s *StatusBar) ModeView() string {
 	mode := ""
 
 	if !s.Prompt.Focused() {
-		mode = s.Mode.FullString()
+		mode = s.Mode.FullString(true)
 	}
 
 	return style.Render(mode)

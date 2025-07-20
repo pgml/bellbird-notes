@@ -61,7 +61,12 @@ func InitialModel() *Model {
 		conf:         conf,
 	}
 
-	m.keyInput.Functions = m.KeyInputFn()
+	m.keyInput.Registry = m.FnRegistry()
+	m.keyInput.Components = []keyinput.FocusedComponent{
+		m.dirTree,
+		m.notesList,
+		m.editor,
+	}
 	m.componentsInit()
 	m.restoreState()
 

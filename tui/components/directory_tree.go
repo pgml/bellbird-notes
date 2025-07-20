@@ -325,6 +325,8 @@ func NewDirectoryTree(conf *config.Config) *DirectoryTree {
 	return tree
 }
 
+func (t DirectoryTree) Name() string { return "Folders" }
+
 // Input returns and textinput model tailored to the directory tree
 func (t *DirectoryTree) Input() textinput.Model {
 	ti := textinput.New()

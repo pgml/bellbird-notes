@@ -1,94 +1,42 @@
 package keyinput
 
 import (
+	_ "embed"
+	"encoding/json"
 	"slices"
 	"strings"
 	"time"
 	"unicode/utf8"
 
 	tea "github.com/charmbracelet/bubbletea/v2"
+	"github.com/tailscale/hujson"
 
+	"bellbird-notes/app/debug"
 	"bellbird-notes/tui/message"
 	"bellbird-notes/tui/mode"
 	sbc "bellbird-notes/tui/types/statusbar_column"
 )
 
+//go:embed keymap.json
+var keyMap []byte
+
 // FocusedComponent represents any UI component that can report whether
 // it currently has focus.
 // Used to check if input should be directed to it.
 type FocusedComponent interface {
+	Name() string
 	Focused() bool
-}
-
-// KeyBinding represents one or more keys that trigger a specific action.
-type KeyBinding struct {
-	keys []string
-}
-
-// KeyBindings is a constructor that creates a KeyBinding from a list of keys.
-func KeyBindings(keys ...string) KeyBinding {
-	return KeyBinding{keys: keys}
-}
-
-// KeyFn is a set of of key bindings with one or more conditions
-// under which the action can be triggered
-type KeyFn struct {
-	Bindings KeyBinding
-	Cond     []KeyCondition
-}
-
-// KeyCondition represents the conditions under which a key action
-// should be triggered. It specifies the required mode, the UI components
-// that must be focused, and the action function to execute when matched.
-type KeyCondition struct {
-	Mode       mode.Mode
-	Components []FocusedComponent
-	Action     func() message.StatusBarMsg
-}
-
-// Matches checks if the given matchContext satisfies the KeyCondition.
-// It returns true if the mode matches and either:
-// - no specific component is provided and any of the condition's components are focused, or
-// - the provided component matches one in the condition and is currently focused.
-func (kc KeyCondition) Matches(ctx matchContext) bool {
-	if kc.Mode != ctx.mode {
-		return false
-	}
-
-	if ctx.component == nil {
-		for _, c := range kc.Components {
-			if c.Focused() {
-				return true
-			}
-		}
-		return false
-	}
-
-	for _, c := range kc.Components {
-		if c == ctx.component && c.Focused() {
-			return true
-		}
-	}
-
-	return false
-}
-
-// matchContext represents the current input and UI state
-// used for evaluating whether a key binding matches.
-// It encapsulates the current mode, the component being checked,
-// and the key binding string.
-type matchContext struct {
-	mode      mode.Mode
-	component FocusedComponent
-	binding   string
 }
 
 type ResetSequenceMsg struct{}
 
 type Action struct {
-	binding string
-	fn      func() message.StatusBarMsg
-	mode    mode.Mode
+	binding    string
+	isSequence bool
+	awaitInput bool
+	exec       func() message.StatusBarMsg
+	opts       any
+	modes      []mode.Mode
 }
 
 // Input represents the state and configuration of the input handler,
@@ -108,13 +56,17 @@ type Input struct {
 	Ctrl  bool
 	Alt   bool
 	Mode  mode.Mode
-
-	// contains the keymap of all availaböe functions
-	Functions []KeyFn
-
 	// contains all componentActions of the currently selected component
-	componentActions []Action
+	//componentActions map[string]Action
+	componentActions map[mode.Mode]map[string]Action
+
+	KeyMap     []byte
+	Registry   FnRegistry
+	Components []FocusedComponent
 }
+
+type CmdFn func(opts Options) func() message.StatusBarMsg
+type FnRegistry map[string]CmdFn
 
 // New creates and returns a new Input instance with default state.
 func New() *Input {
@@ -128,8 +80,8 @@ func New() *Input {
 		sequenceTimeOut:  300,
 		sequenceKeys:     []string{},
 		sequenceLength:   0,
-		Functions:        []KeyFn{},
-		componentActions: []Action{},
+		componentActions: map[mode.Mode]map[string]Action{},
+		KeyMap:           keyMap,
 	}
 }
 
@@ -217,14 +169,9 @@ func (ki *Input) HandleSequences(key tea.Key) []message.StatusBarMsg {
 // executeAction attempts to find and execute an action matching the given
 // key binding string in the current mode and focused component.
 func (ki *Input) executeAction(binding string) message.StatusBarMsg {
-	ctx := matchContext{
-		mode:    ki.Mode,
-		binding: binding,
-	}
-
-	for _, action := range ki.matchActions(ctx) {
+	if action, ok := ki.componentActions[ki.Mode][binding]; ok {
 		ki.ResetKeysDown()
-		return action()
+		return action.exec()
 	}
 
 	return message.StatusBarMsg{}
@@ -237,32 +184,89 @@ func (ki *Input) FetchKeyMap(resetSeq bool) {
 		ki.sequenceKeys = []string{}
 	}
 
-	ki.componentActions = []Action{}
+	ki.componentActions = map[mode.Mode]map[string]Action{}
 
-	for _, action := range ki.Functions {
-		for _, key := range action.Bindings.keys {
-			for _, cond := range action.Cond {
-				if !ki.anyComponentFocused(cond.Components) {
-					continue
-				}
+	var keymap []KeyMap
 
-				ki.componentActions = append(ki.componentActions, Action{
-					binding: key,
-					fn:      cond.Action,
-					mode:    cond.Mode,
-				})
-				ki.addSequenceKey(key)
+	// remove trailing commas and comments
+	cleanedMap, err := hujson.Standardize(ki.KeyMap)
+	if err != nil {
+		debug.LogErr(err)
+		return
+	}
+
+	if err := json.Unmarshal(cleanedMap, &keymap); err != nil {
+		debug.LogErr(err)
+		return
+	}
+
+	// map to store the modes per binding
+	modes := map[string][]mode.Mode{}
+
+	for _, set := range keymap {
+		if _, ok := ki.anyComponentFocused(set.ResolveComponents(ki)); !ok {
+			continue
+		}
+
+		resolvedMode := set.ResolveMode(ki)
+		// skip binding is not registerd to this mode
+		if set.Mode != "" && resolvedMode.FullString(false) != set.Mode {
+			continue
+		}
+
+		for key, binding := range set.Bindings {
+			actionFn, ok := ki.Registry[binding.Action]
+			if !ok {
+				continue
 			}
+
+			// Add non-existing modes for this binding.
+			// If no mode is set append all relvevant modes.
+			if set.Mode == "" {
+				modes[key] = append(modes[key], mode.SupportsMotion()...)
+			} else {
+				if !slices.Contains(modes[key], resolvedMode) {
+					modes[key] = append(modes[key], resolvedMode)
+				}
+			}
+
+			for key, modeSlice := range modes {
+				for _, mode := range modeSlice {
+					if ki.componentActions[mode] == nil {
+						ki.componentActions[mode] = make(map[string]Action)
+					}
+
+					// Create the actual component actions
+					action, ok := ki.componentActions[mode][key]
+					if !ok {
+						action = Action{
+							binding: key,
+							exec:    actionFn(binding.Options),
+						}
+					}
+
+					ki.componentActions[mode][key] = action
+				}
+			}
+
+			ki.addSequenceKey(key, false)
 		}
 	}
 }
 
-func (ki *Input) addSequenceKey(binding string) {
+func (ki *Input) addSequenceKey(binding string, force bool) {
 	runeCount := utf8.RuneCountInString(binding)
 
 	seqAmount := strings.Split(binding, " ")
 	if len(seqAmount) > ki.sequenceLength {
 		ki.sequenceLength = len(seqAmount)
+	}
+
+	if force {
+		if !slices.Contains(ki.sequenceKeys, binding) {
+			ki.sequenceKeys = append(ki.sequenceKeys, binding)
+			return
+		}
 	}
 
 	if runeCount == 3 && binding != "esc" {
@@ -282,45 +286,21 @@ func (ki *Input) addSequenceKey(binding string) {
 // isBinding returns wether the given key string is a
 // known and valid key binding
 func (ki *Input) isBinding(key string) bool {
-	for i := range ki.componentActions {
-		a := ki.componentActions[i]
-		if a.binding == key && a.mode == ki.Mode {
-			return true
-		}
+	if _, ok := ki.componentActions[ki.Mode][key]; ok {
+		return true
 	}
 	return false
-}
-
-// matchActions returns all matching actions for the given matchContext.
-// It filters the registered functions by key binding and then checks whether each
-// associated condition matches the context (mode + focused component).
-func (ki *Input) matchActions(ctx matchContext) []func() message.StatusBarMsg {
-	var matched []func() message.StatusBarMsg
-
-	for _, action := range ki.Functions {
-		if !slices.Contains(action.Bindings.keys, ctx.binding) {
-			continue
-		}
-
-		for _, cond := range action.Cond {
-			if cond.Matches(ctx) {
-				matched = append(matched, cond.Action)
-			}
-		}
-	}
-
-	return matched
 }
 
 // anyComponentFocused returns whether any of the components
 // in the FocusedComponents slice is focused
-func (ki *Input) anyComponentFocused(components []FocusedComponent) bool {
+func (ki *Input) anyComponentFocused(components []FocusedComponent) (FocusedComponent, bool) {
 	for _, c := range components {
 		if c.Focused() {
-			return true
+			return c, true
 		}
 	}
-	return false
+	return nil, false
 }
 
 // ResetKeysDown resets the modifier state flags and
