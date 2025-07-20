@@ -921,7 +921,7 @@ func (t *DirectoryTree) ContentInfo() message.StatusBarMsg {
 	var msg strings.Builder
 	msg.WriteString(nbrFolders.String())
 	msg.WriteString(", ")
-	msg.WriteString(nbrFolders.String())
+	msg.WriteString(nbrNotes.String())
 
 	return message.StatusBarMsg{
 		Column:  sbc.FileInfo,
