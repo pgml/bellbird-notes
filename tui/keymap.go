@@ -517,7 +517,7 @@ func (m *Model) confirmAction(opts ki.Options) func() StatusBarMsg {
 				if buf, ok, _ := m.Buffers.Contains(sel.Path()); ok {
 					// close buffer list overlay
 					m.editor.ListBuffers = false
-					m.editor.OpenBuffer(buf.Path(false))
+					m.editor.SwitchBuffer(buf)
 					m.bufferList.SetSelectedIndex(0)
 					m.focusEditor(opts)()
 				}

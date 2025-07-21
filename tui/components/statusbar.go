@@ -231,10 +231,14 @@ func (s *StatusBar) ConfirmAction(
 	case "keymap":
 		statusMsg = e.OpenUserKeyMap()
 	case "defaultkeymap":
-		statusMsg = e.NewScratchBuffer("Default Keymap")
+		statusMsg = e.NewScratchBuffer(
+			"Default Keymap",
+			string(s.Editor.KeyInput.DefaultKeyMap),
+		)
 		e.CurrentBuffer.Writeable = false
-		e.Textarea.SetValue(string(s.Editor.KeyInput.DefaultKeyMap))
 		e.Textarea.MoveCursor(0, 0, 0)
+		e.SetContent()
+
 	case "bd":
 		e.DeleteCurrentBuffer()
 	case "%bd": // temporary
@@ -244,7 +248,7 @@ func (s *StatusBar) ConfirmAction(
 		e.ListBuffers = true
 
 	case "new":
-		statusMsg = e.NewScratchBuffer("Scratch")
+		statusMsg = e.NewScratchBuffer("Scratch", "")
 		e.Textarea.SetValue("")
 	}
 

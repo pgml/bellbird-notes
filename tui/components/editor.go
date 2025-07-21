@@ -331,15 +331,17 @@ func (e *Editor) NewBuffer(path string) message.StatusBarMsg {
 	noteContent := string(note)
 	cursorPos := e.cursorPosFromConf(path)
 
-	e.NewScratchBuffer("")
+	// Create a new scratch buffer
+	e.NewScratchBuffer("", noteContent)
 
+	// Fill scratch buffer with the note's data
 	buf := e.CurrentBuffer
 	buf.path = path
 	buf.CursorPos = cursorPos
 	buf.History = textarea.NewHistory()
-	buf.Content = noteContent
 
 	content := ""
+	// If we're trying to
 	if e.CurrentBuffer.path == path {
 		content = e.CurrentBuffer.Content
 	}
@@ -350,28 +352,25 @@ func (e *Editor) NewBuffer(path string) message.StatusBarMsg {
 	contentHash := utils.HashContent(content)
 	e.CurrentBuffer.LastSavedContentHash = contentHash
 
-	e.Textarea.SetValue(content)
-	e.Textarea.MoveCursor(
-		cursorPos.Row,
-		cursorPos.RowOffset,
-		cursorPos.ColumnOffset,
-	)
-	e.Textarea.RepositionView()
-
+	e.SetContent()
 	e.saveLineLength()
 	e.UpdateMetaInfo()
 
 	return message.StatusBarMsg{}
 }
 
-func (e *Editor) NewScratchBuffer(title string) message.StatusBarMsg {
+// NewScratchBuffer creates a new temporary buffer
+func (e *Editor) NewScratchBuffer(
+	title string,
+	content string,
+) message.StatusBarMsg {
 	notesRoot, _ := app.NotesRootDir()
 	path := notesRoot + "/" + title
 
 	buf := Buffer{
 		Index:                len(*e.Buffers) + 1,
 		path:                 path,
-		Content:              "",
+		Content:              content,
 		History:              textarea.NewHistory(),
 		CurrentLine:          0,
 		CurrentLineLength:    0,
@@ -406,6 +405,30 @@ func (e *Editor) OpenBuffer(path string) message.StatusBarMsg {
 
 	e.CurrentBuffer = buf
 
+	e.SetContent()
+	e.saveLineLength()
+	e.UpdateMetaInfo()
+
+	return statusMsg
+}
+
+func (e *Editor) SwitchBuffer(buf *Buffer) message.StatusBarMsg {
+	if _, exists, _ := e.Buffers.Contains(buf.path); !exists {
+		return message.StatusBarMsg{}
+	}
+
+	e.CurrentBuffer = buf
+
+	e.SetContent()
+	e.Textarea.RepositionView()
+	e.saveLineLength()
+	e.UpdateMetaInfo()
+
+	return message.StatusBarMsg{}
+}
+
+func (e *Editor) SetContent() {
+	buf := e.CurrentBuffer
 	e.Textarea.SetValue(buf.Content)
 	e.Textarea.MoveCursor(
 		buf.CursorPos.Row,
@@ -413,11 +436,6 @@ func (e *Editor) OpenBuffer(path string) message.StatusBarMsg {
 		buf.CursorPos.ColumnOffset,
 	)
 	e.Textarea.RepositionView()
-
-	e.saveLineLength()
-	e.UpdateMetaInfo()
-
-	return statusMsg
 }
 
 // SaveBuffer writes the current buffer's content to the corresponding

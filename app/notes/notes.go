@@ -123,10 +123,12 @@ func Create(path string) (Note, error) {
 
 // Write replaces the contents of a note at the given path with the provided string.
 func Write(path string, content string) (int, error) {
-	path = CheckPath(path)
+	if IsNote(path) {
+		path = CheckPath(path)
 
-	if !Exists(path) {
-		return 0, errors.New(message.StatusBar.NoteExists)
+		if !Exists(path) {
+			return 0, errors.New(message.StatusBar.NoteExists)
+		}
 	}
 
 	f, err := os.OpenFile(path, os.O_WRONLY|os.O_TRUNC, 0644)
@@ -214,12 +216,20 @@ func isHidden(path string) bool {
 // CheckPath ensures that the path ends with a valid extension.
 // If not, it appends the default extension.
 func CheckPath(path string) string {
-	if strings.HasSuffix(path, Ext) ||
-		strings.HasSuffix(path, LegacyExt) ||
-		strings.HasSuffix(path, ConfExt) {
-
+	if IsNote(path) {
 		return path
 	}
 
 	return path + Ext
+}
+
+func IsNote(path string) bool {
+	if strings.HasSuffix(path, Ext) ||
+		strings.HasSuffix(path, LegacyExt) ||
+		strings.HasSuffix(path, ConfExt) {
+
+		return true
+	}
+
+	return false
 }
