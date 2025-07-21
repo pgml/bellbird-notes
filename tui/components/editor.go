@@ -788,6 +788,11 @@ func (e *Editor) OpenConfig() message.StatusBarMsg {
 	return message.StatusBarMsg{}
 }
 
+// OpenConfig opens the config file as a buffer
+func (e *Editor) OpenUserKeyMap() message.StatusBarMsg {
+	return e.OpenBuffer(e.KeyInput.KeyMap.Path())
+}
+
 // MoveCharacterLeft moves the cursor one character to the left
 // and checks if the cursor is either at the end or the beginning
 // of the line and saves it's position

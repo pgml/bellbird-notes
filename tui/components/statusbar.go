@@ -228,6 +228,13 @@ func (s *StatusBar) ConfirmAction(
 		e.SetNoNumbers()
 	case "config":
 		statusMsg = e.OpenConfig()
+	case "keymap":
+		statusMsg = e.OpenUserKeyMap()
+	case "defaultkeymap":
+		statusMsg = e.NewScratchBuffer("Default Keymap")
+		e.CurrentBuffer.Writeable = false
+		e.Textarea.SetValue(string(s.Editor.KeyInput.DefaultKeyMap))
+		e.Textarea.MoveCursor(0, 0, 0)
 	case "bd":
 		e.DeleteCurrentBuffer()
 	case "%bd": // temporary
