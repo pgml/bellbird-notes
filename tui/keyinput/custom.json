@@ -1,0 +1,13 @@
+[
+	// components: Folders, Notes, Editor, BufferList
+	// mode: normal, visual, visual_line, visual_block, replace, command
+	{
+		"components": ["Folders", "Notes", "Editor"],
+		"mode": "normal",
+		"bindings": {
+			// "alt+1": "FocusFolders",
+			// "alt+2": "FocusNotes",
+			// "alt+3": "FocusEditor",
+		}
+	}
+]
