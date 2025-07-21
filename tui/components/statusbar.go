@@ -266,6 +266,8 @@ func (s *StatusBar) ConfirmAction(
 		saveBufMsg.Cmd,
 	)
 
+	statusMsg.Content = saveBufMsg.Content
+
 	return statusMsg
 }
 
