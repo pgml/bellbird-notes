@@ -323,6 +323,9 @@ type Model struct {
 	rsan runeutil.Sanitizer
 
 	Selection Selection
+
+	TabWidth  int
+	tabGroups [][]TabGroup
 }
 
 // New creates a new model with default settings.
@@ -352,6 +355,8 @@ func New() Model {
 		row:   0,
 
 		viewport: &vp,
+
+		tabGroups: make([][]TabGroup, minHeight, maxLines),
 	}
 
 	m.SetHeight(defaultHeight)
@@ -448,6 +453,16 @@ func (m *Model) insertRunesFromUserInput(runes []rune) {
 	// clipboard. This avoids bugs due to e.g. tab characters and
 	// whatnot.
 	runes = m.san().Sanitize(runes)
+
+	// ---- NEEDS TO BE MERGED WHEN UPDATING BUBBLES!
+	if m.isTab(runes) {
+		m.addTabGroup()
+	} else {
+		m.shiftTabGroups()
+	}
+	// ---- MERGE END
+
+	//debug.LogDebug("group", m.TabGroups[m.row])
 
 	if m.CharLimit > 0 {
 		availSpace := m.CharLimit - m.Length()
