@@ -33,6 +33,7 @@ type StatusBar struct {
 	Mode      mode.Mode
 	Sender    message.Sender
 	SenderMsg message.StatusBarMsg
+
 	DirTree   DirectoryTree
 	NotesList NotesList
 	Editor    Editor
@@ -234,6 +235,10 @@ func (s *StatusBar) ConfirmAction(
 	case "buffers":
 	case "b":
 		e.ListBuffers = true
+
+	case "new":
+		statusMsg = e.NewScratchBuffer("Scratch")
+		e.Textarea.SetValue("")
 	}
 
 	s.SetColContent(statusMsg.Column, &statusMsg.Content)

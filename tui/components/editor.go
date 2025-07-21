@@ -85,6 +85,8 @@ type Buffer struct {
 	// Header is the title of the buffer
 	// If not nil, the path as a breadcrumb is displayed
 	header *string
+
+	Writeable bool
 }
 
 // Name returns the name of the buffer without its suffix.
@@ -190,6 +192,8 @@ type Editor struct {
 	err error
 
 	LastOpenNoteLoaded bool
+
+	KeyInput keyinput.Input
 }
 
 func NewEditor(conf *config.Config) *Editor {
@@ -327,20 +331,13 @@ func (e *Editor) NewBuffer(path string) message.StatusBarMsg {
 	noteContent := string(note)
 	cursorPos := e.cursorPosFromConf(path)
 
-	buf := Buffer{
-		Index:                len(*e.Buffers) + 1,
-		path:                 path,
-		Content:              noteContent,
-		History:              textarea.NewHistory(),
-		CurrentLine:          0,
-		CurrentLineLength:    0,
-		CursorPos:            cursorPos,
-		LastSavedContentHash: "",
-	}
+	e.NewScratchBuffer("")
 
-	*e.Buffers = append(*e.Buffers, buf)
-	buffers := *e.Buffers
-	e.CurrentBuffer = &buffers[len(buffers)-1]
+	buf := e.CurrentBuffer
+	buf.path = path
+	buf.CursorPos = cursorPos
+	buf.History = textarea.NewHistory()
+	buf.Content = noteContent
 
 	content := ""
 	if e.CurrentBuffer.path == path {
@@ -363,6 +360,28 @@ func (e *Editor) NewBuffer(path string) message.StatusBarMsg {
 
 	e.saveLineLength()
 	e.UpdateMetaInfo()
+
+	return message.StatusBarMsg{}
+}
+
+func (e *Editor) NewScratchBuffer(title string) message.StatusBarMsg {
+	notesRoot, _ := app.NotesRootDir()
+	path := notesRoot + "/" + title
+
+	buf := Buffer{
+		Index:                len(*e.Buffers) + 1,
+		path:                 path,
+		Content:              "",
+		History:              textarea.NewHistory(),
+		CurrentLine:          0,
+		CurrentLineLength:    0,
+		LastSavedContentHash: "",
+		Writeable:            true,
+	}
+
+	*e.Buffers = append(*e.Buffers, buf)
+	buffers := *e.Buffers
+	e.CurrentBuffer = &buffers[len(buffers)-1]
 
 	return message.StatusBarMsg{}
 }
@@ -598,22 +617,36 @@ func (e *Editor) SendEnterNormalModeDeferredMsg() tea.Cmd {
 // EnterInsertMode sets the current editor mode to insert
 // and creates a new history entry
 func (e *Editor) EnterInsertMode(withHistory bool) message.StatusBarMsg {
+	msg := message.StatusBarMsg{}
+
+	if !e.CurrentBuffer.Writeable {
+		return msg
+	}
+
 	e.Vim.Mode.Current = mode.Insert
 	if withHistory {
 		e.newHistoryEntry()
 	}
 	e.Textarea.SetCursorColor(mode.Insert.Colour())
 	e.Textarea.ResetSelection()
-	return message.StatusBarMsg{}
+
+	return msg
 }
 
 // EnterReplaceMode sets the current editor mode to replace
 // and creates a new history entry
 func (e *Editor) EnterReplaceMode() message.StatusBarMsg {
+	msg := message.StatusBarMsg{}
+
+	if !e.CurrentBuffer.Writeable {
+		return msg
+	}
+
 	e.Vim.Mode.Current = mode.Replace
 	e.newHistoryEntry()
 	e.Textarea.SetCursorColor(mode.Replace.Colour())
-	return message.StatusBarMsg{}
+
+	return msg
 }
 
 // EnterVisualMode sets the current editor mode to replace
@@ -785,27 +818,42 @@ func (e *Editor) GoToChar() message.StatusBarMsg {
 // InsertAfter enters insert mode one character after the current cursor's
 // position and saves its position
 func (e *Editor) InsertAfter() message.StatusBarMsg {
+	if !e.CurrentBuffer.Writeable {
+		return message.StatusBarMsg{}
+	}
+
 	e.Textarea.CharacterRight(true)
 	e.EnterInsertMode(true)
 	e.saveCursorPos()
+
 	return message.StatusBarMsg{}
 }
 
 // InsertLineStart moves the cursor to the beginning of the line,
 // enters insert mode and saves the cursor's position
 func (e *Editor) InsertLineStart() message.StatusBarMsg {
+	if !e.CurrentBuffer.Writeable {
+		return message.StatusBarMsg{}
+	}
+
 	e.Textarea.CursorInputStart()
 	e.EnterInsertMode(true)
 	e.saveCursorPos()
+
 	return message.StatusBarMsg{}
 }
 
 // InsertLineEnd moves the cursor to the end of the line,
 // enters insert mode and saves the cursor's position
 func (e *Editor) InsertLineEnd() message.StatusBarMsg {
+	if !e.CurrentBuffer.Writeable {
+		return message.StatusBarMsg{}
+	}
+
 	e.Textarea.CursorEnd()
 	e.EnterInsertMode(true)
 	e.saveCursorPos()
+
 	return message.StatusBarMsg{}
 }
 
@@ -813,6 +861,10 @@ func (e *Editor) InsertLineEnd() message.StatusBarMsg {
 // and enters insert mode.
 // If above is true it inserts the line above the current line
 func (e *Editor) InsertLine(above bool) message.StatusBarMsg {
+	if !e.CurrentBuffer.Writeable {
+		return message.StatusBarMsg{}
+	}
+
 	e.newHistoryEntry()
 
 	if above {
@@ -986,6 +1038,10 @@ func (e *Editor) SelectWord(outer bool) message.StatusBarMsg {
 // DeleteLine deletes the current line and copies its content
 // to the clipboard
 func (e *Editor) DeleteLine() message.StatusBarMsg {
+	if !e.CurrentBuffer.Writeable {
+		return message.StatusBarMsg{}
+	}
+
 	e.newHistoryEntry()
 
 	e.saveLineLength()
@@ -1001,6 +1057,10 @@ func (e *Editor) DeleteLine() message.StatusBarMsg {
 // If outer is true it includes the trailing space.
 // If enterInsertMode is true, we're going straight into inser mode.
 func (e *Editor) DeleteWord(outer bool, enterInsertMode bool) message.StatusBarMsg {
+	if !e.CurrentBuffer.Writeable {
+		return message.StatusBarMsg{}
+	}
+
 	e.newHistoryEntry()
 
 	if outer {
@@ -1020,6 +1080,10 @@ func (e *Editor) DeleteWord(outer bool, enterInsertMode bool) message.StatusBarM
 
 // DeleteAfterCursor deletes all characters after the cursor
 func (e *Editor) DeleteAfterCursor(overshoot bool) message.StatusBarMsg {
+	if !e.CurrentBuffer.Writeable {
+		return message.StatusBarMsg{}
+	}
+
 	e.newHistoryEntry()
 	e.Textarea.DeleteAfterCursor(overshoot)
 	e.updateBufferContent(true)
@@ -1028,6 +1092,10 @@ func (e *Editor) DeleteAfterCursor(overshoot bool) message.StatusBarMsg {
 
 // DeleteNLines deletes n lines
 func (e *Editor) DeleteNLines(lines int, up bool) message.StatusBarMsg {
+	if !e.CurrentBuffer.Writeable {
+		return message.StatusBarMsg{}
+	}
+
 	e.newHistoryEntry()
 	e.Textarea.DeleteLines(lines, up)
 	e.updateBufferContent(true)
@@ -1037,6 +1105,10 @@ func (e *Editor) DeleteNLines(lines int, up bool) message.StatusBarMsg {
 
 // DeleteWordRight deletes the rest of word after the cursor
 func (e *Editor) DeleteWordRight() message.StatusBarMsg {
+	if !e.CurrentBuffer.Writeable {
+		return message.StatusBarMsg{}
+	}
+
 	e.newHistoryEntry()
 	e.Textarea.DeleteWordRight()
 	e.updateHistoryEntry()
@@ -1045,6 +1117,10 @@ func (e *Editor) DeleteWordRight() message.StatusBarMsg {
 
 // MergeLineBelow merges the current line with the line below
 func (e *Editor) MergeLineBelow() message.StatusBarMsg {
+	if !e.CurrentBuffer.Writeable {
+		return message.StatusBarMsg{}
+	}
+
 	e.newHistoryEntry()
 	e.Textarea.VimMergeLineBelow(e.CurrentBuffer.CursorPos.Row)
 	e.updateBufferContent(true)
@@ -1059,6 +1135,10 @@ func (e *Editor) DeleteRune(
 	withHistory bool,
 	noYank bool,
 ) message.StatusBarMsg {
+	if !e.CurrentBuffer.Writeable {
+		return message.StatusBarMsg{}
+	}
+
 	if withHistory {
 		e.newHistoryEntry()
 	}
@@ -1119,6 +1199,10 @@ func (e *Editor) SelectedRowsCount() int {
 
 // Undo sets the buffer content to the previous history entry
 func (e *Editor) Undo() message.StatusBarMsg {
+	if !e.CurrentBuffer.Writeable {
+		return message.StatusBarMsg{}
+	}
+
 	val, cursorPos := e.CurrentBuffer.undo()
 	curBuf := e.CurrentBuffer
 
@@ -1151,6 +1235,10 @@ func (e *Editor) Undo() message.StatusBarMsg {
 
 // Redo sets the buffer content to the next history entry
 func (e *Editor) Redo() message.StatusBarMsg {
+	if !e.CurrentBuffer.Writeable {
+		return message.StatusBarMsg{}
+	}
+
 	val, cursorPos := e.CurrentBuffer.redo()
 	// dirty check
 	e.CurrentBuffer.Dirty = val != e.CurrentBuffer.LastSavedContentHash
@@ -1234,6 +1322,10 @@ func (e *Editor) YankWord(outer bool) message.StatusBarMsg {
 // it attempts to paste the clipboard content on a newline below
 // the current line
 func (e *Editor) Paste() message.StatusBarMsg {
+	if !e.CurrentBuffer.Writeable {
+		return message.StatusBarMsg{}
+	}
+
 	cp := clipboard.Read(clipboard.FmtText)
 	if len(cp) > 0 {
 		cnt := string(cp)
