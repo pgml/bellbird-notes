@@ -15,9 +15,9 @@ type KeyMap struct {
 
 func (km *KeyMap) ResolveComponents(ki *Input) []FocusedComponent {
 	var components []FocusedComponent
-	for _, comp := range ki.Components {
-		if slices.Contains(km.Components, comp.Name()) {
-			components = append(components, comp)
+	for i := range ki.Components {
+		if slices.Contains(km.Components, ki.Components[i].Name()) {
+			components = append(components, ki.Components[i])
 		}
 	}
 	return components

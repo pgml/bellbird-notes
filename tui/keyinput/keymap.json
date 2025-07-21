@@ -12,7 +12,7 @@
 			"ctrl+w ctrl+l": "FocusNextColumn",
 			"ctrl+w h": "FocusPrevColumn",
 			"ctrl+w ctrl+h": "FocusPrevColumn",
-			"space e": "ShowOpenNotes",
+			"space e": "ShowBufferList",
 			"space q": "CloseNote",
 		}
 	},
@@ -42,6 +42,16 @@
 		"bindings": {
 			"enter": "ConfirmAction",
 			"esc": "CancelAction",
+		}
+	},
+	{
+		"components": ["BufferList"],
+		"mode": "normal",
+		"bindings": {
+			"j": "LineDown",
+			"k": "LineUp",
+			"enter": "ConfirmAction",
+			"esc": "CloseBufferList",
 		}
 	},
 	{
@@ -79,7 +89,7 @@
 			"ctrl+u": "UpHalfPage",
 			"v": "ToggleVisual",
 			"V": "ToggleVisualLine",
-			//"ctrl+v": "ToggleVisualBlock",
+			// "ctrl+v": "ToggleVisualBlock",
 			"w": ["NextWord", { "end": false }],
 			"e": ["NextWord", { "end": true }],
 			"b": ["PrevWord", { "end": false }],
@@ -89,7 +99,7 @@
 			"0": "GoToLineStart",
 			"$": "GoToLineEnd",
 			"J": ["MergeLines", { "with_space": false }],
-			//"gJ": ["MergeLines", { "with_space": true }],
+			// "gJ": ["MergeLines", { "with_space": true }],
 			"s": "SubstituteText",
 			"x": "DeleteCharacter",
 			"p": "Paste",

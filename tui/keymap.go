@@ -30,7 +30,11 @@ func (m *Model) FnRegistry() ki.FnRegistry {
 		"CancelAction":           m.cancelAction,
 		"FocusNextColumn":        m.focusNextColumn,
 		"FocusPrevColumn":        m.focusPrevColumn,
-		"ShowOpenNotes":          m.showOpenBuffers,
+		"FocusFolders":           m.focusDirectoryTree,
+		"FocusNotes":             m.focusNotesList,
+		"FocusEditor":            m.focusEditor,
+		"ShowBufferList":         m.showBufferList,
+		"CloseBufferList":        m.closeBufferList,
 		"CloseNote":              bind(m.editor.DeleteCurrentBuffer),
 		"GoToTop":                m.goToTop,
 		"GoToBottom":             m.goToBottom,
@@ -135,10 +139,21 @@ func (m *Model) lineUp(opts ki.Options) func() StatusBarMsg {
 	}
 }
 
-// showOpenBuffers opens an overlay showing all open buffers
-func (m *Model) showOpenBuffers(_ ki.Options) func() StatusBarMsg {
+// showBufferList opens an overlay showing all open buffers
+func (m *Model) showBufferList(_ ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
 		m.OverlayOpenBuffers()
+		return StatusBarMsg{}
+	}
+}
+
+// closeBufferList opens an overlay showing all open buffers
+func (m *Model) closeBufferList(_ ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		if m.bufferList.Focused() {
+			m.editor.ListBuffers = false
+			m.focusColumn(m.currColFocus)
+		}
 		return StatusBarMsg{}
 	}
 }
@@ -504,7 +519,7 @@ func (m *Model) confirmAction(opts ki.Options) func() StatusBarMsg {
 					m.editor.ListBuffers = false
 					m.editor.OpenBuffer(buf.Path(false))
 					m.bufferList.SetSelectedIndex(0)
-					m.focusEditor()
+					m.focusEditor(opts)()
 				}
 
 				//default:
@@ -536,11 +551,6 @@ func (m *Model) cancelAction(opts ki.Options) func() StatusBarMsg {
 				if m.dirTree.EditState == stateCreate ||
 					m.notesList.EditState == stateCreate {
 					resetIndex = true
-				}
-
-				if f == m.bufferList {
-					m.editor.ListBuffers = false
-					m.focusColumn(m.currColFocus)
 				}
 
 				return f.CancelAction(func() {
@@ -660,20 +670,26 @@ func (m *Model) focusColumn(index int) StatusBarMsg {
 
 // focusDirectoryTree is a helper function
 // for selecting the directory tree
-func (m *Model) focusDirectoryTree() StatusBarMsg {
-	return m.focusColumn(1)
+func (m *Model) focusDirectoryTree(_ ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		return m.focusColumn(1)
+	}
 }
 
 // focusNotesList() is a helper function
 // for selecting the notes list
-func (m *Model) focusNotesList() StatusBarMsg {
-	return m.focusColumn(2)
+func (m *Model) focusNotesList(_ ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		return m.focusColumn(2)
+	}
 }
 
 // focusEditor is a helper function
 // for selecting the editor
-func (m *Model) focusEditor() StatusBarMsg {
-	return m.focusColumn(3)
+func (m *Model) focusEditor(_ ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		return m.focusColumn(3)
+	}
 }
 
 // focusedComponent returns the component that is currently focused
@@ -693,7 +709,7 @@ func (m *Model) focusedComponent() Focusable {
 	return nil
 }
 
-func (m *Model) unfocusAllComponents() StatusBarMsg {
+func (m *Model) unfocusAllColumns() StatusBarMsg {
 	m.dirTree.SetFocus(false)
 	m.dirTree.BuildHeader(m.dirTree.Size.Width, true)
 
@@ -702,6 +718,8 @@ func (m *Model) unfocusAllComponents() StatusBarMsg {
 
 	m.editor.SetFocus(false)
 	m.editor.BuildHeader(m.editor.Size.Width, true)
+
+	m.keyInput.FetchKeyMap(true)
 
 	m.statusBar.Focused = false
 

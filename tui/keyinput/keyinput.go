@@ -294,10 +294,10 @@ func (ki *Input) isBinding(key string) bool {
 
 // anyComponentFocused returns whether any of the components
 // in the FocusedComponents slice is focused
-func (ki *Input) anyComponentFocused(components []FocusedComponent) (FocusedComponent, bool) {
-	for _, c := range components {
-		if c.Focused() {
-			return c, true
+func (ki *Input) anyComponentFocused(components []FocusedComponent) (*FocusedComponent, bool) {
+	for i := range components {
+		if components[i].Focused() {
+			return &components[i], true
 		}
 	}
 	return nil, false

@@ -66,7 +66,9 @@ func InitialModel() *Model {
 		m.dirTree,
 		m.notesList,
 		m.editor,
+		m.bufferList,
 	}
+
 	m.componentsInit()
 	m.restoreState()
 
@@ -266,7 +268,7 @@ func (m *Model) updateComponents(msg tea.Msg) []tea.Cmd {
 	cmds = append(cmds, cmd)
 
 	if m.editor.ListBuffers {
-		m.unfocusAllComponents()
+		m.unfocusAllColumns()
 	}
 
 	// collect dirty buffers

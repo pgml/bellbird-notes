@@ -125,6 +125,8 @@ func NewBufferList(conf *config.Config) *BufferList {
 	return panel
 }
 
+func (l BufferList) Name() string { return "BufferList" }
+
 // Init initialises the Model on program load.
 // It partly implements the tea.Model interface.
 func (l *BufferList) Init() tea.Cmd {
