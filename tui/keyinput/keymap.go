@@ -1,30 +1,110 @@
 package keyinput
 
 import (
+	_ "embed"
 	"encoding/json"
+	"errors"
+	"os"
 	"slices"
 
+	"bellbird-notes/app"
+	"bellbird-notes/app/debug"
+	"bellbird-notes/app/utils"
 	"bellbird-notes/tui/mode"
 )
 
+//go:embed keymap.json
+var defaultKeyMap []byte
+
+//go:embed custom.json
+var keyMapCustomTpl []byte
+
+const keyMapFileName = "keymap.json"
+
 type KeyMap struct {
+	path    string
+	entries []KeyMapEntry
+}
+
+func (m *KeyMap) Path() string { return m.path }
+
+func NewKeyMap() KeyMap {
+	path, err := keyMapPath()
+
+	if err != nil {
+		debug.LogErr(err)
+	}
+
+	return KeyMap{
+		path:    path,
+		entries: []KeyMapEntry{},
+	}
+}
+
+func keyMapPath() (string, error) {
+	confDir, err := app.ConfigDir()
+
+	if err != nil {
+		return "", err
+	}
+
+	return confDir + "/" + keyMapFileName, nil
+}
+
+// Exists checks whether a file exists at the given path.
+func (km *KeyMap) Exists() bool {
+	if _, err := os.Stat(km.path); errors.Is(err, os.ErrNotExist) {
+		return false
+	}
+	return true
+}
+
+func (km *KeyMap) Create() error {
+	f, err := utils.CreateFile(km.path, true)
+
+	if err != nil {
+		return err
+	}
+
+	defer f.Close()
+
+	_, err = f.Write(keyMapCustomTpl)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (km *KeyMap) Content() ([]byte, error) {
+	f, err := os.ReadFile(km.path)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return f, nil
+}
+
+type KeyMapEntry struct {
 	Mode       string                `json:"mode"`
 	Components []string              `json:"components"`
 	Bindings   map[string]MapBinding `json:"bindings"`
 }
 
-func (km *KeyMap) ResolveComponents(ki *Input) []FocusedComponent {
+func (e *KeyMapEntry) ResolveComponents(ki *Input) []FocusedComponent {
 	var components []FocusedComponent
 	for i := range ki.Components {
-		if slices.Contains(km.Components, ki.Components[i].Name()) {
+		if slices.Contains(e.Components, ki.Components[i].Name()) {
 			components = append(components, ki.Components[i])
 		}
 	}
 	return components
 }
 
-func (km *KeyMap) ResolveMode(ki *Input) mode.Mode {
-	switch km.Mode {
+func (e *KeyMapEntry) ResolveMode(ki *Input) mode.Mode {
+	switch e.Mode {
 	case "normal":
 		return mode.Normal
 	case "insert":

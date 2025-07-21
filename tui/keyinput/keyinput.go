@@ -1,8 +1,8 @@
 package keyinput
 
 import (
-	_ "embed"
 	"encoding/json"
+	"maps"
 	"slices"
 	"strings"
 	"time"
@@ -16,9 +16,6 @@ import (
 	"bellbird-notes/tui/mode"
 	sbc "bellbird-notes/tui/types/statusbar_column"
 )
-
-//go:embed keymap.json
-var keyMap []byte
 
 // FocusedComponent represents any UI component that can report whether
 // it currently has focus.
@@ -60,7 +57,10 @@ type Input struct {
 	//componentActions map[string]Action
 	componentActions map[mode.Mode]map[string]Action
 
-	KeyMap     []byte
+	KeyMap        KeyMap
+	DefaultKeyMap []byte
+	UserKeyMap    []byte
+
 	Registry   FnRegistry
 	Components []FocusedComponent
 }
@@ -70,6 +70,20 @@ type FnRegistry map[string]CmdFn
 
 // New creates and returns a new Input instance with default state.
 func New() *Input {
+	keymap := NewKeyMap()
+
+	if !keymap.Exists() {
+		err := keymap.Create()
+		if err != nil {
+			debug.LogDebug(err)
+		}
+	}
+
+	userKeyMap, err := keymap.Content()
+	if err != nil {
+		debug.LogErr(err)
+	}
+
 	return &Input{
 		Space:            false,
 		Ctrl:             false,
@@ -81,7 +95,9 @@ func New() *Input {
 		sequenceKeys:     []string{},
 		sequenceLength:   0,
 		componentActions: map[mode.Mode]map[string]Action{},
-		KeyMap:           keyMap,
+		KeyMap:           keymap,
+		DefaultKeyMap:    defaultKeyMap,
+		UserKeyMap:       userKeyMap,
 	}
 }
 
@@ -179,31 +195,60 @@ func (ki *Input) executeAction(binding string) message.StatusBarMsg {
 
 // FetchKeyMap updates the cached map of key bindings to actions based on
 // the currently focused component and the current mode.
+//
+// It merges the user keymap with the default keymap and
+// overrides keybinds from the user map with the default keybinds
+// if necessary
 func (ki *Input) FetchKeyMap(resetSeq bool) {
+	defaultMap, err := ki.parseKeyMap(ki.DefaultKeyMap, resetSeq)
+	if err != nil {
+		debug.LogErr("error parsing default keynap", err)
+	}
+
+	// get the user keymap
+	userMap, err := ki.parseKeyMap(ki.UserKeyMap, false)
+	if err != nil {
+		debug.LogErr("error parsing user keymap", err)
+	}
+
+	// merge user keymap with the default and override keybinds if necessary
+	for mode, bindings := range userMap {
+		if _, exists := defaultMap[mode]; !exists {
+			defaultMap[mode] = make(map[string]Action)
+		}
+
+		maps.Copy(defaultMap[mode], bindings)
+	}
+
+	ki.componentActions = defaultMap
+}
+
+// parseKeyMap converts a keymap json string into a executable map
+func (ki *Input) parseKeyMap(
+	keymap []byte,
+	resetSeq bool,
+) (map[mode.Mode]map[string]Action, error) {
 	if resetSeq {
 		ki.sequenceKeys = []string{}
 	}
 
-	ki.componentActions = map[mode.Mode]map[string]Action{}
-
-	var keymap []KeyMap
+	parsed := map[mode.Mode]map[string]Action{}
+	entries := []KeyMapEntry{}
 
 	// remove trailing commas and comments
-	cleanedMap, err := hujson.Standardize(ki.KeyMap)
+	cleanedMap, err := hujson.Standardize(keymap)
 	if err != nil {
-		debug.LogErr(err)
-		return
+		return nil, err
 	}
 
-	if err := json.Unmarshal(cleanedMap, &keymap); err != nil {
-		debug.LogErr(err)
-		return
+	if err := json.Unmarshal(cleanedMap, &entries); err != nil {
+		return nil, err
 	}
 
 	// map to store the modes per binding
 	modes := map[string][]mode.Mode{}
 
-	for _, set := range keymap {
+	for _, set := range entries {
 		if _, ok := ki.anyComponentFocused(set.ResolveComponents(ki)); !ok {
 			continue
 		}
@@ -232,12 +277,12 @@ func (ki *Input) FetchKeyMap(resetSeq bool) {
 
 			for key, modeSlice := range modes {
 				for _, mode := range modeSlice {
-					if ki.componentActions[mode] == nil {
-						ki.componentActions[mode] = make(map[string]Action)
+					if parsed[mode] == nil {
+						parsed[mode] = make(map[string]Action)
 					}
 
 					// Create the actual component actions
-					action, ok := ki.componentActions[mode][key]
+					action, ok := parsed[mode][key]
 					if !ok {
 						action = Action{
 							binding: key,
@@ -245,16 +290,22 @@ func (ki *Input) FetchKeyMap(resetSeq bool) {
 						}
 					}
 
-					ki.componentActions[mode][key] = action
+					parsed[mode][key] = action
 				}
 			}
 
 			ki.addSequenceKey(key, false)
 		}
 	}
+
+	return parsed, nil
 }
 
 func (ki *Input) addSequenceKey(binding string, force bool) {
+	if binding == "" {
+		return
+	}
+
 	runeCount := utf8.RuneCountInString(binding)
 
 	seqAmount := strings.Split(binding, " ")

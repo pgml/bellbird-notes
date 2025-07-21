@@ -106,3 +106,18 @@ func HashContent(s string) string {
 	sum := sha256.New().Sum([]byte(s))
 	return hex.EncodeToString(sum)
 }
+
+// CreateFile attempts to create a new file at the specified path
+func CreateFile(path string, keepOpen bool) (*os.File, error) {
+	f, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if !keepOpen {
+		defer f.Close()
+	}
+
+	return f, nil
+}

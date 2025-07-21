@@ -13,7 +13,7 @@
 			"ctrl+w h": "FocusPrevColumn",
 			"ctrl+w ctrl+h": "FocusPrevColumn",
 			"space e": "ShowBufferList",
-			"space q": "CloseNote",
+			"space q": "CloseNote"
 		}
 	},
 	{
@@ -21,7 +21,7 @@
 		"mode": "command",
 		"bindings": {
 			"enter": "ConfirmAction",
-			"esc": "CancelAction",
+			"esc": "CancelAction"
 		}
 	},
 	{
@@ -33,7 +33,7 @@
 			"P": "TogglePinListItem",
 			"yy": "YankListItem",
 			"dd": "CutListItem",
-			"p": "PasteListItem",
+			"p": "PasteListItem"
 		}
 	},
 	{
@@ -41,7 +41,7 @@
 		"mode": "insert",
 		"bindings": {
 			"enter": "ConfirmAction",
-			"esc": "CancelAction",
+			"esc": "CancelAction"
 		}
 	},
 	{
@@ -51,7 +51,7 @@
 			"j": "LineDown",
 			"k": "LineUp",
 			"enter": "ConfirmAction",
-			"esc": "CloseBufferList",
+			"esc": "CloseBufferList"
 		}
 	},
 	{
@@ -62,9 +62,7 @@
 			"k": "LineUp",
 			"l": "TreeExpand",
 			"h": "TreeCollapse",
-			"d": "CreateFolder",
-			"v": "ToggleVisual",
-			"V": "ToggleVisualLine",
+			"d": "CreateFolder"
 		}
 	},
 	{
@@ -73,7 +71,7 @@
 		"bindings": {
 			"j": "LineDown",
 			"k": "LineUp",
-			"%": "CreateNote",
+			"%": "CreateNote"
 		}
 	},
 	{
@@ -102,8 +100,8 @@
 			// "gJ": ["MergeLines", { "with_space": true }],
 			"s": "SubstituteText",
 			"x": "DeleteCharacter",
-			"p": "Paste",
-		},
+			"p": "Paste"
+		}
 	},
 	{
 		"components": ["Editor"],
@@ -129,7 +127,7 @@
 			"caw": ["ChangeWord", { "outer": true }],
 			"yy": "YankLine",
 			"yiw": ["YankWord", { "outer": false }],
-			"yaw": ["YankWord", { "outer": true }],
+			"yaw": ["YankWord", { "outer": true }]
 		}
 	},
 	{
@@ -141,7 +139,7 @@
 			"d": "DeleteSelection",
 			"D": "DeleteLine",
 			"c": "SubstituteText",
-			"y": "YankSelection",
+			"y": "YankSelection"
 		}
 	},
 	{
@@ -151,8 +149,8 @@
 			"d": "DeleteSelection",
 			"D": "DeleteLine",
 			"c": ["SubstituteText", { "new_line": true }],
-			"y": "YankSelection",
+			"y": "YankSelection"
 		}
-	},
+	}
 ]
 

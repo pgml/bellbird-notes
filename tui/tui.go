@@ -198,6 +198,7 @@ func (m *Model) componentsInit() {
 
 	m.editor.ID = m.layout.Add("grow")
 	m.editor.SetBuffers(&m.Buffers)
+	m.editor.KeyInput = *m.keyInput
 
 	m.bufferList.SetBuffers(&m.Buffers)
 

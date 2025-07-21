@@ -1,13 +1,16 @@
 [
 	// components: Folders, Notes, Editor, BufferList
 	// mode: normal, visual, visual_line, visual_block, replace, command
+	// see `:keymap` for all bindings
 	{
 		"components": ["Folders", "Notes", "Editor"],
 		"mode": "normal",
 		"bindings": {
+			// "alt+e": "FocusNextColumn",
+			// "alt+q": "FocusPrevColumn",
 			// "alt+1": "FocusFolders",
 			// "alt+2": "FocusNotes",
 			// "alt+3": "FocusEditor",
 		}
-	}
+	},
 ]

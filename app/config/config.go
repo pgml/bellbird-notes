@@ -9,6 +9,7 @@ import (
 
 	"bellbird-notes/app"
 	"bellbird-notes/app/debug"
+	"bellbird-notes/app/utils"
 
 	"gopkg.in/ini.v1"
 )
@@ -126,7 +127,7 @@ func New() *Config {
 	}
 
 	if _, err := os.Stat(filePath); err != nil {
-		createFile(filePath)
+		utils.CreateFile(filePath, false)
 	}
 
 	ini.PrettyFormat = false
@@ -139,7 +140,7 @@ func New() *Config {
 	}
 
 	if _, err := os.Stat(metaFilePath); err != nil {
-		createFile(metaFilePath)
+		utils.CreateFile(metaFilePath, false)
 	}
 
 	metaConf, err := ini.Load(metaFilePath)
@@ -155,13 +156,6 @@ func New() *Config {
 		metaFile:     metaConf,
 		flushDelay:   400 * time.Millisecond,
 	}
-}
-
-// createFile attempts to create a new file at the specified path
-func createFile(path string) (bool, error) {
-	f, _ := os.OpenFile(path, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0644)
-	defer f.Close()
-	return true, nil
 }
 
 // SetDefaults sets default config values if none are present
