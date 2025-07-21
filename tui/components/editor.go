@@ -219,6 +219,7 @@ func NewEditor(conf *config.Config) *Editor {
 	ta.Selection.Cursor.SetMode(cursor.CursorStatic)
 	ta.Selection.Cursor.TextStyle = ta.SelectionStyle()
 	ta.Selection.Cursor.Style = ta.SelectionStyle()
+	ta.TabWidth = 4
 
 	editor := &Editor{
 		Vim: Vim{

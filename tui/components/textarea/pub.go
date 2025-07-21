@@ -13,6 +13,7 @@ import (
 	"github.com/charmbracelet/bubbles/v2/cursor"
 	tea "github.com/charmbracelet/bubbletea/v2"
 	"github.com/charmbracelet/lipgloss/v2"
+	"github.com/charmbracelet/x/input"
 )
 
 type CursorPos struct {
@@ -30,6 +31,11 @@ func (c *CursorPos) String() string {
 	curPos[2] = strconv.Itoa(c.ColumnOffset)
 
 	return strings.Join(curPos, ",")
+}
+
+type TabGroup struct {
+	Start int
+	End   int
 }
 
 type Selection struct {
@@ -73,6 +79,14 @@ type SelectionContent struct {
 // character in the previous line, instead of one past that.
 func (m *Model) CharacterLeft(inside bool) {
 	//m.characterLeft(inside)
+	// Check for tab groups and move accordingly
+	for _, group := range m.tabGroups[m.row] {
+		if m.col == group.End {
+			m.SetCursorColumn(group.Start)
+			return
+		}
+	}
+
 	if m.col > 0 {
 		m.SetCursorColumn(m.col - 1)
 	}
@@ -83,6 +97,14 @@ func (m *Model) CharacterLeft(inside bool) {
 // If overshoot is true, the cursor moves past the last character
 // in the current row
 func (m *Model) CharacterRight(overshoot bool) {
+	// Check for tab groups and move accordingly
+	for _, group := range m.tabGroups[m.row] {
+		if m.col == group.Start {
+			m.SetCursorColumn(group.End)
+			return
+		}
+	}
+
 	if !overshoot {
 		if m.col < len(m.value[m.row])-1 {
 			m.SetCursorColumn(m.col + 1)
@@ -181,17 +203,17 @@ func (m *Model) CursorInputStart() {
 	}
 }
 
-// moveToBegin moves the cursor to the beginning of the input.
+// MoveToBegin moves the cursor to the beginning of the input.
 func (m *Model) MoveToBegin() {
 	m.moveToBegin()
 }
 
-// moveToEnd moves the cursor to the end of the input.
+// MoveToEnd moves the cursor to the end of the input.
 func (m *Model) MoveToEnd() {
 	m.moveToEnd()
 }
 
-// deleteAfterCursor deletes all text after the cursor. Returns whether or not
+// DeleteAfterCursor deletes all text after the cursor. Returns whether or not
 // the cursor blink should be reset. If input is masked delete everything after
 // the cursor so as not to reveal word breaks in the masked input.
 func (m *Model) DeleteAfterCursor(overshoot bool) {
@@ -204,6 +226,37 @@ func (m *Model) DeleteAfterCursor(overshoot bool) {
 ///
 /// custom methods
 ///
+
+// isTab checks if the runes from a user input are supposed to be a tab ^
+func (m *Model) isTab(runes []rune) bool {
+	isTab := false
+	if len(runes) == m.TabWidth {
+		for _, r := range runes {
+			isTab = (r == input.KeySpace)
+		}
+	}
+	return isTab
+}
+
+// addTabGroup appends a new tab group to the cached tab groups
+// starting at the current cursor position
+func (m *Model) addTabGroup() {
+	tabGroup := TabGroup{Start: m.col, End: m.col + m.TabWidth}
+	m.tabGroups[m.row] = append(m.tabGroups[m.row], tabGroup)
+}
+
+// shiftTabGroup updates the cached tab groups and shifts each Start and End
+// accordingly if we inserted runes before or after a tab
+func (m *Model) shiftTabGroups() {
+	for i, group := range m.tabGroups[m.row] {
+		if m.col <= group.Start {
+			m.tabGroups[m.row][i].Start++
+			m.tabGroups[m.row][i].End++
+		} else if m.col <= group.End {
+			m.tabGroups[m.row][i].End++
+		}
+	}
+}
 
 func (m *Model) RenderLine(
 	line *[]rune,
@@ -930,4 +983,8 @@ func (m *Model) CursorAfterSelection() string {
 
 func (m *Model) GoTO(row int) {
 	m.row = row
+}
+
+func (m *Model) Val() [][]rune {
+	return m.value
 }
