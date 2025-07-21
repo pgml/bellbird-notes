@@ -118,6 +118,18 @@ func (b *Buffer) redo() (string, textarea.CursorPos) {
 	return b.History.Redo()
 }
 
+type BufferSavedMsg struct {
+	Buffer *Buffer
+}
+
+func (e *Editor) SendBufferSavedMsg() tea.Cmd {
+	return func() tea.Msg {
+		return BufferSavedMsg{
+			Buffer: e.CurrentBuffer,
+		}
+	}
+}
+
 type BuffersChangedMsg struct {
 	Buffers *Buffers
 }
@@ -468,6 +480,8 @@ func (e *Editor) SaveBuffer() message.StatusBarMsg {
 	e.CurrentBuffer.LastSavedContentHash = contentHash
 
 	statusMsg.Content = resultMsg
+	statusMsg.Cmd = e.SendBufferSavedMsg()
+
 	return statusMsg
 }
 

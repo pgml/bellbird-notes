@@ -138,6 +138,12 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			[]message.StatusBarMsg{m.keyInput.ResetKeysDown()},
 			msg,
 		)
+
+	case components.BufferSavedMsg:
+		// reload keymap if there's any updates
+		if msg.Buffer.Path(false) == m.keyInput.KeyMap.Path() {
+			m.keyInput.ReloadKeyMap()
+		}
 	}
 
 	m.keyInput.Mode = m.mode.Current

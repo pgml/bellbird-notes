@@ -3,6 +3,7 @@ package keyinput
 import (
 	"encoding/json"
 	"maps"
+	"os"
 	"slices"
 	"strings"
 	"time"
@@ -191,6 +192,17 @@ func (ki *Input) executeAction(binding string) message.StatusBarMsg {
 	}
 
 	return message.StatusBarMsg{}
+}
+
+// ReloadKeyMap reads the user's keymap.json and rewrites the cached map
+// of the key bindings
+func (ki *Input) ReloadKeyMap() {
+	if f, err := os.ReadFile(ki.KeyMap.Path()); err != nil {
+		debug.LogErr("Could not reload keymap", err)
+	} else {
+		ki.UserKeyMap = f
+		ki.FetchKeyMap(true)
+	}
 }
 
 // FetchKeyMap updates the cached map of key bindings to actions based on

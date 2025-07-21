@@ -201,6 +201,9 @@ func (s *StatusBar) ConfirmAction(
 	s.ShouldQuit = false
 	s.ShouldWriteFile = false
 
+	var saveBufMsg message.StatusBarMsg
+
+	// @todo rewrite all this and make it no suck
 	switch s.Prompt.Value() {
 	case message.Response.Yes:
 		if s.DirTree.EditState == EditStates.Delete ||
@@ -216,9 +219,9 @@ func (s *StatusBar) ConfirmAction(
 	case "q":
 		s.ShouldQuit = true
 	case "w":
-		statusMsg = e.SaveBuffer()
+		saveBufMsg = e.SaveBuffer()
 	case "wq":
-		statusMsg = e.SaveBuffer()
+		saveBufMsg = e.SaveBuffer()
 		s.ShouldQuit = true
 	// this `set` stuff should only be here temporarily
 	// this needs to be done better
@@ -246,7 +249,6 @@ func (s *StatusBar) ConfirmAction(
 	case "buffers":
 	case "b":
 		e.ListBuffers = true
-
 	case "new":
 		statusMsg = e.NewScratchBuffer("Scratch", "")
 		e.Textarea.SetValue("")
@@ -255,11 +257,14 @@ func (s *StatusBar) ConfirmAction(
 	s.SetColContent(statusMsg.Column, &statusMsg.Content)
 	s.BlurPrompt()
 
-	statusMsg.Cmd = func() tea.Msg {
-		time.Sleep(100 * time.Millisecond)
-		s.Focused = false
-		return DeferredActionMsg{}
-	}
+	statusMsg.Cmd = tea.Batch(
+		func() tea.Msg {
+			time.Sleep(100 * time.Millisecond)
+			s.Focused = false
+			return DeferredActionMsg{}
+		},
+		saveBufMsg.Cmd,
+	)
 
 	return statusMsg
 }
