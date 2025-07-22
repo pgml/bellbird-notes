@@ -284,7 +284,7 @@ func (l *List[T]) pasteSelection(item T, dirPath string, cb func(string)) {
 			name = l.CheckName(dirPath, name)
 			newPath = notes.CheckPath(dirPath + "/" + name)
 
-			if !notes.Exists(newPath) {
+			if _, err := notes.Exists(newPath); err == nil {
 				break
 			}
 		} else {
@@ -312,7 +312,7 @@ func (l *List[T]) CheckName(dirPath string, name string) string {
 		// If it's not a name it should return
 		newPath := notes.CheckPath(dirPath + "/" + name)
 
-		if notes.Exists(newPath) {
+		if _, err := notes.Exists(newPath); err == nil {
 			name += " Copy"
 		}
 	} else {

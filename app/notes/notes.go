@@ -11,7 +11,6 @@ import (
 	"bellbird-notes/app/debug"
 	"bellbird-notes/app/utils"
 	"bellbird-notes/tui/bb_errors"
-	"bellbird-notes/tui/message"
 )
 
 const (
@@ -109,8 +108,8 @@ func Create(path string) (Note, error) {
 	path = CheckPath(path)
 	note := Note{}
 
-	if Exists(path) {
-		return note, errors.New(message.StatusBar.NoteExists)
+	if _, err := Exists(path); err != nil {
+		return note, err
 	}
 
 	if _, err := os.Create(path); err != nil {
@@ -126,8 +125,8 @@ func Write(path string, content string) (int, error) {
 	if IsNote(path) {
 		path = CheckPath(path)
 
-		if !Exists(path) {
-			return 0, errors.New(message.StatusBar.NoteExists)
+		if _, err := Exists(path); err == nil {
+			return 0, nil
 		}
 	}
 
@@ -177,11 +176,14 @@ func Delete(path string) error {
 }
 
 // Exists checks whether a file exists at the given path.
-func Exists(path string) bool {
-	if _, err := os.Stat(path); errors.Is(err, os.ErrNotExist) {
-		return false
+func Exists(path string) (os.FileInfo, error) {
+	f, err := os.Stat(path)
+
+	if errors.Is(err, os.ErrNotExist) {
+		return nil, err
 	}
-	return true
+
+	return f, nil
 }
 
 func Copy(oldPath, newPath string) error {

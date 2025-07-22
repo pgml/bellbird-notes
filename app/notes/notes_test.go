@@ -39,11 +39,11 @@ func TestCreateWriteDelete(t *testing.T) {
 		t.Fatalf("Write failed: %v", err)
 	}
 
-	err = notes.Delete(path)
-	if err != nil {
+	if err = notes.Delete(path); err != nil {
 		t.Fatalf("Delete failed: %v", err)
 	}
-	if notes.Exists(path) {
+
+	if _, err := notes.Exists(path); err == nil {
 		t.Error("Note should be deleted")
 	}
 }
@@ -63,10 +63,10 @@ func TestRename(t *testing.T) {
 		t.Fatalf("Rename failed: %v", err)
 	}
 
-	if !notes.Exists(newPath) {
+	if _, err := notes.Exists(newPath); err != nil {
 		t.Error("Renamed file does not exist")
 	}
-	if notes.Exists(oldPath) {
+	if _, err := notes.Exists(oldPath); err == nil {
 		t.Error("Old file still exists")
 	}
 }
