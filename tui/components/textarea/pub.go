@@ -80,10 +80,12 @@ type SelectionContent struct {
 func (m *Model) CharacterLeft(inside bool) {
 	//m.characterLeft(inside)
 	// Check for tab groups and move accordingly
-	for _, group := range m.tabGroups[m.row] {
-		if m.col == group.End {
-			m.SetCursorColumn(group.Start)
-			return
+	if m.row < len(m.TabGroups) {
+		for _, group := range m.TabGroups[m.row] {
+			if m.col == group.End {
+				m.SetCursorColumn(group.Start)
+				return
+			}
 		}
 	}
 
@@ -98,10 +100,12 @@ func (m *Model) CharacterLeft(inside bool) {
 // in the current row
 func (m *Model) CharacterRight(overshoot bool) {
 	// Check for tab groups and move accordingly
-	for _, group := range m.tabGroups[m.row] {
-		if m.col == group.Start {
-			m.SetCursorColumn(group.End)
-			return
+	if m.row < len(m.TabGroups) {
+		for _, group := range m.TabGroups[m.row] {
+			if m.col == group.Start {
+				m.SetCursorColumn(group.End)
+				return
+			}
 		}
 	}
 
@@ -238,22 +242,41 @@ func (m *Model) isTab(runes []rune) bool {
 	return isTab
 }
 
+func (m *Model) NewTabGroup() [][]TabGroup {
+	return make(
+		[][]TabGroup,
+		len(m.value),
+		maxLines,
+	)
+}
+
+func (m *Model) checkTabGroupRows() {
+	for len(m.TabGroups) <= len(m.value) {
+		m.TabGroups = append(m.TabGroups, nil)
+	}
+}
+
 // addTabGroup appends a new tab group to the cached tab groups
 // starting at the current cursor position
 func (m *Model) addTabGroup() {
+	m.checkTabGroupRows()
 	tabGroup := TabGroup{Start: m.col, End: m.col + m.TabWidth}
-	m.tabGroups[m.row] = append(m.tabGroups[m.row], tabGroup)
+	m.TabGroups[m.row] = append(m.TabGroups[m.row], tabGroup)
 }
 
 // shiftTabGroup updates the cached tab groups and shifts each Start and End
 // accordingly if we inserted runes before or after a tab
 func (m *Model) shiftTabGroups() {
-	for i, group := range m.tabGroups[m.row] {
+	if m.row >= len(m.TabGroups) {
+		return
+	}
+
+	for i, group := range m.TabGroups[m.row] {
 		if m.col <= group.Start {
-			m.tabGroups[m.row][i].Start++
-			m.tabGroups[m.row][i].End++
+			m.TabGroups[m.row][i].Start++
+			m.TabGroups[m.row][i].End++
 		} else if m.col <= group.End {
-			m.tabGroups[m.row][i].End++
+			m.TabGroups[m.row][i].End++
 		}
 	}
 }

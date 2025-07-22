@@ -325,7 +325,7 @@ type Model struct {
 	Selection Selection
 
 	TabWidth  int
-	tabGroups [][]TabGroup
+	TabGroups [][]TabGroup
 }
 
 // New creates a new model with default settings.
@@ -356,7 +356,7 @@ func New() Model {
 
 		viewport: &vp,
 
-		tabGroups: make([][]TabGroup, minHeight, maxLines),
+		TabGroups: make([][]TabGroup, minHeight, maxLines),
 	}
 
 	m.SetHeight(defaultHeight)

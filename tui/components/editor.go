@@ -89,6 +89,8 @@ type Buffer struct {
 	Writeable bool
 
 	IsScratch bool
+
+	tabGroups [][]textarea.TabGroup
 }
 
 // Name returns the name of the buffer without its suffix.
@@ -453,6 +455,12 @@ func (e *Editor) SetContent() {
 		buf.CursorPos.ColumnOffset,
 	)
 	e.Textarea.RepositionView()
+
+	if len(buf.tabGroups) == 0 {
+		buf.tabGroups = e.Textarea.NewTabGroup()
+	}
+
+	e.Textarea.TabGroups = buf.tabGroups
 }
 
 // SaveBuffer writes the current buffer's content to the corresponding
