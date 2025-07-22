@@ -100,7 +100,6 @@ func (m *Model) FnRegistry() ki.FnRegistry {
 }
 
 type StatusBarMsg = message.StatusBarMsg
-type statusBarFn = func() StatusBarMsg
 
 func bind(fn func() StatusBarMsg) ki.CmdFn {
 	return func(ki.Options) func() StatusBarMsg {

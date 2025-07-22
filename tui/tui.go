@@ -35,6 +35,8 @@ type Model struct {
 	statusBar  *components.StatusBar
 	Buffers    components.Buffers
 	conf       *config.Config
+
+	ShouldQuit bool
 }
 
 func InitialModel() *Model {
@@ -149,7 +151,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	m.keyInput.Mode = m.mode.Current
 
 	// exit programme when `:q` is entered in command prompt
-	if m.statusBar.ShouldQuit {
+	if m.ShouldQuit {
 		return m, tea.Quit
 	}
 
@@ -288,8 +290,6 @@ func (m *Model) updateComponents(msg tea.Msg) []tea.Cmd {
 // updateStatusBar synchronises the status bar
 // with the current component states and mode.
 func (m *Model) updateStatusBar() {
-	m.statusBar.DirTree = *m.dirTree
-	m.statusBar.NotesList = *m.notesList
 	m.statusBar.Editor = *m.editor
 
 	currMode := m.editor.Vim.Mode.Current

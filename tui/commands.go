@@ -2,120 +2,142 @@ package tui
 
 import (
 	"bellbird-notes/tui/components"
-	ki "bellbird-notes/tui/keyinput"
 	"bellbird-notes/tui/message"
 )
 
-func (m *Model) CmdRegistry() ki.FnRegistry {
-	return ki.FnRegistry{
-		message.Response.Yes:       m.statusBarConfirm,
-		message.Response.No:        m.statusBarCancel,
-		message.Response.Quit:      m.shouldQuit,
-		message.Response.WriteBuf:  bind(m.editor.SaveBuffer),
-		message.Response.WriteQuit: m.writeBufferAndQuit,
+func (m *Model) CmdRegistry() components.Commands {
+	return components.Commands{
+		message.CmdPrompt.Yes:       m.statusBarConfirm,
+		message.CmdPrompt.No:        m.statusBarCancel,
+		message.CmdPrompt.Quit:      m.shouldQuit,
+		message.CmdPrompt.WriteBuf:  m.writeBuffer,
+		message.CmdPrompt.WriteQuit: m.writeBufferAndQuit,
 
-		"set number":   m.setNumber,
-		"set nonumber": m.setNoNumber,
+		message.CmdPrompt.Set:  m.cmdSet,
+		message.CmdPrompt.Open: m.cmdOpen,
 
-		// @todo: improve the open command to be more flexible
-		// and potentially open any file
-		"open config":        bind(m.editor.OpenConfig),
-		"open keymap":        bind(m.editor.OpenUserKeyMap),
-		"open defaultkeymap": m.openDefaultKeyMap,
+		message.CmdPrompt.DeleteBufstring: m.deleteCurrentBuffer,
+		"%bd":                             m.deleteAllBuffers,
+		message.CmdPrompt.ListBufs:        m.listBuffers,
+		"buffers":                         m.listBuffers,
 
-		message.Response.DeleteBufstring: bind(m.editor.DeleteCurrentBuffer),
-		"%bd":                            bind(m.editor.DeleteAllBuffers),
-		message.Response.ListBufs:        m.listBuffers,
-		"buffers":                        m.listBuffers,
-
-		"new": m.newScratchBuffer,
+		message.CmdPrompt.New: m.newScratchBuffer,
 	}
 }
 
-func (m *Model) SetCmd() {
-
+func (m *Model) cmdSetRegistry() components.Commands {
+	return components.Commands{
+		"number":   m.setNumber,
+		"nonumber": m.setNoNumber,
+	}
 }
 
-func (m *Model) statusBarConfirm(_ ki.Options) func() StatusBarMsg {
-	return func() StatusBarMsg {
-		msg := StatusBarMsg{}
-		if f := m.focusedComponent(); f != nil {
-			if m.dirTree.EditState == components.EditStates.Delete ||
-				m.notesList.EditState == components.EditStates.Delete {
+func (m *Model) cmdOpenRegistry() components.Commands {
+	return components.Commands{
+		"config":        m.openConfig,
+		"keymap":        m.openKeyMap,
+		"defaultkeymap": m.openDefaultKeyMap,
+	}
+}
 
-				msg = f.Remove()
-			}
+func (m *Model) cmdSet(args ...string) StatusBarMsg {
+	fns := m.cmdSetRegistry()
+	if fn, ok := fns[args[0]]; ok {
+		return fn()
+	}
+	return StatusBarMsg{}
+}
+
+func (m *Model) cmdOpen(args ...string) StatusBarMsg {
+	fns := m.cmdOpenRegistry()
+	if fn, ok := fns[args[0]]; ok {
+		return fn()
+	}
+	return StatusBarMsg{}
+}
+
+func (m *Model) statusBarConfirm(_ ...string) StatusBarMsg {
+	msg := StatusBarMsg{}
+	if f := m.focusedComponent(); f != nil {
+		if m.dirTree.EditState == components.EditStates.Delete ||
+			m.notesList.EditState == components.EditStates.Delete {
+
+			msg = f.Remove()
 		}
-		return msg
 	}
+	return msg
 }
 
-func (m *Model) statusBarCancel(_ ki.Options) func() StatusBarMsg {
-	return func() StatusBarMsg {
-		msg := StatusBarMsg{}
-		if f := m.focusedComponent(); f != nil {
-			msg = f.CancelAction(func() {
-				f.Refresh(false, false)
-			})
-		}
-		return msg
+func (m *Model) statusBarCancel(_ ...string) StatusBarMsg {
+	msg := StatusBarMsg{}
+	if f := m.focusedComponent(); f != nil {
+		msg = f.CancelAction(func() {
+			f.Refresh(false, false)
+		})
 	}
+	return msg
 }
 
-func (m *Model) shouldQuit(_ ki.Options) func() StatusBarMsg {
-	return func() StatusBarMsg {
-		m.statusBar.ShouldQuit = true
-		return StatusBarMsg{}
-	}
+func (m *Model) shouldQuit(_ ...string) StatusBarMsg {
+	m.ShouldQuit = true
+	return StatusBarMsg{}
 }
 
-func (m *Model) writeBufferAndQuit(_ ki.Options) func() StatusBarMsg {
-	return func() StatusBarMsg {
-		m.editor.SaveBuffer()
-		m.statusBar.ShouldQuit = true
-		return StatusBarMsg{}
-	}
+func (m *Model) writeBuffer(_ ...string) StatusBarMsg {
+	return m.editor.SaveBuffer()
 }
 
-func (m *Model) setNumber(_ ki.Options) func() StatusBarMsg {
-	return func() StatusBarMsg {
-		m.editor.SetNumbers()
-		return StatusBarMsg{}
-	}
+func (m *Model) openConfig(_ ...string) StatusBarMsg {
+	return m.editor.OpenConfig()
 }
 
-func (m *Model) setNoNumber(_ ki.Options) func() StatusBarMsg {
-	return func() StatusBarMsg {
-		m.editor.SetNoNumbers()
-		return StatusBarMsg{}
-	}
+func (m *Model) openKeyMap(_ ...string) StatusBarMsg {
+	return m.editor.OpenUserKeyMap()
 }
 
-func (m *Model) openDefaultKeyMap(_ ki.Options) func() StatusBarMsg {
-	return func() StatusBarMsg {
-		statusMsg := m.editor.NewScratchBuffer(
-			"Default Keymap",
-			string(m.keyInput.DefaultKeyMap),
-		)
-		m.editor.CurrentBuffer.Writeable = false
-		m.editor.Textarea.MoveCursor(0, 0, 0)
-		m.editor.SetContent()
-
-		return statusMsg
-	}
+func (m *Model) deleteCurrentBuffer(_ ...string) StatusBarMsg {
+	return m.editor.DeleteCurrentBuffer()
 }
 
-func (m *Model) listBuffers(_ ki.Options) func() StatusBarMsg {
-	return func() StatusBarMsg {
-		m.editor.ListBuffers = true
-		return StatusBarMsg{}
-	}
+func (m *Model) deleteAllBuffers(_ ...string) StatusBarMsg {
+	return m.editor.DeleteAllBuffers()
 }
 
-func (m *Model) newScratchBuffer(_ ki.Options) func() StatusBarMsg {
-	return func() StatusBarMsg {
-		statusMsg := m.editor.NewScratchBuffer("Scratch", "")
-		m.editor.Textarea.SetValue("")
-		return statusMsg
-	}
+func (m *Model) writeBufferAndQuit(_ ...string) StatusBarMsg {
+	m.editor.SaveBuffer()
+	m.ShouldQuit = true
+	return StatusBarMsg{}
+}
+
+func (m *Model) setNumber(_ ...string) StatusBarMsg {
+	m.editor.SetNumbers()
+	return StatusBarMsg{}
+}
+
+func (m *Model) setNoNumber(_ ...string) StatusBarMsg {
+	m.editor.SetNoNumbers()
+	return StatusBarMsg{}
+}
+
+func (m *Model) openDefaultKeyMap(_ ...string) StatusBarMsg {
+	statusMsg := m.editor.NewScratchBuffer(
+		"Default Keymap",
+		string(m.keyInput.DefaultKeyMap),
+	)
+	m.editor.CurrentBuffer.Writeable = false
+	m.editor.Textarea.MoveCursor(0, 0, 0)
+	m.editor.SetContent()
+
+	return statusMsg
+}
+
+func (m *Model) listBuffers(_ ...string) StatusBarMsg {
+	m.editor.ListBuffers = true
+	return StatusBarMsg{}
+}
+
+func (m *Model) newScratchBuffer(_ ...string) StatusBarMsg {
+	statusMsg := m.editor.NewScratchBuffer("Scratch", "")
+	m.editor.Textarea.SetValue("")
+	return statusMsg
 }

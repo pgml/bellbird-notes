@@ -1,7 +1,8 @@
 package message
 
-var Response = struct {
-	Yes, No, Quit, WriteBuf, WriteQuit, DeleteBufstring, ListBufs string
+var CmdPrompt = struct {
+	Yes, No, Quit, WriteBuf, WriteQuit, DeleteBufstring, ListBufs,
+	Set, Open, New string
 }{
 	Yes:             "y",
 	No:              "n",
@@ -10,6 +11,9 @@ var Response = struct {
 	WriteQuit:       "wq",
 	DeleteBufstring: "bd",
 	ListBufs:        "b",
+	Set:             "set",
+	Open:            "open",
+	New:             "new",
 }
 
 var StatusBar = struct {
