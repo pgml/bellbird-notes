@@ -5,8 +5,10 @@ import (
 	"strings"
 	"time"
 
+	"bellbird-notes/app/debug"
 	"bellbird-notes/app/utils"
 	"bellbird-notes/internal/interfaces"
+	"bellbird-notes/tui/keyinput"
 	"bellbird-notes/tui/message"
 	"bellbird-notes/tui/mode"
 	"bellbird-notes/tui/theme"
@@ -19,6 +21,9 @@ import (
 )
 
 type Focusable = interfaces.Focusable
+
+// type CmdFn func(opts Options) func() message.StatusBarMsg
+type Commands map[string]func(opts keyinput.Options) message.StatusBarMsg
 
 type StatusBar struct {
 	ID   bl.ID
@@ -44,6 +49,8 @@ type StatusBar struct {
 	ShouldWriteFile bool
 
 	Height int
+
+	Commands Commands
 }
 
 var StatusBarColumn = struct {
@@ -201,74 +208,35 @@ func (s *StatusBar) ConfirmAction(
 	s.ShouldQuit = false
 	s.ShouldWriteFile = false
 
-	var saveBufMsg message.StatusBarMsg
+	var fnMsg message.StatusBarMsg
 
-	// @todo rewrite all this and make it no suck
-	switch s.Prompt.Value() {
-	case message.Response.Yes:
-		if s.DirTree.EditState == EditStates.Delete ||
-			s.NotesList.EditState == EditStates.Delete {
-
-			statusMsg = c.Remove()
+	for cmd, fn := range s.Commands {
+		if cmd == s.Prompt.Value() {
+			fnMsg = fn()
+			break
 		}
-
-	case message.Response.No:
-		statusMsg = c.CancelAction(func() {
-			c.Refresh(false, false)
-		})
-	case "q":
-		s.ShouldQuit = true
-	case "w":
-		saveBufMsg = e.SaveBuffer()
-	case "wq":
-		saveBufMsg = e.SaveBuffer()
-		s.ShouldQuit = true
-	// this `set` stuff should only be here temporarily
-	// this needs to be done better
-	case "set number":
-		e.SetNumbers()
-	case "set nonumber":
-		e.SetNoNumbers()
-	case "config":
-		statusMsg = e.OpenConfig()
-	case "keymap":
-		statusMsg = e.OpenUserKeyMap()
-	case "defaultkeymap":
-		statusMsg = e.NewScratchBuffer(
-			"Default Keymap",
-			string(s.Editor.KeyInput.DefaultKeyMap),
-		)
-		e.CurrentBuffer.Writeable = false
-		e.Textarea.MoveCursor(0, 0, 0)
-		e.SetContent()
-
-	case "bd":
-		e.DeleteCurrentBuffer()
-	case "%bd": // temporary
-		e.DeleteAllBuffers()
-	case "buffers":
-	case "b":
-		e.ListBuffers = true
-	case "new":
-		statusMsg = e.NewScratchBuffer("Scratch", "")
-		e.Textarea.SetValue("")
 	}
 
 	s.SetColContent(statusMsg.Column, &statusMsg.Content)
 	s.BlurPrompt()
 
 	statusMsg.Cmd = tea.Batch(
-		func() tea.Msg {
-			time.Sleep(100 * time.Millisecond)
-			s.Focused = false
-			return DeferredActionMsg{}
-		},
-		saveBufMsg.Cmd,
+		s.SendDeferredActionMsg(),
+		fnMsg.Cmd,
 	)
 
-	statusMsg.Content = saveBufMsg.Content
+	statusMsg.Content = fnMsg.Content
+	debug.LogDebug(statusMsg.Content)
 
 	return statusMsg
+}
+
+func (s *StatusBar) SendDeferredActionMsg() tea.Cmd {
+	return func() tea.Msg {
+		time.Sleep(100 * time.Millisecond)
+		s.Focused = false
+		return DeferredActionMsg{}
+	}
 }
 
 func (s *StatusBar) CancelAction(cb func()) message.StatusBarMsg {

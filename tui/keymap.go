@@ -16,48 +16,63 @@ import (
 
 func (m *Model) FnRegistry() ki.FnRegistry {
 	return ki.FnRegistry{
-		"LineDown":               m.lineDown,
-		"LineUp":                 m.lineUp,
-		"DownHalfPage":           bind(m.editor.DownHalfPage),
-		"UpHalfPage":             bind(m.editor.UpHalfPage),
-		"CharacterLeft":          bind(m.editor.MoveCharacterLeft),
-		"CharacterRight":         bind(m.editor.MoveCharacterRight),
-		"TreeExpand":             bind(m.dirTree.Expand),
-		"TreeCollapse":           bind(m.dirTree.Collapse),
-		"EnterCommand":           m.enterCmdMode,
-		"EnterNormalMode":        m.enterNormalMode,
-		"ConfirmAction":          m.confirmAction,
-		"CancelAction":           m.cancelAction,
-		"FocusNextColumn":        m.focusNextColumn,
-		"FocusPrevColumn":        m.focusPrevColumn,
-		"FocusFolders":           m.focusDirectoryTree,
-		"FocusNotes":             m.focusNotesList,
-		"FocusEditor":            m.focusEditor,
-		"ShowBufferList":         m.showBufferList,
-		"CloseBufferList":        m.closeBufferList,
-		"CloseNote":              bind(m.editor.DeleteCurrentBuffer),
-		"GoToTop":                m.goToTop,
-		"GoToBottom":             m.goToBottom,
-		"InsertBefore":           m.enterInsertMode,
-		"InsertAfter":            bind(m.editor.InsertAfter),
-		"Undo":                   bind(m.editor.Undo),
-		"Redo":                   bind(m.editor.Redo),
-		"InsertBelow":            m.insertBelow,
-		"InsertAbove":            m.insertAbove,
-		"CreateFolder":           m.createDir,
-		"CreateNote":             m.createNote,
-		"RenameListItem":         m.rename,
-		"DeleteListItem":         m.delete,
-		"YankListItem":           m.yankListItem,
-		"CutListItem":            m.cutListItem,
-		"PasteListItem":          m.pasteListItem,
-		"TogglePinListItem":      m.togglePin,
-		"InsertBeforeLine":       bind(m.editor.InsertLineStart),
-		"InsertAfterLine":        bind(m.editor.InsertLineEnd),
-		"Replace":                bind(m.editor.EnterReplaceMode),
-		"ToggleVisual":           m.toggleVisual,
-		"ToggleVisualLine":       m.toggleVisualLine,
-		"ToggleVisualBlock":      m.toggleVisualBlock,
+		// Movement/Navigation
+		"LineDown":       m.lineDown,
+		"LineUp":         m.lineUp,
+		"DownHalfPage":   bind(m.editor.DownHalfPage),
+		"UpHalfPage":     bind(m.editor.UpHalfPage),
+		"CharacterLeft":  bind(m.editor.MoveCharacterLeft),
+		"CharacterRight": bind(m.editor.MoveCharacterRight),
+		"GoToTop":        m.goToTop,
+		"GoToBottom":     m.goToBottom,
+
+		"FocusNextColumn": m.focusNextColumn,
+		"FocusPrevColumn": m.focusPrevColumn,
+		"FocusFolders":    m.focusDirectoryTree,
+		"FocusNotes":      m.focusNotesList,
+		"FocusEditor":     m.focusEditor,
+
+		// List specific actions
+		"RenameListItem":    m.rename,
+		"DeleteListItem":    m.delete,
+		"YankListItem":      m.yankListItem,
+		"CutListItem":       m.cutListItem,
+		"PasteListItem":     m.pasteListItem,
+		"TogglePinListItem": m.togglePin,
+
+		// directory tree specific
+		"TreeExpand":   bind(m.dirTree.Expand),
+		"TreeCollapse": bind(m.dirTree.Collapse),
+		"CreateFolder": m.createDir,
+
+		// notes list specific
+		"CreateNote": m.createNote,
+
+		// General
+		"EnterCommand":    m.enterCmdMode,
+		"ShowBufferList":  m.showBufferList,
+		"CloseBufferList": m.closeBufferList,
+		"ConfirmAction":   m.confirmAction,
+		"CancelAction":    m.cancelAction,
+		"CloseNote":       bind(m.editor.DeleteCurrentBuffer),
+
+		// Text editing
+		"EnterNormalMode":   m.enterNormalMode,
+		"Replace":           bind(m.editor.EnterReplaceMode),
+		"ToggleVisual":      m.toggleVisual,
+		"ToggleVisualLine":  m.toggleVisualLine,
+		"ToggleVisualBlock": m.toggleVisualBlock,
+
+		"Undo": bind(m.editor.Undo),
+		"Redo": bind(m.editor.Redo),
+
+		"InsertBefore":     m.enterInsertMode,
+		"InsertAfter":      bind(m.editor.InsertAfter),
+		"InsertBelow":      m.insertBelow,
+		"InsertAbove":      m.insertAbove,
+		"InsertBeforeLine": bind(m.editor.InsertLineStart),
+		"InsertAfterLine":  bind(m.editor.InsertLineEnd),
+
 		"SelectWord":             m.selectWord,
 		"NextWord":               m.nextWord,
 		"PrevWord":               m.prevWord,
@@ -65,23 +80,27 @@ func (m *Model) FnRegistry() ki.FnRegistry {
 		"GoToLineStart":          bind(m.editor.GoToLineStart),
 		"GoToLineEnd":            bind(m.editor.GoToLineEnd),
 		"MergeLines":             bind(m.editor.MergeLineBelow),
-		"DeleteLine":             bind(m.editor.DeleteLine),
-		"DeleteWord":             m.deleteWord,
-		"DeleteAfterCursor":      m.deleteAfterCursor,
-		"ChangeAfterCursor":      m.changeAfterCursor,
-		"ChangeLine":             m.changeLine,
-		"ChangeWord":             m.changeWord,
-		"DeleteSelection":        m.deleteSelection,
-		"SubstituteText":         m.substituteText,
-		"DeleteCharacter":        m.deleteCharacter,
-		"YankSelection":          m.yankSelection,
-		"YankLine":               bind(m.editor.YankLine),
-		"YankWord":               m.yankWord,
-		"Paste":                  m.paste,
+
+		"DeleteLine":        bind(m.editor.DeleteLine),
+		"DeleteWord":        m.deleteWord,
+		"DeleteAfterCursor": m.deleteAfterCursor,
+		"DeleteSelection":   m.deleteSelection,
+		"DeleteCharacter":   m.deleteCharacter,
+
+		"SubstituteText":    m.substituteText,
+		"ChangeAfterCursor": m.changeAfterCursor,
+		"ChangeLine":        m.changeLine,
+		"ChangeWord":        m.changeWord,
+
+		"YankSelection": m.yankSelection,
+		"YankLine":      bind(m.editor.YankLine),
+		"YankWord":      m.yankWord,
+		"Paste":         m.paste,
 	}
 }
 
 type StatusBarMsg = message.StatusBarMsg
+type statusBarFn = func() StatusBarMsg
 
 func bind(fn func() StatusBarMsg) ki.CmdFn {
 	return func(ki.Options) func() StatusBarMsg {
@@ -139,109 +158,6 @@ func (m *Model) lineUp(opts ki.Options) func() StatusBarMsg {
 	}
 }
 
-// showBufferList opens an overlay showing all open buffers
-func (m *Model) showBufferList(_ ki.Options) func() StatusBarMsg {
-	return func() StatusBarMsg {
-		m.OverlayOpenBuffers()
-		return StatusBarMsg{}
-	}
-}
-
-// closeBufferList opens an overlay showing all open buffers
-func (m *Model) closeBufferList(_ ki.Options) func() StatusBarMsg {
-	return func() StatusBarMsg {
-		if m.bufferList.Focused() {
-			m.editor.ListBuffers = false
-			m.focusColumn(m.currColFocus)
-		}
-		return StatusBarMsg{}
-	}
-}
-
-// focusNextColumn selects and highlights the respectivley next of the
-// currently selected column.
-func (m *Model) focusNextColumn(_ ki.Options) func() StatusBarMsg {
-	return func() StatusBarMsg {
-		nbrCols := 3
-		index := min(m.currColFocus+1, nbrCols)
-		return m.focusColumn(index)
-	}
-}
-
-// focusPrevColumn selects and highlights the respectivley previous of the
-// currently selected column.
-func (m *Model) focusPrevColumn(_ ki.Options) func() StatusBarMsg {
-	return func() StatusBarMsg {
-		firstCol := 1
-		index := max(m.currColFocus-1, firstCol)
-		return m.focusColumn(index)
-	}
-}
-
-// createDir enters insert mode and triggers directory creation
-func (m *Model) createDir(_ ki.Options) func() StatusBarMsg {
-	return func() StatusBarMsg {
-		return m.dirTree.Create(m.mode, m.statusBar)
-	}
-}
-
-// createNote enters insert mode and triggers notes creation
-func (m *Model) createNote(_ ki.Options) func() StatusBarMsg {
-	return func() StatusBarMsg {
-		return m.notesList.Create(m.mode, m.statusBar)
-	}
-}
-
-// delete enters insert mode and triggers a delete confirmation
-// for the focused component
-func (m *Model) delete(_ ki.Options) func() StatusBarMsg {
-	return func() StatusBarMsg {
-		// go into insert mode because we always ask for
-		// confirmation before deleting anything
-		m.mode.Current = mode.Insert
-
-		statusMsg := StatusBarMsg{}
-
-		if f := m.focusedComponent(); f != nil {
-			m.statusBar.Focused = true
-			statusMsg = f.ConfirmRemove()
-		}
-
-		if statusMsg.Type == message.None {
-			m.mode.Current = mode.Normal
-		}
-
-		return statusMsg
-	}
-}
-
-// rename enters insert mode and renames the selected item
-// in the directory or note list
-func (m *Model) rename(_ ki.Options) func() StatusBarMsg {
-	return func() StatusBarMsg {
-		if m.dirTree.Focused() || m.notesList.Focused() {
-			m.mode.Current = mode.Insert
-			m.statusBar.Focused = false
-		}
-
-		if m.dirTree.Focused() {
-			if m.dirTree.SelectedIndex() > 0 {
-				return m.dirTree.Rename(
-					m.dirTree.SelectedDir().Name(),
-				)
-			}
-			m.mode.Current = mode.Normal
-		}
-
-		if m.notesList.Focused() {
-			return m.notesList.Rename(
-				m.notesList.SelectedItem(nil).Name(),
-			)
-		}
-		return StatusBarMsg{}
-	}
-}
-
 // goToTop moves the current item of focused list to its first item
 func (m *Model) goToTop(_ ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
@@ -272,6 +188,129 @@ func (m *Model) goToBottom(_ ki.Options) func() StatusBarMsg {
 	}
 }
 
+// focusNextColumn selects and highlights the respectivley next of the
+// currently selected column.
+func (m *Model) focusNextColumn(_ ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		nbrCols := 3
+		index := min(m.currColFocus+1, nbrCols)
+		return m.focusColumn(index)
+	}
+}
+
+// focusPrevColumn selects and highlights the respectivley previous of the
+// currently selected column.
+func (m *Model) focusPrevColumn(_ ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		firstCol := 1
+		index := max(m.currColFocus-1, firstCol)
+		return m.focusColumn(index)
+	}
+}
+
+// focusDirectoryTree is a helper function
+// for selecting the directory tree
+func (m *Model) focusDirectoryTree(_ ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		return m.focusColumn(1)
+	}
+}
+
+// focusNotesList() is a helper function
+// for selecting the notes list
+func (m *Model) focusNotesList(_ ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		return m.focusColumn(2)
+	}
+}
+
+// focusEditor is a helper function
+// for selecting the editor
+func (m *Model) focusEditor(_ ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		return m.focusColumn(3)
+	}
+}
+
+// rename enters insert mode and renames the selected item
+// in the directory or note list
+func (m *Model) rename(_ ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		if m.dirTree.Focused() || m.notesList.Focused() {
+			m.mode.Current = mode.Insert
+			m.statusBar.Focused = false
+		}
+
+		if m.dirTree.Focused() {
+			if m.dirTree.SelectedIndex() > 0 {
+				return m.dirTree.Rename(
+					m.dirTree.SelectedDir().Name(),
+				)
+			}
+			m.mode.Current = mode.Normal
+		}
+
+		if m.notesList.Focused() {
+			return m.notesList.Rename(
+				m.notesList.SelectedItem(nil).Name(),
+			)
+		}
+		return StatusBarMsg{}
+	}
+}
+
+// delete enters insert mode and triggers a delete confirmation
+// for the focused component
+func (m *Model) delete(_ ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		// go into insert mode because we always ask for
+		// confirmation before deleting anything
+		m.mode.Current = mode.Insert
+
+		statusMsg := StatusBarMsg{}
+
+		if f := m.focusedComponent(); f != nil {
+			m.statusBar.Focused = true
+			statusMsg = f.ConfirmRemove()
+		}
+
+		if statusMsg.Type == message.None {
+			m.mode.Current = mode.Normal
+		}
+
+		return statusMsg
+	}
+}
+
+func (m *Model) yankListItem(_ ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		if f := m.focusedComponent(); f != nil {
+			f.YankSelection(false)
+		}
+
+		return StatusBarMsg{}
+	}
+}
+
+func (m *Model) cutListItem(_ ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		if f := m.focusedComponent(); f != nil {
+			f.YankSelection(true)
+		}
+		return StatusBarMsg{}
+	}
+}
+
+func (m *Model) pasteListItem(_ ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		if f := m.focusedComponent(); f != nil {
+			return f.PasteSelection()
+		}
+
+		return StatusBarMsg{}
+	}
+}
+
 // togglePin pins or unpins the selected item to the top of the list
 func (m *Model) togglePin(_ ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
@@ -282,183 +321,53 @@ func (m *Model) togglePin(_ ki.Options) func() StatusBarMsg {
 	}
 }
 
-func (m *Model) enterInsertMode(_ ki.Options) func() StatusBarMsg {
+// createDir enters insert mode and triggers directory creation
+func (m *Model) createDir(_ ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
-		return m.editor.EnterInsertMode(true)
+		return m.dirTree.Create(m.mode, m.statusBar)
 	}
 }
 
-func (m *Model) toggleVisual(opts ki.Options) func() StatusBarMsg {
+// createNote enters insert mode and triggers notes creation
+func (m *Model) createNote(_ ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
-		if m.mode.Current == mode.Visual {
-			return m.editor.EnterNormalMode(true)
+		return m.notesList.Create(m.mode, m.statusBar)
+	}
+}
+
+func (m *Model) enterCmdMode(_ ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		if m.mode.Current != mode.Normal {
+			return StatusBarMsg{}
 		}
 
-		return m.editor.EnterVisualMode(textarea.SelectVisual)
-	}
-}
+		m.editor.Vim.Mode.Current = mode.Command
+		m.mode.Current = mode.Command
+		m.statusBar.Focused = true
 
-func (m *Model) toggleVisualLine(opts ki.Options) func() StatusBarMsg {
-	return func() StatusBarMsg {
-		if m.mode.Current == mode.VisualLine {
-			return m.editor.EnterNormalMode(true)
+		return StatusBarMsg{
+			Type:   message.Prompt,
+			Column: sbc.General,
 		}
-
-		return m.editor.EnterVisualMode(textarea.SelectVisualLine)
 	}
 }
 
-func (m *Model) toggleVisualBlock(opts ki.Options) func() StatusBarMsg {
+// showBufferList opens an overlay showing all open buffers
+func (m *Model) showBufferList(_ ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
-		if m.mode.Current == mode.VisualBlock {
-			return m.editor.EnterNormalMode(true)
-		}
-
-		return m.editor.EnterVisualMode(textarea.SelectVisualBlock)
-	}
-}
-
-func (m *Model) selectWord(opts ki.Options) func() StatusBarMsg {
-	return func() StatusBarMsg {
-		outer := opts.GetBool("outer")
-		return m.editor.SelectWord(outer)
-	}
-}
-
-func (m *Model) nextWord(opts ki.Options) func() StatusBarMsg {
-	return func() StatusBarMsg {
-		end := opts.GetBool("end")
-		return m.editor.WordForward(end)
-	}
-}
-
-func (m *Model) prevWord(opts ki.Options) func() StatusBarMsg {
-	return func() StatusBarMsg {
-		end := opts.GetBool("end")
-		return m.editor.WordBack(end)
-	}
-}
-
-func (m *Model) insertBelow(_ ki.Options) func() StatusBarMsg {
-	return func() StatusBarMsg {
-		return m.editor.InsertLine(false)
-	}
-}
-func (m *Model) insertAbove(_ ki.Options) func() StatusBarMsg {
-	return func() StatusBarMsg {
-		return m.editor.InsertLine(true)
-	}
-}
-
-func (m *Model) deleteLine(_ ki.Options) func() StatusBarMsg {
-	return func() StatusBarMsg {
-		return m.editor.DeleteLine()
-	}
-}
-
-func (m *Model) deleteSelection(_ ki.Options) func() StatusBarMsg {
-	return func() StatusBarMsg {
-		if m.mode.IsAnyVisual() {
-			return m.editor.DeleteRune(false, true, false)
-		}
+		m.OverlayOpenBuffers()
 		return StatusBarMsg{}
 	}
 }
 
-func (m *Model) deleteWord(opts ki.Options) func() StatusBarMsg {
+// closeBufferList opens an overlay showing all open buffers
+func (m *Model) closeBufferList(_ ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
-		outer := opts.GetBool("outer")
-
-		if opts.GetBool("remaining") {
-			return m.editor.DeleteWordRight()
+		if m.bufferList.Focused() {
+			m.editor.ListBuffers = false
+			m.focusColumn(m.currColFocus)
 		}
-
-		return m.editor.DeleteWord(outer, false)
-	}
-}
-
-func (m *Model) deleteAfterCursor(opts ki.Options) func() StatusBarMsg {
-	return func() StatusBarMsg {
-		return m.editor.DeleteAfterCursor(false)
-	}
-}
-
-func (m *Model) changeAfterCursor(opts ki.Options) func() StatusBarMsg {
-	return func() StatusBarMsg {
-		m.editor.DeleteAfterCursor(true)
-		m.editor.MoveCharacterRight()
-		m.editor.EnterInsertMode(false)
-
 		return StatusBarMsg{}
-	}
-}
-
-func (m *Model) changeLine(_ ki.Options) func() StatusBarMsg {
-	return func() StatusBarMsg {
-		m.editor.GoToLineStart()
-		m.editor.DeleteAfterCursor(false)
-		m.editor.EnterInsertMode(false)
-
-		return m.editor.ResetSelectedRowsCount()
-	}
-}
-
-func (m *Model) changeWord(opts ki.Options) func() StatusBarMsg {
-	return func() StatusBarMsg {
-		return m.editor.DeleteWord(opts.GetBool("outer"), true)
-	}
-}
-
-func (m *Model) substituteText(opts ki.Options) func() StatusBarMsg {
-	return func() StatusBarMsg {
-		msg := m.editor.DeleteRune(false, true, false)
-
-		if opts.GetBool("new_line") {
-			m.editor.Textarea.EmptyLineAbove()
-		}
-
-		m.editor.EnterInsertMode(false)
-
-		return msg
-	}
-}
-
-func (m *Model) deleteCharacter(_ ki.Options) func() StatusBarMsg {
-	return func() StatusBarMsg {
-		return m.editor.DeleteRune(false, true, false)
-	}
-}
-
-func (m *Model) yankSelection(_ ki.Options) func() StatusBarMsg {
-	return func() StatusBarMsg {
-		return m.editor.YankSelection(false)
-	}
-}
-
-func (m *Model) yankWord(opts ki.Options) func() StatusBarMsg {
-	return func() StatusBarMsg {
-		outer := opts.GetBool("outer")
-		return m.editor.YankWord(outer)
-	}
-}
-
-func (m *Model) paste(opts ki.Options) func() StatusBarMsg {
-	return func() StatusBarMsg {
-		// If we're in any visual mode delete the selection without
-		// history and yanking right away
-		//
-		// @todo when undoing this step the cursor is one character left of
-		// the word we replace - fix this
-		if m.mode.IsAnyVisual() {
-			m.editor.DeleteRune(true, false, true)
-			m.editor.EnterInsertMode(false)
-			m.editor.MoveCharacterLeft()
-		}
-
-		msg := m.editor.Paste()
-
-		m.selectWord(opts)
-		return msg
 	}
 }
 
@@ -568,35 +477,6 @@ func (m *Model) cancelAction(opts ki.Options) func() StatusBarMsg {
 	}
 }
 
-func (m *Model) yankListItem(_ ki.Options) func() StatusBarMsg {
-	return func() StatusBarMsg {
-		if f := m.focusedComponent(); f != nil {
-			f.YankSelection(false)
-		}
-
-		return StatusBarMsg{}
-	}
-}
-
-func (m *Model) cutListItem(_ ki.Options) func() StatusBarMsg {
-	return func() StatusBarMsg {
-		if f := m.focusedComponent(); f != nil {
-			f.YankSelection(true)
-		}
-		return StatusBarMsg{}
-	}
-}
-
-func (m *Model) pasteListItem(_ ki.Options) func() StatusBarMsg {
-	return func() StatusBarMsg {
-		if f := m.focusedComponent(); f != nil {
-			return f.PasteSelection()
-		}
-
-		return StatusBarMsg{}
-	}
-}
-
 func (m *Model) enterNormalMode(_ ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
 		m.editor.Vim.Mode.Current = mode.Normal
@@ -611,20 +491,178 @@ func (m *Model) enterNormalMode(_ ki.Options) func() StatusBarMsg {
 	}
 }
 
-func (m *Model) enterCmdMode(_ ki.Options) func() StatusBarMsg {
+func (m *Model) toggleVisual(opts ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
-		if m.mode.Current != mode.Normal {
-			return StatusBarMsg{}
+		if m.mode.Current == mode.Visual {
+			return m.editor.EnterNormalMode(true)
 		}
 
-		m.editor.Vim.Mode.Current = mode.Command
-		m.mode.Current = mode.Command
-		m.statusBar.Focused = true
+		return m.editor.EnterVisualMode(textarea.SelectVisual)
+	}
+}
 
-		return StatusBarMsg{
-			Type:   message.Prompt,
-			Column: sbc.General,
+func (m *Model) toggleVisualLine(opts ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		if m.mode.Current == mode.VisualLine {
+			return m.editor.EnterNormalMode(true)
 		}
+
+		return m.editor.EnterVisualMode(textarea.SelectVisualLine)
+	}
+}
+
+func (m *Model) toggleVisualBlock(opts ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		if m.mode.Current == mode.VisualBlock {
+			return m.editor.EnterNormalMode(true)
+		}
+
+		return m.editor.EnterVisualMode(textarea.SelectVisualBlock)
+	}
+}
+
+func (m *Model) enterInsertMode(_ ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		return m.editor.EnterInsertMode(true)
+	}
+}
+
+func (m *Model) insertBelow(_ ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		return m.editor.InsertLine(false)
+	}
+}
+
+func (m *Model) insertAbove(_ ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		return m.editor.InsertLine(true)
+	}
+}
+
+func (m *Model) selectWord(opts ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		outer := opts.GetBool("outer")
+		return m.editor.SelectWord(outer)
+	}
+}
+
+func (m *Model) nextWord(opts ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		end := opts.GetBool("end")
+		return m.editor.WordForward(end)
+	}
+}
+
+func (m *Model) prevWord(opts ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		end := opts.GetBool("end")
+		return m.editor.WordBack(end)
+	}
+}
+
+func (m *Model) deleteWord(opts ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		outer := opts.GetBool("outer")
+
+		if opts.GetBool("remaining") {
+			return m.editor.DeleteWordRight()
+		}
+
+		return m.editor.DeleteWord(outer, false)
+	}
+}
+
+func (m *Model) deleteAfterCursor(opts ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		return m.editor.DeleteAfterCursor(false)
+	}
+}
+
+func (m *Model) deleteSelection(_ ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		if m.mode.IsAnyVisual() {
+			return m.editor.DeleteRune(false, true, false)
+		}
+		return StatusBarMsg{}
+	}
+}
+
+func (m *Model) deleteCharacter(_ ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		return m.editor.DeleteRune(false, true, false)
+	}
+}
+
+func (m *Model) substituteText(opts ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		msg := m.editor.DeleteRune(false, true, false)
+
+		if opts.GetBool("new_line") {
+			m.editor.Textarea.EmptyLineAbove()
+		}
+
+		m.editor.EnterInsertMode(false)
+
+		return msg
+	}
+}
+
+func (m *Model) changeAfterCursor(opts ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		m.editor.DeleteAfterCursor(true)
+		m.editor.MoveCharacterRight()
+		m.editor.EnterInsertMode(false)
+
+		return StatusBarMsg{}
+	}
+}
+
+func (m *Model) changeLine(_ ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		m.editor.GoToLineStart()
+		m.editor.DeleteAfterCursor(false)
+		m.editor.EnterInsertMode(false)
+
+		return m.editor.ResetSelectedRowsCount()
+	}
+}
+
+func (m *Model) changeWord(opts ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		return m.editor.DeleteWord(opts.GetBool("outer"), true)
+	}
+}
+
+func (m *Model) yankSelection(_ ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		return m.editor.YankSelection(false)
+	}
+}
+
+func (m *Model) yankWord(opts ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		outer := opts.GetBool("outer")
+		return m.editor.YankWord(outer)
+	}
+}
+
+func (m *Model) paste(opts ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		// If we're in any visual mode delete the selection without
+		// history and yanking right away
+		//
+		// @todo when undoing this step the cursor is one character left of
+		// the word we replace - fix this
+		if m.mode.IsAnyVisual() {
+			m.editor.DeleteRune(true, false, true)
+			m.editor.EnterInsertMode(false)
+			m.editor.MoveCharacterLeft()
+		}
+
+		msg := m.editor.Paste()
+
+		m.selectWord(opts)
+		return msg
 	}
 }
 
@@ -666,30 +704,6 @@ func (m *Model) focusColumn(index int) StatusBarMsg {
 	}
 
 	return StatusBarMsg{}
-}
-
-// focusDirectoryTree is a helper function
-// for selecting the directory tree
-func (m *Model) focusDirectoryTree(_ ki.Options) func() StatusBarMsg {
-	return func() StatusBarMsg {
-		return m.focusColumn(1)
-	}
-}
-
-// focusNotesList() is a helper function
-// for selecting the notes list
-func (m *Model) focusNotesList(_ ki.Options) func() StatusBarMsg {
-	return func() StatusBarMsg {
-		return m.focusColumn(2)
-	}
-}
-
-// focusEditor is a helper function
-// for selecting the editor
-func (m *Model) focusEditor(_ ki.Options) func() StatusBarMsg {
-	return func() StatusBarMsg {
-		return m.focusColumn(3)
-	}
 }
 
 // focusedComponent returns the component that is currently focused

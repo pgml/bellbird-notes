@@ -212,6 +212,7 @@ func (m *Model) componentsInit() {
 		Cardinal:  bl.SOUTH,
 		Preferred: statusBarHeight,
 	})
+	m.statusBar.Commands = m.CmdRegistry()
 }
 
 // updateComponents dispatches updates to the focused components

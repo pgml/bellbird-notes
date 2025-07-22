@@ -1,10 +1,15 @@
 package message
 
 var Response = struct {
-	Yes, No string
+	Yes, No, Quit, WriteBuf, WriteQuit, DeleteBufstring, ListBufs string
 }{
-	Yes: "y",
-	No:  "n",
+	Yes:             "y",
+	No:              "n",
+	Quit:            "q",
+	WriteBuf:        "w",
+	WriteQuit:       "wq",
+	DeleteBufstring: "bd",
+	ListBufs:        "b",
 }
 
 var StatusBar = struct {
