@@ -35,9 +35,9 @@ If you don't have NerdFonts install use `bbnotes --no-nerd-fonts`
 
 You can find a list of all currently availabe keybinds [here](docs/keybindings.md)
 
-To change any of the keybinds edit keymap.json under `~/.config/bellbird-notes/keymaps.json` or via `:keymap`.
+To change any of the keybinds edit keymap.json under `~/.config/bellbird-notes/keymaps.json` or via `:open keymap`.
 
-A list of the default keybinds can be displayed with `:defaultkeymap`.
+A list of the default keybinds can be displayed with `:open defaultkeymap`.
 
 
 ## Currently missing/planned features (no particular order)
