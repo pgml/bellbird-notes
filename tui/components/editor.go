@@ -87,6 +87,8 @@ type Buffer struct {
 	header *string
 
 	Writeable bool
+
+	IsScratch bool
 }
 
 // Name returns the name of the buffer without its suffix.
@@ -348,6 +350,7 @@ func (e *Editor) NewBuffer(path string) message.StatusBarMsg {
 
 	// Fill scratch buffer with the note's data
 	buf := e.CurrentBuffer
+	buf.IsScratch = false
 	buf.path = path
 	buf.CursorPos = cursorPos
 	buf.History = textarea.NewHistory()
@@ -377,7 +380,7 @@ func (e *Editor) NewScratchBuffer(
 	content string,
 ) message.StatusBarMsg {
 	notesRoot, _ := app.NotesRootDir()
-	path := notesRoot + "/" + title
+	path := notes.GetValidPath(notesRoot+"/"+title, true)
 
 	buf := Buffer{
 		Index:                len(*e.Buffers) + 1,
@@ -388,6 +391,7 @@ func (e *Editor) NewScratchBuffer(
 		CurrentLineLength:    0,
 		LastSavedContentHash: "",
 		Writeable:            true,
+		IsScratch:            true,
 	}
 
 	*e.Buffers = append(*e.Buffers, buf)
@@ -458,18 +462,22 @@ func (e *Editor) SaveBuffer() message.StatusBarMsg {
 		Column: sbc.General,
 	}
 
+	buf := e.CurrentBuffer
 	rootDir, _ := app.NotesRootDir()
-	path := e.CurrentBuffer.path
+
+	path := buf.path
 	relativePath := strings.ReplaceAll(path, rootDir+"/", "")
 	bufContent := e.Textarea.Value()
-	bytes, err := notes.Write(path, bufContent)
+	forceCreate := buf.IsScratch
+
+	bytes, err := notes.Write(path, bufContent, forceCreate)
 
 	if err != nil {
 		debug.LogErr(err)
 		return statusMsg
 	}
 
-	e.CurrentBuffer.Dirty = false
+	buf.Dirty = false
 
 	resultMsg := fmt.Sprintf(
 		message.StatusBar.FileWritten,
@@ -477,7 +485,7 @@ func (e *Editor) SaveBuffer() message.StatusBarMsg {
 	)
 
 	contentHash := utils.HashContent(bufContent)
-	e.CurrentBuffer.LastSavedContentHash = contentHash
+	buf.LastSavedContentHash = contentHash
 
 	statusMsg.Content = resultMsg
 	statusMsg.Cmd = e.SendBufferSavedMsg()

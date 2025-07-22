@@ -108,7 +108,7 @@ func Create(path string) (Note, error) {
 	path = CheckPath(path)
 	note := Note{}
 
-	if _, err := Exists(path); err != nil {
+	if _, err := Exists(path); err == nil {
 		return note, err
 	}
 
@@ -121,12 +121,18 @@ func Create(path string) (Note, error) {
 }
 
 // Write replaces the contents of a note at the given path with the provided string.
-func Write(path string, content string) (int, error) {
+func Write(path string, content string, forceCreate bool) (int, error) {
 	if IsNote(path) {
 		path = CheckPath(path)
 
-		if _, err := Exists(path); err == nil {
-			return 0, nil
+		if forceCreate {
+			if _, err := Create(path); err != nil {
+				return 0, err
+			}
+		} else {
+			if _, err := Exists(path); err != nil {
+				return 0, nil
+			}
 		}
 	}
 
@@ -210,9 +216,37 @@ func Copy(oldPath, newPath string) error {
 	return err
 }
 
-// isHidden returns true if the file or directory is hidden
-func isHidden(path string) bool {
-	return path[0] == 46
+// GetValidPath ensures the path is always valid for creating a new note.
+// If the file already exists it appends "Copy" to the filename.
+func GetValidPath(path string, forceNote bool) string {
+	if forceNote {
+		path = CheckPath(path)
+	} else {
+		if !IsNote(path) {
+			return path
+		}
+	}
+
+	note := NewNote(path, false)
+	name := note.Name()
+	path = filepath.Dir(note.Path)
+
+	var newPath string
+
+	// Apppend Copy if there's already a note
+	if f, _ := Exists(path + "/" + note.NameWithExt()); f != nil {
+		name += " Copy"
+	}
+
+	// Append notes extension
+	newPath = CheckPath(path + "/" + name)
+
+	// Rinse and repeat if the copy also already exists
+	if _, err := Exists(note.Path); err == nil {
+		newPath = GetValidPath(newPath, false)
+	}
+
+	return newPath
 }
 
 // CheckPath ensures that the path ends with a valid extension.
@@ -223,6 +257,11 @@ func CheckPath(path string) string {
 	}
 
 	return path + Ext
+}
+
+// isHidden returns true if the file or directory is hidden
+func isHidden(path string) bool {
+	return path[0] == 46
 }
 
 func IsNote(path string) bool {

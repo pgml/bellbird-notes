@@ -34,7 +34,7 @@ func TestCreateWriteDelete(t *testing.T) {
 	}
 
 	content := "TEST"
-	n, err := notes.Write(path, content)
+	n, err := notes.Write(path, content, false)
 	if err != nil || n != len(content) {
 		t.Fatalf("Write failed: %v", err)
 	}

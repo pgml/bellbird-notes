@@ -268,8 +268,6 @@ func (l *List[T]) YankSelection(markCut bool) {}
 func (l *List[T]) pasteSelection(item T, dirPath string, cb func(string)) {
 	name := item.Name()
 
-	var newPath string
-
 	if item.IsCut() {
 		if item, ok := l.ItemsContain(item.Path()); ok {
 			l.selectedIndex = item.Index()
@@ -278,23 +276,13 @@ func (l *List[T]) pasteSelection(item T, dirPath string, cb func(string)) {
 		}
 	}
 
+	newPath := dirPath + "/" + name
+
 	// Ensure we always have a valid path
-	for {
-		if l.isNote(item.Path()) {
-			name = l.CheckName(dirPath, name)
-			newPath = notes.CheckPath(dirPath + "/" + name)
-
-			if _, err := notes.Exists(newPath); err == nil {
-				break
-			}
-		} else {
-			name = l.CheckName(dirPath, name)
-			newPath = dirPath + "/" + name
-
-			if _, err := directories.Exists(newPath); err != nil {
-				break
-			}
-		}
+	if l.isNote(item.Path()) {
+		newPath = notes.GetValidPath(newPath, true)
+	} else {
+		newPath = directories.GetValidPath(newPath)
 	}
 
 	cb(newPath)

@@ -209,6 +209,26 @@ func Copy(src, dst string) error {
 	return err
 }
 
+// GetValidPath ensures the path is always valid for creating a new directory.
+// If the directory already exists it appends "Copy" to the path.
+func GetValidPath(path string) string {
+	if notes.IsNote(path) {
+		return path
+	}
+
+	// Apppend Copy if there's already a note
+	if d, _ := Exists(path); d != nil {
+		path += " Copy"
+	}
+
+	// Rinse and repeat if the copy also already exists
+	if d, _ := Exists(path); d != nil {
+		path = GetValidPath(path)
+	}
+
+	return path
+}
+
 // Exists checks whether a file exists at the given path.
 func Exists(path string) (os.FileInfo, error) {
 	info, err := os.Stat(path)
