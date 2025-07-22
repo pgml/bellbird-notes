@@ -3,19 +3,19 @@ package app
 import "fmt"
 
 var (
-	Version = "0.00"
-	Dev     = ""
-	Commit  = ""
+	version string
+	dev     string
+	commit  string
 )
 
 func PrintVersion() {
-	if Dev != "" {
-		Version += "-dev." + Commit
+	if dev != "" {
+		version += "-dev." + commit
 	}
 
-	if Commit != "" && Dev == "" {
-		Version += " (" + Commit + ")"
+	if commit != "" && dev == "" {
+		version += " (" + commit + ")"
 	}
 
-	fmt.Printf("%s %s\n", Name(), Version)
+	fmt.Printf("%s %s\n", Name(), version)
 }

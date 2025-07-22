@@ -7,14 +7,14 @@ GOFLAGS = -trimpath
 build-dev:
 	go mod tidy
 	go build $(GOFLAGS) -ldflags="\
-		-X '$(PKG).Dev=true' \
-		-X '$(PKG).Commit=$(GIT_HASH)'" \
+		-X '$(PKG).dev=true' \
+		-X '$(PKG).commit=$(GIT_HASH)'" \
 		-o ${BIN_CLI} cmd/tui/main.go
 
 build-release:
 	go mod tidy
 	go build $(GOFLAGS) -ldflags="\
-		-s -w -X '$(PKG).Commit=$(GIT_HASH)'" \
+		-s -w -X '$(PKG).commit=$(GIT_HASH)'" \
 		-o ${BIN_CLI} cmd/tui/main.go
 
 install-local:
