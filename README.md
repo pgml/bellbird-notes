@@ -31,7 +31,13 @@ Open it with `bbnotes` in your favourite terminal and use it like you would use 
 
 If you don't have NerdFonts install use `bbnotes --no-nerd-fonts`
 
+#### Keybinds
+
 You can find a list of all currently availabe keybinds [here](docs/keybindings.md)
+
+To change any of the keybinds edit keymap.json under `~/.config/bellbird-notes/keymaps.json` or via `:keymap`.
+
+A list of the default keybinds can be displayed with `:defaultkeymap`.
 
 
 ## Currently missing/planned features (no particular order)
@@ -39,14 +45,11 @@ You can find a list of all currently availabe keybinds [here](docs/keybindings.m
 #### General
 
 * more config options
-* configurable keybings/motions
 * move meta infos to notes directory so that it can be synced
 
 #### Notes/Folders
 
-* move/duplicate notes and folders
 * pin/unpin folders
-* closing buffers (they are currently open until the app is closed)
 * Preselect text when creating or renaming
 
 #### Editor
@@ -61,6 +64,7 @@ You can find a list of all currently availabe keybinds [here](docs/keybindings.m
 * create lists out of selection
 * store time and amount of changes in buffer history
 * display undo/redo messages in statusbar
+* Multipanes
 
 ...and a lot more
 
@@ -71,8 +75,8 @@ You can find a list of all currently availabe keybinds [here](docs/keybindings.m
 
 ## Future Plans
 
-- [ ] Overlay support to list open buffers or display dialogues
-- [ ] Quick search for notes
+- [x] Overlay support to list open buffers or display dialogues
+- [ ] Fuzzyfind notes
 - [ ] Search in all notes
 - [ ] SQLite Support
 - [ ] Themes
