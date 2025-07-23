@@ -104,8 +104,8 @@ func (b BufferListItem) String() string {
 type BufferList struct {
 	List[*BufferListItem]
 
-	Width  int
-	Height int
+	width  int
+	height int
 
 	// Buffers holds all the open buffers
 	Buffers *Buffers
@@ -116,8 +116,8 @@ func NewBufferList(conf *config.Config) *BufferList {
 
 	panel := &BufferList{
 		List:   List[*BufferListItem]{conf: conf},
-		Height: 10,
-		Width:  termW / 3,
+		height: 10,
+		width:  termW / 3,
 	}
 	panel.focused = false
 	panel.Mode = mode.Normal
@@ -126,6 +126,23 @@ func NewBufferList(conf *config.Config) *BufferList {
 }
 
 func (l BufferList) Name() string { return "BufferList" }
+
+func (l BufferList) Width() int {
+	return l.viewport.Width()
+}
+
+func (l BufferList) ListSize() (int, int) {
+	w, _ := theme.TerminalSize()
+	return w / 3, 10
+}
+
+func (l *BufferList) UpdateSize() {
+	w, h := l.ListSize()
+	l.viewport.SetWidth(w)
+	l.viewport.SetHeight(h)
+	l.width = w
+	l.height = h
+}
 
 // Init initialises the Model on program load.
 // It partly implements the tea.Model interface.
@@ -137,6 +154,9 @@ func (l *BufferList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 
 	switch msg.(type) {
+	case tea.WindowSizeMsg:
+		l.UpdateSize()
+
 	case BuffersChangedMsg:
 		l.buildItems()
 	}
@@ -178,7 +198,7 @@ func (l *BufferList) View() string {
 	)
 
 	var view strings.Builder
-	view.WriteString(l.BuildHeader(l.Width, false))
+	view.WriteString(l.BuildHeader(l.width, false))
 	view.WriteString(l.viewport.View())
 
 	return view.String()
@@ -190,9 +210,9 @@ func (l *BufferList) SetBuffers(b *Buffers) {
 
 func (l *BufferList) RefreshSize() {
 	vp := l.viewport
-	if vp.Width() != l.Width && vp.Height() != l.Height {
-		l.viewport.SetWidth(l.Width)
-		l.viewport.SetHeight(l.Height)
+	if vp.Width() != l.width && vp.Height() != l.height {
+		l.viewport.SetWidth(l.width)
+		l.viewport.SetHeight(l.height)
 	}
 }
 
@@ -234,7 +254,7 @@ func (l *BufferList) createListItem(buf *Buffer, index int) BufferListItem {
 			path:      buf.Path(false),
 			selected:  index == l.selectedIndex,
 			nerdFonts: l.conf.NerdFonts(),
-			width:     l.Width,
+			width:     l.width,
 		},
 		buffer: buf,
 	}

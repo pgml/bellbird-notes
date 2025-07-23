@@ -677,7 +677,7 @@ func (v *Vim) OverlayOpenBuffers() (string, int, int) {
 	v.app.Editor.ListBuffers = true
 	v.app.BufferList.SetFocus(true)
 
-	x, y := v.app.OverlayPosition(v.app.BufferList.Width)
+	x, y := v.app.OverlayPosition(v.app.BufferList.Width())
 	overlay := v.app.BufferList.View()
 
 	v.app.UpdateComponents(false)

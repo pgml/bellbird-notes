@@ -103,6 +103,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.app.DirTree.Update(msg)
 		m.app.NotesList.Update(msg)
 		m.app.Editor.Update(msg)
+		m.app.BufferList.Update(msg)
 
 		// Convert WindowSizeMsg to BubbleLayoutMsg.
 		return m, func() tea.Msg {
