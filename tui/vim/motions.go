@@ -629,7 +629,14 @@ func (v *Vim) changeLine(_ ki.Options) func() StatusBarMsg {
 
 func (v *Vim) changeWord(opts ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
-		return v.app.Editor.DeleteWord(opts.GetBool("outer"), true)
+		outer := opts.GetBool("outer")
+
+		if opts.GetBool("remaining") {
+			v.app.Editor.DeleteWordRight()
+			return v.app.Editor.EnterInsertMode(false)
+		}
+
+		return v.app.Editor.DeleteWord(outer, true)
 	}
 }
 

@@ -123,6 +123,7 @@
 			"D": "DeleteAfterCursor",
 			"C": "ChangeAfterCursor",
 			"cc": "ChangeLine",
+			"cw": ["ChangeWord", { "remaining": true }],
 			"ciw": ["ChangeWord", { "outer": false }],
 			"caw": ["ChangeWord", { "outer": true }],
 			"yy": "YankLine",
