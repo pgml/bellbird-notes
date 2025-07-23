@@ -82,12 +82,14 @@ type Buffer struct {
 	// LastSavedContentHash is the hash of the last saved content of the buffer
 	LastSavedContentHash string
 
-	// Header is the title of the buffer
+	// header is the title of the buffer
 	// If not nil, the path as a breadcrumb is displayed
 	header *string
 
+	// Writeable indicates whether the buffer can be written to
 	Writeable bool
 
+	// IsScratch indicates whether the buffer is a temporary scratch buffer
 	IsScratch bool
 }
 
@@ -162,11 +164,6 @@ type Input struct {
 	operator string
 }
 
-type Vim struct {
-	Mode    mode.ModeInstance
-	Pending Input
-}
-
 type Editor struct {
 	Component
 
@@ -179,8 +176,8 @@ type Editor struct {
 	// Textarea is the bubbletea textarea component
 	Textarea textarea.Model
 
-	// Vim holds the current vim mode
-	Vim Vim
+	// Holds the current vim mode
+	Mode mode.ModeInstance
 
 	// CanInsert indicates whether textarea can receive input
 	// regardless of the current input mode
@@ -223,14 +220,6 @@ func NewEditor(conf *config.Config) *Editor {
 	ta.Selection.Cursor.Style = ta.SelectionStyle()
 
 	editor := &Editor{
-		Vim: Vim{
-			Mode: mode.ModeInstance{Current: mode.Normal},
-			Pending: Input{
-				keyinput.Input{Ctrl: false, Alt: false},
-				"",
-				"",
-			},
-		},
 		CanInsert:          false,
 		Textarea:           ta,
 		Component:          Component{},
@@ -271,7 +260,7 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		switch e.Vim.Mode.Current {
+		switch e.Mode.Current {
 		case mode.Normal:
 			e.saveCursorPosToConf()
 
@@ -616,7 +605,7 @@ func (e *Editor) EnterNormalMode(withHistory bool) message.StatusBarMsg {
 	// We need to remember if the cursor is at the and of the line
 	// so that lineup and linedown moves the cursor to the end
 	// when it's supposed to do so
-	isInsertMode := e.Vim.Mode.Current == mode.Insert
+	isInsertMode := e.Mode.Current == mode.Insert
 	e.isAtLineEnd = false
 	if e.Textarea.IsExceedingLine() {
 		e.Textarea.CursorLineVimEnd()
@@ -625,11 +614,11 @@ func (e *Editor) EnterNormalMode(withHistory bool) message.StatusBarMsg {
 		e.MoveCharacterLeft()
 	}
 
-	if e.Vim.Mode.IsAnyVisual() {
+	if e.Mode.IsAnyVisual() {
 		statusMsg.Column = sbc.KeyInfo
 	}
 
-	e.Vim.Mode.Current = mode.Normal
+	e.Mode.Current = mode.Normal
 
 	if e.CurrentBuffer == nil {
 		return statusMsg
@@ -663,7 +652,7 @@ func (e *Editor) EnterInsertMode(withHistory bool) message.StatusBarMsg {
 		return msg
 	}
 
-	e.Vim.Mode.Current = mode.Insert
+	e.Mode.Current = mode.Insert
 	if withHistory {
 		e.newHistoryEntry()
 	}
@@ -682,7 +671,7 @@ func (e *Editor) EnterReplaceMode() message.StatusBarMsg {
 		return msg
 	}
 
-	e.Vim.Mode.Current = mode.Replace
+	e.Mode.Current = mode.Replace
 	e.newHistoryEntry()
 	e.Textarea.SetCursorColor(mode.Replace.Colour())
 
@@ -701,7 +690,7 @@ func (e *Editor) EnterVisualMode(
 		vimMode = mode.VisualLine
 	}
 
-	e.Vim.Mode.Current = vimMode
+	e.Mode.Current = vimMode
 	e.Textarea.SetCursorColor(mode.VisualBlock.Colour())
 	return e.UpdateSelectedRowsCount()
 }
@@ -949,7 +938,7 @@ func (e *Editor) LineUp(multiline bool) message.StatusBarMsg {
 	e.saveCursorRow()
 	e.saveLineLength()
 
-	if e.Vim.Mode.IsAnyVisual() {
+	if e.Mode.IsAnyVisual() {
 		return e.UpdateSelectedRowsCount()
 	}
 	return message.StatusBarMsg{}
@@ -983,7 +972,7 @@ func (e *Editor) LineDown(multiline bool) message.StatusBarMsg {
 	e.saveCursorRow()
 	e.saveLineLength()
 
-	if e.Vim.Mode.IsAnyVisual() {
+	if e.Mode.IsAnyVisual() {
 		return e.UpdateSelectedRowsCount()
 	}
 	return message.StatusBarMsg{}
@@ -1223,7 +1212,7 @@ func (e *Editor) ResetSelectedRowsCount() message.StatusBarMsg {
 
 // UpdateSelectedRowsCount updates the selected rows count in the status bar
 func (e *Editor) UpdateSelectedRowsCount() message.StatusBarMsg {
-	if e.Vim.Mode.IsAnyVisual() {
+	if e.Mode.IsAnyVisual() {
 		return message.StatusBarMsg{
 			Content: strconv.Itoa(e.SelectedRowsCount()),
 			Column:  sbc.KeyInfo,
@@ -1320,7 +1309,7 @@ func (e *Editor) YankSelection(keepCursor bool) message.StatusBarMsg {
 		startRow := e.Textarea.Selection.StartRow
 		startCol := e.Textarea.Selection.StartCol
 
-		if e.Vim.Mode.Current == mode.VisualLine {
+		if e.Mode.Current == mode.VisualLine {
 			startCol = 0
 		}
 

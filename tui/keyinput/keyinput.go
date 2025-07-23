@@ -18,6 +18,11 @@ import (
 	sbc "bellbird-notes/tui/types/statusbar_column"
 )
 
+type Handler interface {
+	FnRegistry() MotionRegistry
+	Mode() *mode.ModeInstance
+}
+
 // FocusedComponent represents any UI component that can report whether
 // it currently has focus.
 // Used to check if input should be directed to it.
@@ -53,7 +58,7 @@ type Input struct {
 	Space bool
 	Ctrl  bool
 	Alt   bool
-	Mode  mode.Mode
+	Mode  *mode.ModeInstance
 	// contains all componentActions of the currently selected component
 	//componentActions map[string]Action
 	componentActions map[mode.Mode]map[string]Action
@@ -62,15 +67,15 @@ type Input struct {
 	DefaultKeyMap []byte
 	UserKeyMap    []byte
 
-	Registry   FnRegistry
+	Registry   MotionRegistry
 	Components []FocusedComponent
 }
 
-type CmdFn func(opts Options) func() message.StatusBarMsg
-type FnRegistry map[string]CmdFn
+type Motion func(opts Options) func() message.StatusBarMsg
+type MotionRegistry map[string]Motion
 
 // New creates and returns a new Input instance with default state.
-func New() *Input {
+func New(h Handler) *Input {
 	keymap := NewKeyMap()
 
 	if !keymap.Exists() {
@@ -89,7 +94,7 @@ func New() *Input {
 		Space:            false,
 		Ctrl:             false,
 		Alt:              false,
-		Mode:             mode.Normal,
+		Mode:             h.Mode(),
 		KeySequence:      "",
 		AllowSequences:   true,
 		sequenceTimeOut:  300,
@@ -99,6 +104,7 @@ func New() *Input {
 		KeyMap:           keymap,
 		DefaultKeyMap:    defaultKeyMap,
 		UserKeyMap:       userKeyMap,
+		Registry:         h.FnRegistry(),
 	}
 }
 
@@ -125,7 +131,7 @@ func (ki *Input) HandleSequences(key tea.Key) []message.StatusBarMsg {
 	}
 
 	// special treatment for space to make it simulate a leader key
-	if ki.Mode == mode.Normal && !ki.Space {
+	if ki.Mode.Current == mode.Normal && !ki.Space {
 		if key.Code == 32 {
 			ki.KeySequence += key.Keystroke()
 			ki.Space = true
@@ -150,7 +156,7 @@ func (ki *Input) HandleSequences(key tea.Key) []message.StatusBarMsg {
 	}
 
 	keyInfoMsg := message.StatusBarMsg{Content: "", Column: sbc.KeyInfo}
-	if ki.Mode != mode.Command && !ki.isBinding(ki.KeySequence) && ki.AllowSequences {
+	if ki.Mode.Current != mode.Command && !ki.isBinding(ki.KeySequence) && ki.AllowSequences {
 		mod, isModifier := ki.isModifier(key.String())
 
 		if slices.Contains(ki.sequenceKeys, ki.KeySequence) || isModifier {
@@ -162,7 +168,7 @@ func (ki *Input) HandleSequences(key tea.Key) []message.StatusBarMsg {
 			}
 
 			keyInfo := keyInfoMsg.Content
-			if ki.Mode != mode.Insert {
+			if ki.Mode.Current != mode.Insert {
 				keyInfo = strings.ReplaceAll(ki.KeySequence, "ctrl", "^")
 				if ki.Ctrl {
 					keyInfo = strings.ReplaceAll(keyInfo, "+", "")
@@ -186,7 +192,7 @@ func (ki *Input) HandleSequences(key tea.Key) []message.StatusBarMsg {
 // executeAction attempts to find and execute an action matching the given
 // key binding string in the current mode and focused component.
 func (ki *Input) executeAction(binding string) message.StatusBarMsg {
-	if action, ok := ki.componentActions[ki.Mode][binding]; ok {
+	if action, ok := ki.componentActions[ki.Mode.Current][binding]; ok {
 		ki.ResetKeysDown()
 		return action.exec()
 	}
@@ -349,7 +355,7 @@ func (ki *Input) addSequenceKey(binding string, force bool) {
 // isBinding returns wether the given key string is a
 // known and valid key binding
 func (ki *Input) isBinding(key string) bool {
-	if _, ok := ki.componentActions[ki.Mode][key]; ok {
+	if _, ok := ki.componentActions[ki.Mode.Current][key]; ok {
 		return true
 	}
 	return false

@@ -1,16 +1,12 @@
 package tui
 
 import (
-	"strconv"
-
-	"bellbird-notes/app/config"
 	"bellbird-notes/internal/interfaces"
 	"bellbird-notes/tui/components"
 	"bellbird-notes/tui/keyinput"
 	"bellbird-notes/tui/message"
-	"bellbird-notes/tui/mode"
-	"bellbird-notes/tui/theme"
 	sbc "bellbird-notes/tui/types/statusbar_column"
+	"bellbird-notes/tui/vim"
 
 	tea "github.com/charmbracelet/bubbletea/v2"
 	"github.com/charmbracelet/lipgloss/v2"
@@ -22,64 +18,54 @@ type Focusable = interfaces.Focusable
 
 // Model is the Bubble Tea model for the TUI
 type Model struct {
+	// layout manages the spatial arrangement of TUI components.
 	layout bl.BubbleLayout
-	// Current app vim-like mode
-	mode         *mode.ModeInstance
-	keyInput     *keyinput.Input
-	currColFocus int
 
-	dirTree    *components.DirectoryTree
-	notesList  *components.NotesList
-	editor     *components.Editor
-	bufferList *components.BufferList
-	statusBar  *components.StatusBar
-	Buffers    components.Buffers
-	conf       *config.Config
+	// keyInput handles user key sequences and maps them to actions.
+	keyInput *keyinput.Input
 
-	ShouldQuit bool
+	// app holds the state and behaviour of all core components
+	app *components.App
+
+	// vim provides Vim-style motions, commands, and focus logic.
+	vim *vim.Vim
 }
 
 func InitialModel() *Model {
 	layout := bl.New()
-
-	mode := &mode.ModeInstance{
-		Current: mode.Normal,
-	}
-
-	conf := config.New()
-	conf.SetDefaults()
+	vim := vim.New()
+	app := components.NewApp(vim)
+	vim.SetApp(app)
 
 	m := Model{
-		layout:       layout,
-		mode:         mode,
-		currColFocus: 1,
-		keyInput:     keyinput.New(),
-		dirTree:      components.NewDirectoryTree(conf),
-		notesList:    components.NewNotesList(conf),
-		editor:       components.NewEditor(conf),
-		bufferList:   components.NewBufferList(conf),
-		statusBar:    components.NewStatusBar(),
-		Buffers:      make(components.Buffers, 0),
-		conf:         conf,
+		layout: layout,
+		app:    app,
+		vim:    vim,
 	}
 
-	m.keyInput.Registry = m.FnRegistry()
+	// Initialise key input handler with Vim commands and components
+	m.keyInput = keyinput.New(vim)
+
 	m.keyInput.Components = []keyinput.FocusedComponent{
-		m.dirTree,
-		m.notesList,
-		m.editor,
-		m.bufferList,
+		m.app.DirTree,
+		m.app.NotesList,
+		m.app.Editor,
+		m.app.BufferList,
 	}
+
+	m.vim.KeyMap = m.keyInput
 
 	m.componentsInit()
-	m.restoreState()
+
+	// Restore previous session state
+	m.app.RestoreState()
 
 	return &m
 }
 
 func (m Model) Init() tea.Cmd {
-	editorCmd := m.editor.Init()
-	statusBarCmd := m.statusBar.Init()
+	editorCmd := m.app.Editor.Init()
+	statusBarCmd := m.app.StatusBar.Init()
 
 	return tea.Batch(editorCmd, statusBarCmd)
 }
@@ -89,11 +75,11 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		m.keyInput.AllowSequences = !m.statusBar.Focused
+		m.keyInput.AllowSequences = !m.app.StatusBar.Focused
 		statusMsg := m.keyInput.HandleSequences(msg.Key())
 
-		// If space is pressed, reset it after a certain delay
 		if msg.Key().Code == 32 {
+			// Reset spacebar key sequence
 			cmds = append(cmds, m.keyInput.ResetSequence())
 		}
 
@@ -105,20 +91,18 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}}
 		}
 
-		statusMsg = append(statusMsg, m.editor.StatusBarInfo())
+		statusMsg = append(statusMsg, m.app.Editor.StatusBarInfo())
 
 		for _, m := range statusMsg {
 			cmds = append(cmds, m.Cmd)
 		}
 
-		m.statusBar = m.statusBar.Update(statusMsg, msg)
-		m.keyInput.Mode = m.mode.Current
-		m.statusBar.Mode = m.mode.Current
+		m.app.StatusBar = m.app.StatusBar.Update(statusMsg, msg)
 
 	case tea.WindowSizeMsg:
-		m.dirTree.Update(msg)
-		m.notesList.Update(msg)
-		m.editor.Update(msg)
+		m.app.DirTree.Update(msg)
+		m.app.NotesList.Update(msg)
+		m.app.Editor.Update(msg)
 
 		// Convert WindowSizeMsg to BubbleLayoutMsg.
 		return m, func() tea.Msg {
@@ -129,14 +113,14 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case bl.BubbleLayoutMsg:
-		m.dirTree.Size, _ = msg.Size(m.dirTree.ID)
-		m.notesList.Size, _ = msg.Size(m.notesList.ID)
-		m.editor.Size, _ = msg.Size(m.editor.ID)
-		m.bufferList.Size, _ = msg.Size(m.bufferList.ID)
-		m.statusBar.Size, _ = msg.Size(m.statusBar.ID)
+		m.app.DirTree.Size, _ = msg.Size(m.app.DirTree.ID)
+		m.app.NotesList.Size, _ = msg.Size(m.app.NotesList.ID)
+		m.app.Editor.Size, _ = msg.Size(m.app.Editor.ID)
+		m.app.BufferList.Size, _ = msg.Size(m.app.BufferList.ID)
+		m.app.StatusBar.Size, _ = msg.Size(m.app.StatusBar.ID)
 
 	case keyinput.ResetSequenceMsg:
-		m.statusBar = m.statusBar.Update(
+		m.app.StatusBar = m.app.StatusBar.Update(
 			[]message.StatusBarMsg{m.keyInput.ResetKeysDown()},
 			msg,
 		)
@@ -148,15 +132,17 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
-	m.keyInput.Mode = m.mode.Current
-
 	// exit programme when `:q` is entered in command prompt
-	if m.ShouldQuit {
+	if m.app.ShouldQuit {
 		return m, tea.Quit
 	}
 
-	cmds = append(cmds, m.updateComponents(msg)...)
-	m.updateStatusBar()
+	if m.app.Editor.ListBuffers {
+		m.vim.UnfocusAllColumns()
+	}
+
+	cmds = append(cmds, m.app.UpdateComponents(msg)...)
+	m.app.UpdateStatusBar()
 
 	return m, tea.Batch(cmds...)
 }
@@ -165,11 +151,11 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m Model) View() string {
 	view := lipgloss.JoinVertical(lipgloss.Left,
 		lipgloss.JoinHorizontal(lipgloss.Top,
-			m.dirTree.View(),
-			m.notesList.View(),
-			m.editor.View(),
+			m.app.DirTree.View(),
+			m.app.NotesList.View(),
+			m.app.Editor.View(),
 		),
-		m.statusBar.View(),
+		m.app.StatusBar.View(),
 	)
 
 	var (
@@ -179,10 +165,10 @@ func (m Model) View() string {
 	)
 
 	// check if any overlays should be displayed
-	if m.editor.ListBuffers {
-		overlay, x, y = m.OverlayOpenBuffers()
+	if m.app.Editor.ListBuffers {
+		overlay, x, y = m.vim.OverlayOpenBuffers()
 	} else {
-		m.bufferList.SetFocus(false)
+		m.app.BufferList.SetFocus(false)
 	}
 
 	if overlay != "" {
@@ -197,138 +183,24 @@ func (m Model) View() string {
 // and sets initial focus
 func (m *Model) componentsInit() {
 	const reserverdLines = 1
-	statusBarHeight := m.statusBar.Height + reserverdLines
+	statusBarHeight := m.app.StatusBar.Height + reserverdLines
 
-	m.dirTree.ID = m.layout.Add("width 30")
+	m.app.DirTree.ID = m.layout.Add("width 30")
 
-	m.notesList.ID = m.layout.Add("width 30")
-	m.notesList.SetBuffers(&m.Buffers)
+	m.app.NotesList.ID = m.layout.Add("width 30")
+	m.app.NotesList.SetBuffers(&m.app.Buffers)
 
-	m.editor.ID = m.layout.Add("grow")
-	m.editor.SetBuffers(&m.Buffers)
-	m.editor.KeyInput = *m.keyInput
+	m.app.Editor.ID = m.layout.Add("grow")
+	m.app.Editor.SetBuffers(&m.app.Buffers)
+	m.app.Editor.KeyInput = *m.keyInput
 
-	m.bufferList.SetBuffers(&m.Buffers)
+	m.app.BufferList.SetBuffers(&m.app.Buffers)
 
-	m.statusBar.ID = m.layout.Dock(bl.Dock{
+	m.app.StatusBar.ID = m.layout.Dock(bl.Dock{
 		Cardinal:  bl.SOUTH,
 		Preferred: statusBarHeight,
 	})
-	m.statusBar.Commands = m.CmdRegistry()
-}
 
-// updateComponents dispatches updates to the focused components
-// (directory tree, notes list, editor), updates the current editor mode
-func (m *Model) updateComponents(msg tea.Msg) []tea.Cmd {
-	var cmds []tea.Cmd
-
-	m.dirTree.RefreshSize()
-	m.notesList.RefreshSize()
-	m.bufferList.RefreshSize()
-	m.editor.RefreshSize()
-
-	if m.componentsReady() && !m.editor.LastOpenNoteLoaded {
-		m.editor.OpenLastNotes()
-		m.editor.LastOpenNoteLoaded = true
-	}
-
-	// focus notes list if not buffer is open
-	if m.editor.Ready && len(m.Buffers) == 0 {
-		m.focusColumn(2)
-	}
-
-	if m.dirTree.Focused() {
-		m.dirTree.Mode = m.mode.Current
-		_, cmd := m.dirTree.Update(msg)
-		cmds = append(cmds, cmd)
-	}
-
-	if m.notesList.Focused() {
-		m.notesList.Mode = m.mode.Current
-		_, cmd := m.notesList.Update(msg)
-		cmds = append(cmds, cmd)
-	}
-
-	if m.editor.Focused() {
-		_, cmd := m.editor.Update(msg)
-		cmds = append(cmds, cmd)
-		editorMode := m.editor.Vim.Mode.Current
-		m.mode.Current = editorMode
-		m.keyInput.Mode = editorMode
-
-		// This is probably a dirty workaround - since key events are
-		// being executed before the editor receives updates, insert
-		// mode is already active which means we already start typing
-		// with the initial key that is only supposed to go into insert mode.
-		// So we set this flag AFTER the editor update method so that
-		// insert mode is activated but doesn't immediately receive any
-		// input
-		m.editor.CanInsert = false
-		if editorMode == mode.Insert || editorMode == mode.Replace {
-			m.editor.CanInsert = true
-		}
-	}
-
-	// let the buffer list know if anything changes
-	if m.bufferList.NeedsUpdate() {
-		cmds = append(cmds, m.editor.SendBuffersChangedMsg())
-	}
-
-	_, cmd := m.bufferList.Update(msg)
-	cmds = append(cmds, cmd)
-
-	if m.editor.ListBuffers {
-		m.unfocusAllColumns()
-	}
-
-	// collect dirty buffers
-	m.notesList.DirtyBuffers = m.editor.DirtyBuffers()
-
-	return cmds
-}
-
-// updateStatusBar synchronises the status bar
-// with the current component states and mode.
-func (m *Model) updateStatusBar() {
-	m.statusBar.Editor = *m.editor
-
-	currMode := m.editor.Vim.Mode.Current
-	if currMode != mode.Normal {
-		m.statusBar.Mode = currMode
-	} else {
-		m.statusBar.Mode = m.mode.Current
-	}
-}
-
-// restoreState restores the state of the TUI from the last session
-func (m *Model) restoreState() {
-	currComp, err := m.conf.MetaValue("", config.CurrentComponent)
-	colIndex := 1
-
-	if err == nil && currComp != "" {
-		index, _ := strconv.Atoi(currComp)
-		colIndex = index
-	}
-
-	// focus notes list if there's not open note in meta conf but
-	currentNote, err := m.conf.MetaValue("", config.LastOpenNote)
-	if err == nil && currentNote == "" {
-		colIndex = 2
-	}
-
-	m.focusColumn(colIndex)
-}
-
-// overlayPosition returns the top center position of the application screen
-func (m *Model) overlayPosition(overlayWidth int) (int, int) {
-	termW, _ := theme.TerminalSize()
-
-	x := (termW / 2) - (overlayWidth / 2)
-	y := 2
-
-	return x, y
-}
-
-func (m *Model) componentsReady() bool {
-	return m.dirTree.Ready && m.notesList.Ready && m.editor.Ready
+	m.keyInput.FetchKeyMap(true)
+	m.app.StatusBar.Commands = m.vim.CmdRegistry()
 }
