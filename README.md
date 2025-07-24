@@ -64,6 +64,7 @@ A list of the default keybinds can be displayed with `:open defaultkeymap`.
 * store time and amount of changes in buffer history
 * display undo/redo messages in statusbar
 * Multipanes
+* Marks
 
 ...and a lot more
 
