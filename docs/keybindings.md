@@ -1,15 +1,15 @@
 ## Global keybindings
 
-| Key                   | Action                      | Info   |
-| --------------------- | --------------------------- | ------ |
-| `ctrl+w l` or `alt+e` | Focus next column           |        |
-| `ctrl+w h` or `alt+q` | Focus previous column       |        |
-| `:`                   | Enter command mode          |        |
-| `1`                   | Focus folders               |        |
-| `2`                   | Focus notes                 |        |
-| `3`                   | Focus editor                |        |
-| `space e`             | Show open notes             |        |
-| `space q`             | Close currently open note   |        |
+| Key                   | Action                      | Cmd                |
+| --------------------- | --------------------------- | ------------------ |
+| `ctrl+w l` or `alt+e` | Focus next column           |                    |
+| `ctrl+w h` or `alt+q` | Focus previous column       |                    |
+| `:`                   | Enter command mode          |                    |
+| `1`                   | Focus folders               |                    |
+| `2`                   | Focus notes                 |                    |
+| `3`                   | Focus editor                |                    |
+| `space e`             | Show open notes             | `:b`, `:buffers`   |
+| `space q`             | Close currently open note   | `:bd`              |
 
 ## Folders
 
@@ -95,7 +95,7 @@
 | `cc`       | Normal         | Delete line and substitute                             |        |
 | `ciw`      | Normal         | Change word under cursor                               |        |
 | `caw`      | Normal         | Change word under cursor including space after	       |        |
-| `s`        | Normal         | Delete character and substitute 	                   |        |
+| `s`        | Normal         | Delete character and substitute 	                     |        |
 | `x`        | Normal         | Delete character                                       |        |
 
 ### Selecting
