@@ -563,8 +563,9 @@ func (v *Vim) prevWord(opts ki.Options) func() StatusBarMsg {
 
 func (v *Vim) findCharacter(opts ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
-		binding := []rune(opts.GetString("binding"))
-		back := opts.GetBool("back")
+		action := *v.KeyMap.AwaitInputAction
+		binding := []rune(action.Binding())
+		back := action.Opts().GetBool("back")
 		char := v.KeyMap.KeySequence[len(binding):]
 		return v.app.Editor.FindCharacter(char, back)
 	}

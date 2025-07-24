@@ -40,6 +40,9 @@ type Action struct {
 	opts    Options
 }
 
+func (a *Action) Opts() Options   { return a.opts }
+func (a *Action) Binding() string { return a.binding }
+
 // Input represents the state and configuration of the input handler,
 // including current key sequences, modifier states, mode, and the
 // list of all configured key actions.
@@ -49,10 +52,10 @@ type Input struct {
 	sequenceKeys   []string
 	sequenceLength int
 
-	// awaitInputAction stores the action to execute after receiving additional input.
+	// AwaitInputAction stores the action to execute after receiving additional input.
 	// This is used when a keybind has "await_input": true in the keymap,
 	// meaning the action should not run immediately but wait for further key input.
-	awaitInputAction *Action
+	AwaitInputAction *Action
 
 	// sequenceTimeOut is Time in milliseconds to wait for a mapped
 	// sequence to complete. This is basically `timeoutlen` from Vim.
@@ -98,7 +101,7 @@ func New(h Handler) *Input {
 		AllowSequences:   true,
 		sequenceKeys:     []string{},
 		sequenceLength:   0,
-		awaitInputAction: nil,
+		AwaitInputAction: nil,
 		sequenceTimeOut:  300,
 		Space:            false,
 		Ctrl:             false,
@@ -150,8 +153,8 @@ func (ki *Input) HandleSequences(key tea.Key) []message.StatusBarMsg {
 
 	// If we need to wait for further input cache the original action
 	if action, ok := ki.componentActions[ki.Mode.Current][key.String()]; ok {
-		if action.opts.GetBool("await_input") {
-			ki.awaitInputAction = &action
+		if ki.AwaitInputAction == nil && action.opts.GetBool("await_input") {
+			ki.AwaitInputAction = &action
 		}
 	}
 
@@ -204,7 +207,7 @@ func (ki *Input) HandleSequences(key tea.Key) []message.StatusBarMsg {
 // executeAction attempts to find and execute an action matching the given
 // key binding string in the current mode and focused component.
 func (ki *Input) executeAction(binding string) message.StatusBarMsg {
-	if action := ki.awaitInputAction; action != nil {
+	if action := ki.AwaitInputAction; action != nil {
 		return action.exec()
 	}
 
@@ -308,9 +311,6 @@ func (ki *Input) parseKeyMap(
 				}
 			}
 
-			// Add the current binding to options in case we need it somewhere
-			binding.Options["binding"] = key
-
 			// If "operator" is set manually make the key a sequence key
 			if binding.HasOpts && binding.Options.GetBool("operator") {
 				ki.addSequenceKey(key, true)
@@ -408,7 +408,7 @@ func (ki *Input) ResetKeysDown() message.StatusBarMsg {
 	ki.Ctrl = false
 	ki.Alt = false
 	ki.KeySequence = ""
-	ki.awaitInputAction = nil
+	ki.AwaitInputAction = nil
 
 	return message.StatusBarMsg{
 		Content: "",
