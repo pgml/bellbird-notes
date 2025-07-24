@@ -87,6 +87,8 @@
 			"ctrl+u": "UpHalfPage",
 			"v": "ToggleVisual",
 			"V": "ToggleVisualLine",
+			"gg": "GoToTop",
+			"G": "GoToBottom",
 			// "ctrl+v": "ToggleVisualBlock",
 			"w": ["NextWord", { "end": false }],
 			"e": ["NextWord", { "end": true }],
