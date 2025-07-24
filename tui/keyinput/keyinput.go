@@ -34,12 +34,10 @@ type FocusedComponent interface {
 type ResetSequenceMsg struct{}
 
 type Action struct {
-	binding    string
-	isSequence bool
-	awaitInput bool
-	exec       func() message.StatusBarMsg
-	opts       any
-	modes      []mode.Mode
+	binding string
+	exec    func() message.StatusBarMsg
+	modes   []mode.Mode
+	opts    Options
 }
 
 // Input represents the state and configuration of the input handler,
@@ -51,6 +49,11 @@ type Input struct {
 	sequenceKeys   []string
 	sequenceLength int
 
+	// awaitInputAction stores the action to execute after receiving additional input.
+	// This is used when a keybind has "await_input": true in the keymap,
+	// meaning the action should not run immediately but wait for further key input.
+	awaitInputAction *Action
+
 	// sequenceTimeOut is Time in milliseconds to wait for a mapped
 	// sequence to complete. This is basically `timeoutlen` from Vim.
 	sequenceTimeOut time.Duration
@@ -59,8 +62,8 @@ type Input struct {
 	Ctrl  bool
 	Alt   bool
 	Mode  *mode.ModeInstance
+
 	// contains all componentActions of the currently selected component
-	//componentActions map[string]Action
 	componentActions map[mode.Mode]map[string]Action
 
 	KeyMap        KeyMap
@@ -91,20 +94,22 @@ func New(h Handler) *Input {
 	}
 
 	return &Input{
+		KeySequence:      "",
+		AllowSequences:   true,
+		sequenceKeys:     []string{},
+		sequenceLength:   0,
+		awaitInputAction: nil,
+		sequenceTimeOut:  300,
 		Space:            false,
 		Ctrl:             false,
 		Alt:              false,
 		Mode:             h.Mode(),
-		KeySequence:      "",
-		AllowSequences:   true,
-		sequenceTimeOut:  300,
-		sequenceKeys:     []string{},
-		sequenceLength:   0,
 		componentActions: map[mode.Mode]map[string]Action{},
 		KeyMap:           keymap,
 		DefaultKeyMap:    defaultKeyMap,
 		UserKeyMap:       userKeyMap,
 		Registry:         h.FnRegistry(),
+		Components:       []FocusedComponent{},
 	}
 }
 
@@ -140,6 +145,13 @@ func (ki *Input) HandleSequences(key tea.Key) []message.StatusBarMsg {
 				Content: key.Keystroke(),
 				Column:  sbc.KeyInfo,
 			}}
+		}
+	}
+
+	// If we need to wait for further input cache the original action
+	if action, ok := ki.componentActions[ki.Mode.Current][key.String()]; ok {
+		if action.opts.GetBool("await_input") {
+			ki.awaitInputAction = &action
 		}
 	}
 
@@ -192,8 +204,11 @@ func (ki *Input) HandleSequences(key tea.Key) []message.StatusBarMsg {
 // executeAction attempts to find and execute an action matching the given
 // key binding string in the current mode and focused component.
 func (ki *Input) executeAction(binding string) message.StatusBarMsg {
+	if action := ki.awaitInputAction; action != nil {
+		return action.exec()
+	}
+
 	if action, ok := ki.componentActions[ki.Mode.Current][binding]; ok {
-		ki.ResetKeysDown()
 		return action.exec()
 	}
 
@@ -293,6 +308,14 @@ func (ki *Input) parseKeyMap(
 				}
 			}
 
+			// Add the current binding to options in case we need it somewhere
+			binding.Options["binding"] = key
+
+			// If "operator" is set manually make the key a sequence key
+			if binding.HasOpts && binding.Options.GetBool("operator") {
+				ki.addSequenceKey(key, true)
+			}
+
 			for key, modeSlice := range modes {
 				for _, mode := range modeSlice {
 					if parsed[mode] == nil {
@@ -301,10 +324,12 @@ func (ki *Input) parseKeyMap(
 
 					// Create the actual component actions
 					action, ok := parsed[mode][key]
+
 					if !ok {
 						action = Action{
 							binding: key,
 							exec:    actionFn(binding.Options),
+							opts:    binding.Options,
 						}
 					}
 
@@ -355,7 +380,11 @@ func (ki *Input) addSequenceKey(binding string, force bool) {
 // isBinding returns wether the given key string is a
 // known and valid key binding
 func (ki *Input) isBinding(key string) bool {
-	if _, ok := ki.componentActions[ki.Mode.Current][key]; ok {
+	if action, ok := ki.componentActions[ki.Mode.Current][key]; ok {
+		o := action.opts
+		if o.GetBool("operator") && o.GetBool("await_input") {
+			return false
+		}
 		return true
 	}
 	return false
@@ -379,6 +408,7 @@ func (ki *Input) ResetKeysDown() message.StatusBarMsg {
 	ki.Ctrl = false
 	ki.Alt = false
 	ki.KeySequence = ""
+	ki.awaitInputAction = nil
 
 	return message.StatusBarMsg{
 		Content: "",

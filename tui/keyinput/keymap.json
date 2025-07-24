@@ -92,6 +92,8 @@
 			"e": ["NextWord", { "end": true }],
 			"b": ["PrevWord", { "end": false }],
 			"ge": ["PrevWord", { "end": true }],
+			"f": ["FindCharacter", { "operator": true, "await_input": true }],
+			"F": ["FindCharacter", { "operator": true, "await_input": true, "back": true }],
 			"^": "GoToFirstNonWhiteSpace",
 			"_": "GoToFirstNonWhiteSpace",
 			"0": "GoToLineStart",

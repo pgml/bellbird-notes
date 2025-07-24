@@ -171,6 +171,44 @@ func (m *Model) WordRightEnd() {
 	m.repositionView()
 }
 
+// FindCharacter scans the current line for the specified character.
+// If 'back' is true, the search is performed backward from the current cursor position;
+// otherwise, it searches forward.
+func (m *Model) FindCharacter(char string, back bool) *CursorPos {
+	if back {
+		for offset := len(m.value[m.row]); offset >= 0; offset-- {
+			if m.LineInfo().CharOffset <= offset {
+				continue
+			}
+
+			r := m.value[m.row][offset]
+
+			if string(r) == char {
+				return &CursorPos{
+					Row:          m.row,
+					RowOffset:    m.LineInfo().RowOffset,
+					ColumnOffset: offset,
+				}
+			}
+		}
+	} else {
+		for offset, r := range m.value[m.row] {
+			if offset <= m.LineInfo().CharOffset {
+				continue
+			}
+
+			if string(r) == char {
+				return &CursorPos{
+					Row:          m.row,
+					RowOffset:    m.LineInfo().RowOffset,
+					ColumnOffset: offset,
+				}
+			}
+		}
+	}
+	return nil
+}
+
 // CursorInputStart moves the cursor to the first non-blank character of the line
 func (m *Model) CursorInputStart() {
 	for i, r := range m.value[m.row] {

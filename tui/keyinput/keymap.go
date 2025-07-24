@@ -133,6 +133,21 @@ func (o Options) GetBool(key string) bool {
 	return bool
 }
 
+func (o Options) GetString(key string) string {
+	str := ""
+	val, ok := o[key]
+
+	if !ok {
+		return str
+	}
+
+	if s, ok := val.(string); ok {
+		str = s
+	}
+
+	return str
+}
+
 type MapBinding struct {
 	Action  string
 	Options Options
@@ -144,7 +159,7 @@ func (b *MapBinding) UnmarshalJSON(data []byte) error {
 
 	if err := json.Unmarshal(data, &keyString); err == nil {
 		b.Action = keyString
-		b.Options = nil
+		b.Options = Options{}
 		b.HasOpts = false
 
 		return nil
@@ -164,8 +179,8 @@ func (b *MapBinding) UnmarshalJSON(data []byte) error {
 			if err := json.Unmarshal(keyArr[1], &b.Options); err != nil {
 				return err
 			}
+			b.HasOpts = true
 		}
-		b.HasOpts = true
 	}
 
 	return nil

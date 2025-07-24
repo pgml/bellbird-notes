@@ -77,6 +77,7 @@ func (v *Vim) FnRegistry() ki.MotionRegistry {
 		"SelectWord":             v.selectWord,
 		"NextWord":               v.nextWord,
 		"PrevWord":               v.prevWord,
+		"FindCharacter":          v.findCharacter,
 		"GoToFirstNonWhiteSpace": bind(v.app.Editor.GoToInputStart),
 		"GoToLineStart":          bind(v.app.Editor.GoToLineStart),
 		"GoToLineEnd":            bind(v.app.Editor.GoToLineEnd),
@@ -557,6 +558,15 @@ func (v *Vim) prevWord(opts ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
 		end := opts.GetBool("end")
 		return v.app.Editor.WordBack(end)
+	}
+}
+
+func (v *Vim) findCharacter(opts ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		binding := []rune(opts.GetString("binding"))
+		back := opts.GetBool("back")
+		char := v.KeyMap.KeySequence[len(binding):]
+		return v.app.Editor.FindCharacter(char, back)
 	}
 }
 

@@ -1062,6 +1062,19 @@ func (e *Editor) WordBack(end bool) message.StatusBarMsg {
 	return message.StatusBarMsg{}
 }
 
+// FindCharacter searches for the given character in the current line,
+// If back is true if searches back otherwise forward.
+// If found, it updates the cursor position
+func (e *Editor) FindCharacter(char string, back bool) message.StatusBarMsg {
+	charPos := e.Textarea.FindCharacter(char, back)
+
+	if charPos != nil {
+		e.Textarea.SetCursorColumn(charPos.ColumnOffset)
+	}
+
+	return message.StatusBarMsg{}
+}
+
 // DownHalfPage moves the cursor down half a page
 func (e *Editor) DownHalfPage() message.StatusBarMsg {
 	e.Textarea.DownHalfPage()

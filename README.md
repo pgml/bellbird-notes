@@ -55,7 +55,6 @@ A list of the default keybinds can be displayed with `:open defaultkeymap`.
 #### Editor
 
 * `U` and `u` for lower- & uppercase in visual mode
-* `f` and `F` motion to navigation to a specific character
 * `/` to search in a buffer and `n` and `N` to navigate between results
 * visual block mode
 * improve performance on large notes
