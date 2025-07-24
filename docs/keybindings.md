@@ -10,6 +10,7 @@
 | `3`                   | Focus editor                |                    |
 | `space e`             | Show open notes             | `:b`, `:buffers`   |
 | `space q`             | Close currently open note   | `:bd`              |
+| `space n`             | Create a new scratch buffer | `:new`             |
 
 ## Folders
 

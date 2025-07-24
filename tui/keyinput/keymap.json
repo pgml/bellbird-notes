@@ -13,7 +13,8 @@
 			"ctrl+w h": "FocusPrevColumn",
 			"ctrl+w ctrl+h": "FocusPrevColumn",
 			"space e": "ShowBufferList",
-			"space q": "CloseNote"
+			"space q": "CloseNote",
+			"space n": "NewScratch"
 		}
 	},
 	{

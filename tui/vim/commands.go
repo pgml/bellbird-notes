@@ -21,7 +21,7 @@ func (v *Vim) CmdRegistry() components.Commands {
 		message.CmdPrompt.ListBufs:        v.listBuffers,
 		"buffers":                         v.listBuffers,
 
-		message.CmdPrompt.New: v.newScratchBuffer,
+		message.CmdPrompt.New: v.cmdNewScratchBuffer,
 	}
 }
 
@@ -136,7 +136,7 @@ func (v *Vim) listBuffers(_ ...string) StatusBarMsg {
 	return StatusBarMsg{}
 }
 
-func (v *Vim) newScratchBuffer(_ ...string) StatusBarMsg {
+func (v *Vim) cmdNewScratchBuffer(_ ...string) StatusBarMsg {
 	statusMsg := v.app.Editor.NewScratchBuffer("Scratch", "")
 	v.app.Editor.Textarea.SetValue("")
 	return statusMsg

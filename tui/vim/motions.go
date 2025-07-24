@@ -56,6 +56,7 @@ func (v *Vim) FnRegistry() ki.MotionRegistry {
 		"ConfirmAction":   v.confirmAction,
 		"CancelAction":    v.cancelAction,
 		"CloseNote":       bind(v.app.Editor.DeleteCurrentBuffer),
+		"NewScratch":      v.newScratchBuffer,
 
 		// Text editing
 		"EnterNormalMode":   v.enterNormalMode,
@@ -491,6 +492,14 @@ func (v *Vim) cancelAction(opts ki.Options) func() StatusBarMsg {
 			Content: "",
 			Column:  sbc.General,
 		}
+	}
+}
+
+func (v *Vim) newScratchBuffer(_ ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		statusMsg := v.app.Editor.NewScratchBuffer("Scratch", "")
+		v.app.Editor.Textarea.SetValue("")
+		return statusMsg
 	}
 }
 
