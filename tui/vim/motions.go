@@ -423,7 +423,7 @@ func (v *Vim) confirmAction(opts ki.Options) func() StatusBarMsg {
 				items := v.app.BufferList.Items()
 				sel := items[v.app.BufferList.SelectedIndex()]
 
-				if buf, ok, _ := v.app.Editor.Buffers.Contains(sel.Path()); ok {
+				if buf, ok, _ := v.app.Editor.Buffers.Contain(sel.Path()); ok {
 					// close buffer list overlay
 					v.app.Editor.ListBuffers = false
 					v.app.Editor.SwitchBuffer(buf)

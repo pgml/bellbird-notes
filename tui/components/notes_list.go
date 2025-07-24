@@ -544,7 +544,7 @@ func (l *NotesList) ConfirmAction() message.StatusBarMsg {
 
 					// Update Buffers so that all other components know
 					// what's going on
-					if buf, ok, _ := l.Buffers.Contains(oldPath); ok {
+					if buf, ok, _ := l.Buffers.Contain(oldPath); ok {
 						buf.path = newPath
 					}
 

@@ -148,8 +148,8 @@ func (e *Editor) SendBuffersChangedMsg() tea.Cmd {
 
 type Buffers []Buffer
 
-// Contains returns whether a buffer is in memory
-func (b Buffers) Contains(path string) (*Buffer, bool, int) {
+// Contain returns whether a buffer is in memory
+func (b Buffers) Contain(path string) (*Buffer, bool, int) {
 	for i := range b {
 		if b[i].path == path {
 			return &b[i], true, i
@@ -369,7 +369,7 @@ func (e *Editor) NewScratchBuffer(
 	content string,
 ) message.StatusBarMsg {
 	notesRoot, _ := app.NotesRootDir()
-	path := notes.GetValidPath(notesRoot+"/"+title, true)
+	path := e.scratchPath(notesRoot + "/" + title)
 
 	buf := Buffer{
 		Index:                len(*e.Buffers) + 1,
@@ -401,7 +401,7 @@ func (e *Editor) OpenBuffer(path string) message.StatusBarMsg {
 		Column:  sbc.FileInfo,
 	}
 
-	buf, exists, _ := e.Buffers.Contains(path)
+	buf, exists, _ := e.Buffers.Contain(path)
 	// create new buffer if we can't find anything
 	if len(*e.Buffers) <= 0 || !exists {
 		e.NewBuffer(path)
@@ -418,7 +418,7 @@ func (e *Editor) OpenBuffer(path string) message.StatusBarMsg {
 }
 
 func (e *Editor) SwitchBuffer(buf *Buffer) message.StatusBarMsg {
-	if _, exists, _ := e.Buffers.Contains(buf.path); !exists {
+	if _, exists, _ := e.Buffers.Contain(buf.path); !exists {
 		return message.StatusBarMsg{}
 	}
 
@@ -489,7 +489,7 @@ func (e *Editor) DeleteCurrentBuffer() message.StatusBarMsg {
 // DeleteBuffer closes the currently active buffer or resets the editor if
 // none is available
 func (e *Editor) DeleteBuffer(path string) message.StatusBarMsg {
-	if _, ok, index := e.Buffers.Contains(path); ok {
+	if _, ok, index := e.Buffers.Contain(path); ok {
 		*e.Buffers = slices.Delete(*e.Buffers, index, index+1)
 	}
 
@@ -555,6 +555,23 @@ func (e *Editor) OpenLastNotes() {
 	if err == nil && lastNote != "" {
 		e.OpenBuffer(utils.PathFromUrl(lastNote))
 	}
+}
+
+// scratchPath returns a valid path for a scratch note.
+// If the path already exists as a physical note or is already virtually
+// present as a buffer it appends "Copy" to the last found scratch name
+func (e *Editor) scratchPath(path string) string {
+	path = notes.GetValidPath(path, true)
+
+	if buf, ok, _ := e.Buffers.Contain(path); ok {
+		path = filepath.Dir(buf.Path(false)) + "/" + buf.Name() + " Copy" + notes.Ext
+	}
+
+	if _, ok, _ := e.Buffers.Contain(path); ok {
+		path = e.scratchPath(path)
+	}
+
+	return path
 }
 
 func (e *Editor) Focused() bool {
