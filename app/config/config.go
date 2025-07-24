@@ -171,6 +171,10 @@ func (c *Config) SetDefaults() {
 		c.SetValue(General, NotesDirectory, notesRootDir)
 	}
 
+	if n, err := c.Value(Theme, Border); err == nil && n == "" {
+		c.SetValue(Theme, Border, "rounded")
+	}
+
 	if n, err := c.MetaValue("", LastNotes); err == nil && n == "" {
 		c.SetMetaValue("", LastNotes, "")
 	}
