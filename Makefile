@@ -3,18 +3,21 @@ DATE = $(shell date +%Y%m%d%H)
 GIT_HASH = g$(shell git rev-parse --short HEAD)
 PKG = bellbird-notes/app
 GOFLAGS = -trimpath
+VERSION := $(shell git describe --tags --abbrev=0 || echo "dev")
 
 build-dev:
 	go mod tidy
 	go build $(GOFLAGS) -ldflags="\
 		-X '$(PKG).dev=true' \
+		-X '$(PKG).version=$(VERSION)' \
 		-X '$(PKG).commit=$(GIT_HASH)'" \
 		-o ${BIN_CLI} cmd/tui/main.go
 
 build-release:
 	go mod tidy
 	go build $(GOFLAGS) -ldflags="\
-		-s -w -X '$(PKG).commit=$(GIT_HASH)'" \
+		-s -w -X '$(PKG).version=$(VERSION)' \
+		-X '$(PKG).commit=$(GIT_HASH)'" \
 		-o ${BIN_CLI} cmd/tui/main.go
 
 install-local:

@@ -10,12 +10,14 @@ var (
 
 func PrintVersion() {
 	if dev != "" {
-		version += "-dev." + commit
+		fmt.Printf("%s %s-dev.%s\n", BinaryName(), version, commit)
 	}
 
 	if commit != "" && dev == "" {
-		version += " (" + commit + ")"
+		fmt.Printf("%s %s (%s)\n", BinaryName(), version, commit)
 	}
+}
 
-	fmt.Printf("%s %s\n", Name(), version)
+func BinaryName() string {
+	return "bbnotes"
 }
