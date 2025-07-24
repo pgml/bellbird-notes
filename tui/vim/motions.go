@@ -191,21 +191,37 @@ func (v *Vim) goToBottom(_ ki.Options) func() StatusBarMsg {
 
 // focusNextColumn selects and highlights the respectivley next of the
 // currently selected column.
-func (v *Vim) focusNextColumn(_ ki.Options) func() StatusBarMsg {
+func (v *Vim) focusNextColumn(opts ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
 		nbrCols := 3
-		index := min(v.app.CurrColFocus+1, nbrCols)
+		currenColumn := v.app.CurrColFocus
+
+		cycle := opts.GetBool("cycle")
+
+		if cycle && currenColumn == nbrCols {
+			currenColumn = 0
+		}
+
+		index := min(currenColumn+1, nbrCols)
 		return v.FocusColumn(index)
 	}
 }
 
 // focusPrevColumn selects and highlights the respectivley previous of the
 // currently selected column.
-func (v *Vim) focusPrevColumn(_ ki.Options) func() StatusBarMsg {
+func (v *Vim) focusPrevColumn(opts ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
 		firstCol := 1
-		index := max(v.app.CurrColFocus-1, firstCol)
-		return v.FocusColumn(index)
+		currenColumn := v.app.CurrColFocus
+
+		cycle := opts.GetBool("cycle")
+
+		if cycle && currenColumn == 1 {
+			currenColumn = 4
+		}
+
+		column := max(currenColumn-1, firstCol)
+		return v.FocusColumn(column)
 	}
 }
 

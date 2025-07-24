@@ -6,6 +6,8 @@
 		"components": ["Folders", "Notes", "Editor"],
 		"mode": "normal",
 		"bindings": {
+			// "tab": ["FocusNextColumn", { "cycle": true }],
+			// "shift+tab": ["FocusPrevColumn", { "cycle": true }],
 			// "alt+e": "FocusNextColumn",
 			// "alt+q": "FocusPrevColumn",
 			// "alt+1": "FocusFolders",
