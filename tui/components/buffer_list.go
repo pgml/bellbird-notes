@@ -233,6 +233,10 @@ func (l *BufferList) BuildHeader(width int, rebuild bool) string {
 func (l *BufferList) render() string {
 	var list strings.Builder
 
+	if l.items[l.selectedIndex] == nil {
+		l.selectedIndex = 0
+	}
+
 	for i, item := range l.items {
 		item.selected = (l.selectedIndex == i)
 		item.index = i
