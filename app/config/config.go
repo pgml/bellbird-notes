@@ -18,6 +18,7 @@ type Section int
 
 const (
 	General Section = iota
+	Theme
 	SideBar
 	NotesList
 	Editor
@@ -27,6 +28,7 @@ const (
 // Map of Section enum values to their string representations
 var sections = map[Section]string{
 	General:    "General",
+	Theme:      "Theme",
 	SideBar:    "Sidebar",
 	NotesList:  "NotesList",
 	Editor:     "Editor",
@@ -53,6 +55,7 @@ const (
 	Expanded
 	ShowLineNumbers
 	NerdFonts
+	Border
 )
 
 // Map of Option enum values to their string names as used in the ini file
@@ -69,6 +72,7 @@ var options = map[Option]string{
 	Expanded:         "Expanded",
 	ShowLineNumbers:  "ShowLineNumbers",
 	NerdFonts:        "NerdFonts",
+	Border:           "Border",
 }
 
 // String returns the string representation of an Option
@@ -109,6 +113,8 @@ type Config struct {
 	// cached nerdFonts config value
 	nerdFonts *bool
 }
+
+func (c *Config) File() string { return c.filePath }
 
 // New loads or create a config file with default settings
 func New() *Config {

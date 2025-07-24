@@ -118,17 +118,18 @@ func (d *TreeItem) setIcon() {
 		folderOpen = theme.IconDirOpen.Nerd
 	}
 
+	style := d.styles.icon.Width(d.styles.iconWidth)
+	if d.selected {
+		style = d.styles.selected.Width(d.styles.iconWidth)
+	}
+
 	iconDir := folderClosed
 
 	if d.isPinned {
 		iconDir = theme.Icon(theme.IconPin, d.nerdFonts)
+		style = style.Foreground(theme.ColourBorderFocused)
 	} else if d.expanded {
 		iconDir = folderOpen
-	}
-
-	style := d.styles.icon.Width(d.styles.iconWidth)
-	if d.selected {
-		style = d.styles.selected.Width(d.styles.iconWidth)
 	}
 
 	// store rendered icon
@@ -284,6 +285,7 @@ func (t *DirectoryTree) View() string {
 func NewDirectoryTree(conf *config.Config) *DirectoryTree {
 	tree := &DirectoryTree{
 		List: List[*TreeItem]{
+			title:         "FOLDERS",
 			selectedIndex: 0,
 			editIndex:     nil,
 			EditState:     EditStates.None,
@@ -350,20 +352,6 @@ func (t *DirectoryTree) build() {
 	t.refreshFlatList()
 	t.length = len(t.dirsListFlat)
 	t.lastIndex = t.dirsListFlat[len(t.dirsListFlat)-1].index
-}
-
-// BuildHeader builds title of the directory tree column
-func (t *DirectoryTree) BuildHeader(width int, rebuild bool) string {
-	// return cached header
-	if t.header != nil && !rebuild {
-		if width == lipgloss.Width(*t.header) {
-			return *t.header
-		}
-	}
-
-	header := theme.Header("FOLDERS", width, t.Focused()) + "\n"
-	t.header = &header
-	return header
 }
 
 func (t *DirectoryTree) render() string {

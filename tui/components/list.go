@@ -9,8 +9,10 @@ import (
 	"bellbird-notes/app/directories"
 	"bellbird-notes/app/notes"
 	"bellbird-notes/tui/message"
+	"bellbird-notes/tui/theme"
 
 	"github.com/charmbracelet/bubbles/v2/textinput"
+	"github.com/charmbracelet/lipgloss/v2"
 )
 
 // EditState is the state in which the DirectoryTree.editor is in
@@ -41,49 +43,11 @@ type ListItem interface {
 	Index() int
 	Name() string
 	Path() string
+	//Title() string
 	IsCut() bool
 	SetIsCut(isCut bool)
-}
-
-// List represents a bubbletea model and holds items that implement ListItem.
-// Important: T must be a pointer type, otherwise methods like SetIsCut() won't work.
-// This allows us to mutate fields inside the list items when needed.
-type List[T ListItem] struct {
-	Component
-
-	// The currently selector directory row
-	selectedIndex int
-
-	// The text input that is used for renaming or creating directories
-	input textinput.Model
-
-	// The index of the currently edited directory row
-	editIndex *int
-
-	// States if directory is being created or renamed
-	EditState EditState
-
-	// Stores the list items
-	items []T
-
-	yankedItems []T
-
-	// Contains all pinned notes of the current directory
-	PinnedItems PinnedItems[T]
-
-	// We set the length manually because len(items) won't be possible
-	// for the directories since the multidimensial []items
-	// doesn't reflect the actual displayed list items when T is Dir
-	// In this case the real length would come from `
-	// DirectoryTree.dirsListFlat`
-	length    int
-	lastIndex int
-
-	firstVisibleLine int
-	lastVisibleLine  int
-	visibleLines     int
-
-	conf *config.Config
+	//RefreshStyles()
+	//BuildHeader(width int, rebuild bool) string
 }
 
 type Item struct {
@@ -169,6 +133,51 @@ func (p *PinnedItems[T]) toggle(item T) {
 type statusMsg string
 
 const reservedLines = 0
+
+// List represents a bubbletea model and holds items that implement ListItem.
+// Important: T must be a pointer type, otherwise methods like SetIsCut() won't work.
+// This allows us to mutate fields inside the list items when needed.
+type List[T ListItem] struct {
+	Component
+
+	title string
+
+	// The currently selector directory row
+	selectedIndex int
+
+	// The text input that is used for renaming or creating directories
+	input textinput.Model
+
+	// The index of the currently edited directory row
+	editIndex *int
+
+	// States if directory is being created or renamed
+	EditState EditState
+
+	// Stores the list items
+	items []T
+
+	yankedItems []T
+
+	// Contains all pinned notes of the current directory
+	PinnedItems PinnedItems[T]
+
+	// We set the length manually because len(items) won't be possible
+	// for the directories since the multidimensial []items
+	// doesn't reflect the actual displayed list items when T is Dir
+	// In this case the real length would come from `
+	// DirectoryTree.dirsListFlat`
+	length    int
+	lastIndex int
+
+	firstVisibleLine int
+	lastVisibleLine  int
+	visibleLines     int
+
+	conf *config.Config
+}
+
+//func (l List[T]) Title() string { return "" }
 
 // UpdateViewportInfo synchronises the list's internal visible line count
 // with the actual height of the viewport, subtracting `reservedLines`
@@ -415,21 +424,44 @@ func (l *List[T]) SetSelectedIndex(index int) {
 	l.selectedIndex = index
 }
 
-func (l *BufferList) TogglePinned() message.StatusBarMsg {
+func (l *List[T]) TogglePinned() message.StatusBarMsg {
 	return message.StatusBarMsg{}
 }
 
-func (l *BufferList) ConfirmRemove() message.StatusBarMsg {
+func (l *List[T]) ConfirmRemove() message.StatusBarMsg {
 	return message.StatusBarMsg{}
 }
 
-func (l *BufferList) Remove() message.StatusBarMsg {
+func (l *List[T]) Remove() message.StatusBarMsg {
 	return message.StatusBarMsg{}
 }
 
-func (l *BufferList) Refresh(
+func (l *List[T]) Refresh(
 	resetSelectedIndex bool,
 	resetPinned bool,
 ) message.StatusBarMsg {
 	return message.StatusBarMsg{}
+}
+
+// BuildHeader builds title of the directory tree column
+func (l *List[T]) BuildHeader(width int, rebuild bool) string {
+	// return cached header
+	if l.header != nil && !rebuild {
+		if width == lipgloss.Width(*l.header) {
+			return *l.header
+		}
+	}
+
+	header := theme.Header(l.title, width, l.Focused()) + "\n"
+	l.header = &header
+	return header
+}
+
+func (l *List[T]) RefreshStyles() {
+	l.viewport.Style = theme.BaseColumnLayout(
+		l.Size,
+		l.Focused(),
+	)
+	l.Remove()
+	l.BuildHeader(l.Size.Width, true)
 }

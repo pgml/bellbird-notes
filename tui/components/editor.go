@@ -35,23 +35,6 @@ const (
 
 var (
 	cursorLine = lipgloss.NewStyle()
-
-	focusedStyle = lipgloss.NewStyle().
-			Border(lipgloss.RoundedBorder()).
-			BorderTop(false).
-			Padding(0, 1).
-			BorderForeground(theme.ColourBorderFocused)
-
-	blurredStyle = lipgloss.NewStyle().
-			Border(lipgloss.RoundedBorder()).
-			BorderTop(false).
-			Padding(0, 1).
-			BorderForeground(theme.ColourBorder)
-
-	highlightStyle = lipgloss.NewStyle().
-			Background(lipgloss.Color("57")). // Green background
-			Foreground(lipgloss.Color("0")).  // Black text
-			Bold(true)
 )
 
 type errMsg error
@@ -158,6 +141,29 @@ func (b Buffers) Contain(path string) (*Buffer, bool, int) {
 	return nil, false, 0
 }
 
+type Styles struct {
+	focused lipgloss.Style
+	blurred lipgloss.Style
+}
+
+func defaultStyles() Styles {
+	var s Styles
+
+	s.focused = lipgloss.NewStyle().
+		Border(theme.BorderStyle()).
+		BorderTop(false).
+		Padding(0, 1).
+		BorderForeground(theme.ColourBorderFocused)
+
+	s.blurred = lipgloss.NewStyle().
+		Border(theme.BorderStyle()).
+		BorderTop(false).
+		Padding(0, 1).
+		BorderForeground(theme.ColourBorder)
+
+	return s
+}
+
 type Input struct {
 	keyinput.Input
 	key      string
@@ -205,14 +211,18 @@ type Editor struct {
 	LastOpenNoteLoaded bool
 
 	KeyInput keyinput.Input
+
+	styles Styles
 }
 
 func NewEditor(conf *config.Config) *Editor {
+	styles := defaultStyles()
+
 	ta := textarea.New()
 	ta.Prompt = ""
 	ta.Styles.Focused.CursorLine = cursorLine
-	ta.Styles.Focused.Base = focusedStyle
-	ta.Styles.Blurred.Base = blurredStyle
+	ta.Styles.Focused.Base = styles.focused
+	ta.Styles.Blurred.Base = styles.blurred
 	ta.CharLimit = charLimit
 	ta.MaxHeight = maxHeight
 	ta.Selection.Cursor.SetMode(cursor.CursorStatic)
@@ -1513,4 +1523,11 @@ func (e *Editor) LineNumbers() bool {
 	number := n == "true"
 
 	return number
+}
+
+func (e *Editor) RefreshTextAreaStyles() {
+	s := defaultStyles()
+	e.Textarea.Styles.Blurred.Base = s.blurred
+	e.Textarea.Styles.Focused.Base = s.focused
+	e.BuildHeader(e.Size.Width, true)
 }

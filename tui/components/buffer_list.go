@@ -115,7 +115,10 @@ func NewBufferList(conf *config.Config) *BufferList {
 	termW, _ := theme.TerminalSize()
 
 	panel := &BufferList{
-		List:   List[*BufferListItem]{conf: conf},
+		List: List[*BufferListItem]{
+			title: "Open Notes",
+			conf:  conf,
+		},
 		height: 10,
 		width:  termW / 3,
 	}
@@ -216,20 +219,6 @@ func (l *BufferList) RefreshSize() {
 	}
 }
 
-// BuildHeader builds title of the directory tree column
-func (l *BufferList) BuildHeader(width int, rebuild bool) string {
-	// return cached header
-	if l.header != nil && !rebuild {
-		if width == lipgloss.Width(*l.header) {
-			return *l.header
-		}
-	}
-
-	header := theme.Header("Open Notes", width, l.Focused()) + "\n"
-	l.header = &header
-	return header
-}
-
 func (l *BufferList) render() string {
 	var list strings.Builder
 
@@ -299,4 +288,12 @@ func (l *BufferList) NeedsUpdate() bool {
 	}
 
 	return false
+}
+
+func (l *BufferList) RefreshStyles() {
+	l.viewport.Style = theme.BaseColumnLayout(
+		l.Size,
+		l.Focused(),
+	)
+	l.BuildHeader(l.Size.Width, true)
 }

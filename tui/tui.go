@@ -131,6 +131,13 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if msg.Buffer.Path(false) == m.keyInput.KeyMap.Path() {
 			m.keyInput.ReloadKeyMap()
 		}
+
+		if msg.Buffer.Path(false) == m.app.Conf.File() {
+			m.app.DirTree.RefreshStyles()
+			m.app.NotesList.RefreshStyles()
+			m.app.Editor.RefreshTextAreaStyles()
+			m.app.BufferList.RefreshStyles()
+		}
 	}
 
 	// exit programme when `:q` is entered in command prompt

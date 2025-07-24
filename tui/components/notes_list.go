@@ -53,6 +53,7 @@ func (n NoteItem) String() string {
 		icon.WriteString(theme.Icon(theme.IconNote, n.nerdFonts))
 	} else if n.isPinned {
 		icon.WriteString(theme.Icon(theme.IconPin, n.nerdFonts))
+		iconStyle = iconStyle.Foreground(theme.ColourBorderFocused)
 	} else {
 		icon.WriteString(theme.Icon(theme.IconNote, n.nerdFonts))
 	}
@@ -162,6 +163,7 @@ func NewNotesList(conf *config.Config) *NotesList {
 
 	list := &NotesList{
 		List: List[*NoteItem]{
+			title:            "NOTES",
 			selectedIndex:    0,
 			editIndex:        nil,
 			EditState:        EditStates.None,
@@ -215,19 +217,6 @@ func (l NotesList) build() string {
 	}
 
 	return list.String()
-}
-
-func (l *NotesList) BuildHeader(width int, rebuild bool) string {
-	// return cached header
-	if l.header != nil && !rebuild {
-		if width == lipgloss.Width(*l.header) {
-			return *l.header
-		}
-	}
-
-	header := theme.Header("NOTES", width, l.Focused()) + "\n"
-	l.header = &header
-	return header
 }
 
 func (l *NotesList) SetBuffers(b *Buffers) {

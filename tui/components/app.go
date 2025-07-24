@@ -172,7 +172,7 @@ func (a *App) UpdateStatusBar() {
 }
 
 // overlayPosition returns the top center position of the application screen
-func (m *App) OverlayPosition(overlayWidth int) (int, int) {
+func (a *App) OverlayPosition(overlayWidth int) (int, int) {
 	termW, _ := theme.TerminalSize()
 
 	x := (termW / 2) - (overlayWidth / 2)

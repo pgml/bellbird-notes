@@ -5,6 +5,8 @@ import (
 	"os"
 	"strings"
 
+	"bellbird-notes/app/config"
+
 	"github.com/charmbracelet/lipgloss/v2"
 	bl "github.com/winder/bubblelayout"
 	"golang.org/x/term"
@@ -19,8 +21,6 @@ var (
 	ColourBgSelected    = lipgloss.Color("#424B5D")
 	ColourDirty         = lipgloss.Color("#c05d5f")
 	ColourTitle         = lipgloss.Color("#999999")
-
-	BorderStyle = lipgloss.RoundedBorder()
 )
 
 type icon struct {
@@ -54,8 +54,8 @@ func Header(title string, colWidth int, focused bool) string {
 	}
 
 	// @todo clean this shit up
-	b := lipgloss.RoundedBorder()
-	b.Left = "╭"
+	b := BorderStyle()
+	b.Left = BorderStyle().TopLeft
 	ts := lipgloss.NewStyle().
 		Border(b, false, false, false, true).
 		BorderForeground(borderColour).
@@ -65,11 +65,11 @@ func Header(title string, colWidth int, focused bool) string {
 	ls := lipgloss.NewStyle().Foreground(borderColour)
 	title = ts.Render(title)
 	line := ls.Render(strings.Repeat(
-		"─",
+		BorderStyle().Top,
 		max(0, colWidth-lipgloss.Width(title)-1)),
 	)
 
-	borderTopRight := ls.Render("╮")
+	borderTopRight := ls.Render(BorderStyle().TopRight)
 
 	return lipgloss.JoinHorizontal(
 		lipgloss.Center,
@@ -85,7 +85,7 @@ func BaseColumnLayout(size bl.Size, focused bool) lipgloss.Style {
 	_, termHeight := TerminalSize()
 
 	return lipgloss.NewStyle().
-		Border(BorderStyle).
+		Border(BorderStyle()).
 		BorderTop(false).
 		BorderForeground(borderColour).
 		Foreground(ColourFg).
@@ -111,4 +111,29 @@ func TerminalSize() (int, int) {
 		width = 80
 	}
 	return width, height
+}
+
+func BorderStyle() lipgloss.Border {
+	conf := config.New()
+	border, err := conf.Value(config.Theme, config.Border)
+	style := lipgloss.NormalBorder()
+
+	if err != nil {
+		return style
+	}
+
+	switch border {
+	case "normal":
+		return lipgloss.NormalBorder()
+	case "thick":
+		return lipgloss.ThickBorder()
+	case "rounded":
+		return lipgloss.RoundedBorder()
+	case "double":
+		return lipgloss.DoubleBorder()
+	case "none":
+		return lipgloss.HiddenBorder()
+	default:
+		return style
+	}
 }
