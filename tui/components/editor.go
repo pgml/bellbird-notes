@@ -1058,6 +1058,7 @@ func (e *Editor) WordBack(end bool) message.StatusBarMsg {
 	} else {
 		e.Textarea.WordLeft()
 	}
+	e.isAtLineEnd = false
 	e.saveCursorPos()
 	return message.StatusBarMsg{}
 }
