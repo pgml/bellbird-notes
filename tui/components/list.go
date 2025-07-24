@@ -1,9 +1,11 @@
 package components
 
 import (
+	"slices"
 	"strings"
 
 	"bellbird-notes/app/config"
+	"bellbird-notes/app/debug"
 	"bellbird-notes/app/directories"
 	"bellbird-notes/app/notes"
 	"bellbird-notes/tui/message"
@@ -66,6 +68,9 @@ type List[T ListItem] struct {
 
 	yankedItems []T
 
+	// Contains all pinned notes of the current directory
+	PinnedItems PinnedItems[T]
+
 	// We set the length manually because len(items) won't be possible
 	// for the directories since the multidimensial []items
 	// doesn't reflect the actual displayed list items when T is Dir
@@ -98,6 +103,67 @@ type Item struct {
 
 	isPinned bool
 	isCut    bool
+}
+
+// Index returns the index of a Note-Item
+func (i Item) Index() int { return i.index }
+
+// Path returns the index of a Note-Item
+func (i Item) Path() string { return i.path }
+
+// Name returns the name of a Note-Item
+func (i Item) Name() string { return i.name }
+
+// IsCut returns whether the note item is cut
+func (i Item) IsCut() bool { return i.isCut }
+
+// SetIsCut returns whether the note item is cut
+func (i *Item) SetIsCut(isCut bool) { i.isCut = isCut }
+
+type PinnedItem interface {
+	Path() string
+}
+
+type PinnedItems[T PinnedItem] struct {
+	items []T
+
+	// indicates whether notes has been fully populated with the pinned notes
+	// of the current directory.
+	// This should only be true after the directory is loaded
+	loaded bool
+}
+
+func (p *PinnedItems[T]) add(item T) {
+	p.items = append(p.items, item)
+}
+
+// contains returns whether a NoteItem is in `notes`
+func (p PinnedItems[T]) contains(item T) bool {
+	for _, n := range p.items {
+		if n.Path() == item.Path() {
+			return true
+		}
+	}
+	return false
+}
+
+func (p *PinnedItems[T]) remove(item T) {
+	for i, n := range p.items {
+		if n.Path() == item.Path() {
+			p.items = slices.Delete(p.items, i, i+1)
+			return
+		}
+	}
+}
+
+// toggle adds or removes the given note to the pinned notes
+// depending on whether it's already in the slice
+func (p *PinnedItems[T]) toggle(item T) {
+	if !p.contains(item) {
+		p.add(item)
+	} else {
+		p.remove(item)
+	}
 }
 
 type statusMsg string
@@ -242,6 +308,29 @@ func (l *List[T]) Rename(origName string) message.StatusBarMsg {
 		l.input.CursorEnd()
 	}
 	return message.StatusBarMsg{}
+}
+
+// TogglePinned pins or unpins the current selection
+func (l *List[T]) togglePinned(item T) {
+	path := item.Path()
+
+	// check if the selection already has a state
+	p, err := l.conf.MetaValue(path, config.Pinned)
+
+	// set default state if not
+	if err != nil {
+		l.conf.SetMetaValue(path, config.Pinned, "false")
+		debug.LogErr(err)
+	}
+
+	// write to metadata file
+	if p == "true" {
+		l.conf.SetMetaValue(path, config.Pinned, "false")
+	} else {
+		l.conf.SetMetaValue(path, config.Pinned, "true")
+	}
+
+	l.PinnedItems.toggle(item)
 }
 
 func (l *BufferList) ConfirmAction() message.StatusBarMsg {

@@ -22,86 +22,13 @@ import (
 	"github.com/charmbracelet/lipgloss/v2"
 )
 
-type NotesList struct {
-	List[*NoteItem]
-
-	// Contains all pinned notes of the current directory
-	PinnedNotes PinnedNotes
-
-	// The directory path of the currently displayed notes.
-	// This path might not match the directory that is selected in the
-	// directory tree since we don't automatically display a directory's
-	// content on a selection change
-	CurrentPath string
-
-	// Contains dirty buffers of the current notes list
-	DirtyBuffers []Buffer
-
-	// Buffers holds all the open buffers
-	Buffers *Buffers
-}
-
-type PinnedNotes struct {
-	notes []NoteItem
-
-	// indicates whether notes has been fully populated with the pinned notes
-	// of the current directory.
-	// This should only be true after the directory is loaded
-	loaded bool
-}
-
-func (p *PinnedNotes) add(note NoteItem) {
-	p.notes = append(p.notes, note)
-}
-
-// contains returns whether a NoteItem is in `notes`
-func (p PinnedNotes) contains(note NoteItem) bool {
-	for _, n := range p.notes {
-		if n.Path() == note.Path() {
-			return true
-		}
-	}
-	return false
-}
-
-func (p *PinnedNotes) remove(note NoteItem) {
-	for i, n := range p.notes {
-		if n.Path() == note.Path() {
-			p.notes = slices.Delete(p.notes, i, i+1)
-			return
-		}
-	}
-}
-
-// toggle adds or removes the given note to the pinned notes
-// depending on whether it's already in the slice
-func (p *PinnedNotes) toggle(note NoteItem) {
-	if !p.contains(note) {
-		p.add(note)
-	} else {
-		p.remove(note)
-	}
-}
-
 type NoteItem struct {
 	Item
 	IsDirty bool
 }
 
-// Index returns the index of a Note-Item
-func (n NoteItem) Index() int { return n.index }
-
 // Path returns the index of a Note-Item
-func (n NoteItem) Path() string { return n.path }
-
-// Name returns the name of a Note-Item
-func (n NoteItem) Name() string { return n.name }
-
-// IsCut returns whether the note item is cut
-func (n NoteItem) IsCut() bool { return n.isCut }
-
-// SetIsCut returns whether the note item is cut
-func (n *NoteItem) SetIsCut(isCut bool) { n.isCut = isCut }
+func (i NoteItem) Path() string { return i.path }
 
 // String is string representation of a Note
 func (n NoteItem) String() string {
@@ -131,6 +58,22 @@ func (n NoteItem) String() string {
 	}
 
 	return iconStyle.Render(icon.String()) + baseStyle.Render(name)
+}
+
+type NotesList struct {
+	List[*NoteItem]
+
+	// The directory path of the currently displayed notes.
+	// This path might not match the directory that is selected in the
+	// directory tree since we don't automatically display a directory's
+	// content on a selection change
+	CurrentPath string
+
+	// Contains dirty buffers of the current notes list
+	DirtyBuffers []Buffer
+
+	// Buffers holds all the open buffers
+	Buffers *Buffers
 }
 
 // Init initialises the Model on program load.
@@ -227,8 +170,8 @@ func NewNotesList(conf *config.Config) *NotesList {
 			firstVisibleLine: 0,
 			items:            make([]*NoteItem, 0),
 			conf:             conf,
+			PinnedItems:      PinnedItems[*NoteItem]{},
 		},
-		PinnedNotes: PinnedNotes{},
 		CurrentPath: notesDir,
 	}
 
@@ -306,7 +249,7 @@ func (l *NotesList) Refresh(
 	}
 
 	if resetPinned {
-		l.PinnedNotes.loaded = false
+		l.PinnedItems.loaded = false
 	}
 
 	if err != nil {
@@ -322,18 +265,19 @@ func (l *NotesList) Refresh(
 		l.items = make([]*NoteItem, 0, len(notesList))
 	}
 
-	if !l.PinnedNotes.loaded {
+	if !l.PinnedItems.loaded {
 		// reset pinned and refetch pinned notes when we entered a new directory
-		l.PinnedNotes.notes = make([]NoteItem, 0, len(notesList))
+		l.PinnedItems.items = make([]*NoteItem, 0, len(notesList))
 		for _, note := range notesList {
 			if note.IsPinned {
-				l.PinnedNotes.add(l.createNoteItem(note, -1, true))
+				item := l.createNoteItem(note, -1, true)
+				l.PinnedItems.add(&item)
 			}
 		}
 	}
 
-	pinnedMap := make(map[string]struct{}, len(l.PinnedNotes.notes))
-	for _, n := range l.PinnedNotes.notes {
+	pinnedMap := make(map[string]struct{}, len(l.PinnedItems.items))
+	for _, n := range l.PinnedItems.items {
 		pinnedMap[n.Path()] = struct{}{}
 	}
 
@@ -358,7 +302,7 @@ func (l *NotesList) Refresh(
 	}
 
 	l.items = append(pinnedItems, unpinnedItems...)
-	l.PinnedNotes.loaded = true
+	l.PinnedItems.loaded = true
 
 	l.length = len(l.items)
 	l.lastIndex = 0
@@ -383,10 +327,10 @@ func (l *NotesList) createNoteItem(note notes.Note, index int, isPinned bool) No
 			path:      note.Path,
 			styles:    style,
 			nerdFonts: l.conf.NerdFonts(),
+			isPinned:  isPinned,
 		},
 	}
 
-	noteItem.isPinned = isPinned
 	noteItem.styles.icon = style.icon.Width(iconWidth)
 	noteItem.styles.iconSelected = style.selected.Width(iconWidth)
 
@@ -582,33 +526,16 @@ func (l *NotesList) ConfirmAction() message.StatusBarMsg {
 
 // TogglePinned pins or unpins the current selection
 func (l *NotesList) TogglePinned() message.StatusBarMsg {
-	note := *l.SelectedItem(nil)
-	path := note.path
+	note := l.SelectedItem(nil)
 
-	// check if the selection already has a state
-	p, err := l.conf.MetaValue(path, config.Pinned)
-
-	// set default state if not
-	if err != nil {
-		l.conf.SetMetaValue(path, config.Pinned, "false")
-		debug.LogErr(err)
-	}
-
-	// write to metadata file
-	if p == "true" {
-		l.conf.SetMetaValue(path, config.Pinned, "false")
-	} else {
-		l.conf.SetMetaValue(path, config.Pinned, "true")
-	}
-
-	l.PinnedNotes.toggle(note)
+	l.togglePinned(note)
 	l.Refresh(false, false)
 
 	// get the new index and select the newly pinned or unpinned note
 	// since the pinned notes are always at the top and the notes order
 	// is changed
 	for i, it := range l.items {
-		if it.path == path {
+		if it.path == note.path {
 			l.selectedIndex = i
 		}
 	}

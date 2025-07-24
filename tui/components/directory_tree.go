@@ -47,9 +47,6 @@ type TreeItem struct {
 	// the amount of sub directories a directory has
 	NbrFolders int
 
-	// Indicates whether the directory should be pinnend
-	isPinned *bool
-
 	// Stores the rendered item row icon
 	Icon string
 
@@ -122,7 +119,10 @@ func (d *TreeItem) setIcon() {
 	}
 
 	iconDir := folderClosed
-	if d.expanded {
+
+	if d.isPinned {
+		iconDir = theme.Icon(theme.IconPin, d.nerdFonts)
+	} else if d.expanded {
 		iconDir = folderOpen
 	}
 
@@ -171,7 +171,7 @@ func (d *TreeItem) prepareRow() {
 
 // String renders the complete visual representation of the tree item.
 // If input is true render the input view to allow renaming/creating.
-func (d *TreeItem) String(input bool) string {
+func (d TreeItem) String(input bool) string {
 	if d.width <= 0 {
 		return ""
 	}
@@ -289,6 +289,7 @@ func NewDirectoryTree(conf *config.Config) *DirectoryTree {
 			EditState:     EditStates.None,
 			items:         make([]*TreeItem, 0),
 			conf:          conf,
+			PinnedItems:   PinnedItems[*TreeItem]{},
 		},
 		expandedDirs: make(map[string]bool),
 	}
@@ -419,16 +420,47 @@ func (t *DirectoryTree) getChildren(path string, level int) []*TreeItem {
 	var dirs []*TreeItem
 	childDir, _ := directories.List(path)
 
+	// pinned stuff
+	if !t.PinnedItems.loaded {
+		// reset pinned and refetch pinned notes when we entered a new directory
+		t.PinnedItems.items = make([]*TreeItem, 0, len(childDir))
+		for _, dir := range childDir {
+			if dir.IsPinned {
+				item := t.createDirectoryItem(dir, -1, true)
+				t.PinnedItems.add(&item)
+			}
+		}
+	}
+
+	pinnedMap := make(map[string]struct{}, len(t.PinnedItems.items))
+	for _, n := range t.PinnedItems.items {
+		pinnedMap[n.Path()] = struct{}{}
+	}
+
+	var (
+		pinnedItems   []*TreeItem
+		unpinnedItems []*TreeItem
+	)
+
 	for _, dir := range childDir {
-		dirItem := t.createDirectoryItem(dir, level)
+		_, isPinned := pinnedMap[dir.Path]
+		dirItem := t.createDirectoryItem(dir, level, isPinned)
 
 		if dir.IsExpanded {
 			t.expandedDirs[dir.Path] = dir.IsExpanded
 		}
 
 		dirItem.expanded = dir.IsExpanded
-		dirs = append(dirs, &dirItem)
+
+		if isPinned {
+			pinnedItems = append(pinnedItems, &dirItem)
+		} else {
+			unpinnedItems = append(unpinnedItems, &dirItem)
+		}
 	}
+
+	dirs = append(pinnedItems, unpinnedItems...)
+	t.PinnedItems.loaded = true
 
 	return dirs
 }
@@ -437,6 +469,7 @@ func (t *DirectoryTree) getChildren(path string, level int) []*TreeItem {
 func (m *DirectoryTree) createDirectoryItem(
 	dir directories.Directory,
 	level int,
+	isPinned bool,
 ) TreeItem {
 	style := DirTreeStyle()
 
@@ -447,6 +480,7 @@ func (m *DirectoryTree) createDirectoryItem(
 			path:      dir.Path,
 			styles:    style,
 			nerdFonts: m.conf.NerdFonts(),
+			isPinned:  isPinned,
 		},
 		expanded:   dir.IsExpanded,
 		parent:     0,
@@ -932,6 +966,20 @@ func (t *DirectoryTree) ContentInfo() message.StatusBarMsg {
 }
 
 func (t *DirectoryTree) TogglePinned() message.StatusBarMsg {
+	dir := t.SelectedDir()
+
+	t.togglePinned(dir)
+	t.Refresh(false, false)
+
+	// get the new index and select the newly pinned or unpinned note
+	// since the pinned notes are always at the top and the notes order
+	// is changed
+	for i, it := range t.dirsListFlat {
+		if it.path == dir.path {
+			t.selectedIndex = i
+		}
+	}
+
 	return message.StatusBarMsg{}
 }
 

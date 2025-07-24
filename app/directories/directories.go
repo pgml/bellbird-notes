@@ -24,6 +24,8 @@ type Directory struct {
 
 	// IsExpanded is the expanded state of this directory
 	IsExpanded bool
+
+	IsPinned bool
 }
 
 // Name returns the name of the directory
@@ -64,12 +66,16 @@ func List(dirPath string) ([]Directory, error) {
 		exp, _ := conf.MetaValue(filePath, config.Expanded)
 		expanded := exp == "true"
 
+		p, _ := conf.MetaValue(filePath, config.Pinned)
+		pinned := p == "true"
+
 		Directories = append(Directories, Directory{
 			name:       child.Name(),
 			Path:       filePath,
 			NbrNotes:   nbrNotes,
 			NbrFolders: len(nbrDirs),
 			IsExpanded: expanded,
+			IsPinned:   pinned,
 		})
 	}
 
