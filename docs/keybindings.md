@@ -24,6 +24,7 @@
 | `R`        | Rename folder     |                                                            |
 | `gg`       | Go to top         |                                                            |
 | `G`        | Go to bottom      |                                                            |
+| `P`        | Pin/Unpin folder  |                                                            |
 | `yy`       | Yank note         | Yanks selected directory                                   |
 | `p`        | Paste note        | pastes the yanked directory into the selected directory    |
 
@@ -38,7 +39,7 @@
 | `R`        | Rename folder      |                                                       |
 | `gg`       | Go to top          |                                                       |
 | `G`        | Go to bottom       |                                                       |
-| `P`        | Pin/Unpin Note     |                                                       |
+| `P`        | Pin/Unpin note     |                                                       |
 | `yy`       | Yank note          | Yanks selected note                                   |
 | `dd`       | Cut note           | Cuts selected note                                    |
 | `p`        | Paste note         | pastes the yanked/cut note into the current directory |

@@ -49,7 +49,6 @@ A list of the default keybinds can be displayed with `:open defaultkeymap`.
 
 #### Notes/Folders
 
-* pin/unpin folders
 * Preselect text when creating or renaming
 
 #### Editor
