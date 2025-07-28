@@ -1298,6 +1298,14 @@ func (m Model) View() string {
 		s.WriteRune('\n')
 	}
 
+	// ---- NEEDS TO BE MERGED WHEN UPDATING BUBBLES!
+	if len(m.Search.Matches) != 0 {
+		m.MoveToFirstSearchMatch()
+	} else {
+		m.RepositionView()
+	}
+	// MERGE END
+
 	m.viewport.SetContent(s.String())
 	return styles.Base.Render(m.viewport.View())
 }

@@ -140,6 +140,19 @@ func (s Search) sortedRows(reverse bool) []int {
 	return rows
 }
 
+// MoveToFirstSearchMatch centres the viewport to the first
+// match of the current search
+func (m *Model) MoveToFirstSearchMatch() {
+	minimum := m.viewport.YOffset
+	maximum := minimum + m.viewport.Height() - 1
+
+	if row := m.Search.FirstMatch().Row; row < minimum {
+		m.viewport.LineUp(minimum*2 - row)
+	} else if row > maximum {
+		m.viewport.LineDown(row - maximum/2)
+	}
+}
+
 func (m *Model) FindNextMatch() {
 	if pos, ok := m.Search.FindMatch(m.CursorPos(), false); ok {
 		m.row = pos.Row

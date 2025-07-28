@@ -340,6 +340,7 @@ func (e *Editor) build() string {
 	var view strings.Builder
 	view.WriteString(e.BuildHeader(e.Size.Width, false))
 	view.WriteString(e.Textarea.View())
+
 	return view.String()
 }
 
