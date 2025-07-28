@@ -71,6 +71,14 @@
 | `0`        | Normal, Visual | Jump to the start of the line                          |        |
 | `$`        | Normal, Visual | Jump to the end of the line                            |        |
 
+### Search
+
+| Key        | Mode           | Action                                                 | Info   |
+| ---------- | -------------- | ------------------------------------------------------ | ------ |
+| `/`        | Normal         | Find in buffer                                         |        |
+| `n`        | Normal         | Move to next match                                     |        |
+| `N`        | Normal         | Move to previous match                                 |        |
+
 ### Editing
 
 | Key        | Mode           | Action                                                 | Info   |
