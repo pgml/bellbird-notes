@@ -28,6 +28,7 @@ func (e *Editor) handleSearchMode(msg tea.KeyMsg) tea.Cmd {
 	case "backspace":
 		if e.Textarea.Search.Query == "" {
 			e.CancelSearch()
+			e.EnterNormalMode(false)
 			cmd = e.SendCancelMsg()
 		}
 
@@ -40,7 +41,7 @@ func (e *Editor) handleSearchMode(msg tea.KeyMsg) tea.Cmd {
 
 func (e *Editor) CancelSearch() {
 	e.Textarea.ResetMultiSelection()
-	e.EnterNormalMode(false)
+	//e.EnterNormalMode(false)
 }
 
 func (e *Editor) SendConfirmedMsg() tea.Cmd {

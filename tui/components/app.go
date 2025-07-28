@@ -129,9 +129,12 @@ func (a *App) UpdateComponents(msg tea.Msg) []tea.Cmd {
 		_, cmd := a.Editor.Update(msg)
 		cmds = append(cmds, cmd)
 
+		// sync modes
 		editorMode := a.Editor.Mode.Current
 		a.Mode.Current = editorMode
 
+		// ensure we canceled the search and removed all match
+		// highlights
 		if len(a.Editor.Textarea.Search.Matches) == 0 &&
 			a.Mode.Current != mode.SearchPrompt {
 
