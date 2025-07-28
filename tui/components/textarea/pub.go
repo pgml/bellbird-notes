@@ -10,6 +10,8 @@ import (
 	"strings"
 	"unicode"
 
+	"bellbird-notes/tui/theme"
+
 	"github.com/charmbracelet/bubbles/v2/cursor"
 	tea "github.com/charmbracelet/bubbletea/v2"
 	"github.com/charmbracelet/lipgloss/v2"
@@ -243,30 +245,142 @@ func (m *Model) DeleteAfterCursor(overshoot bool) {
 /// custom methods
 ///
 
-func (m *Model) RenderLine(
-	line *[]rune,
+func (m *Model) write(runes []rune, s *strings.Builder, st *lipgloss.Style) {
+	s.WriteString(st.Render(string(runes)))
+}
+
+func (m *Model) writeWithCursor(
+	start, end int,
 	wrappedLine *[]rune,
-	l int,
-	wl int,
 	s *strings.Builder,
-	style lipgloss.Style,
+	st *lipgloss.Style,
+) {
+	wrLine := *wrappedLine
+	if start >= len(wrLine) || end > len(wrLine) || start >= end {
+		return
+	}
+
+	if m.col >= start && m.col < end {
+		// Before cursor
+		m.write(wrLine[start:m.col], s, st)
+
+		// cursor
+		m.virtualCursor.SetChar(string(wrLine[m.col]))
+		s.WriteString(st.Render(m.virtualCursor.View()))
+
+		// Atfter cursor
+		m.write(wrLine[m.col+1:end], s, st)
+	} else {
+		m.write(wrLine[start:end], s, st)
+	}
+}
+
+func (m *Model) RenderLine(
+	line, wrappedLine *[]rune,
+	l, wl int,
+	s *strings.Builder,
+	style *lipgloss.Style,
 ) {
 	lineInfo := m.LineInfo()
 
 	wrLine := *wrappedLine
 	if m.row == l && lineInfo.RowOffset == wl {
-		s.WriteString(style.Render(string(wrLine[:lineInfo.ColumnOffset])))
+		s.WriteString(style.Render(string(wrLine[:m.col])))
+
 		if m.col >= len(*line) && lineInfo.CharOffset >= m.width {
 			m.virtualCursor.SetChar(" ")
-			s.WriteString(m.virtualCursor.View())
+			m.write([]rune(m.virtualCursor.View()), s, style)
 		} else {
-			m.virtualCursor.SetChar(string(wrLine[lineInfo.ColumnOffset]))
-			s.WriteString(style.Render(m.virtualCursor.View()))
-			s.WriteString(style.Render(string(wrLine[lineInfo.ColumnOffset+1:])))
+			m.virtualCursor.SetChar(string(wrLine[m.col]))
+			m.write([]rune(m.virtualCursor.View()), s, style)
+			m.write(wrLine[m.col+1:], s, style)
 		}
 	} else {
-		s.WriteString(style.Render(string(wrLine)))
+		m.write(wrLine, s, style)
 	}
+}
+
+func (m *Model) RenderSelection(
+	selection *SelectionContent,
+	line, wrappedLine *[]rune,
+	l, wl int,
+	s *strings.Builder,
+	style *lipgloss.Style,
+) {
+	s.WriteString(style.Render(selection.Before))
+
+	switch m.Selection.Mode {
+	case SelectVisual:
+		if m.LineInfo().RowOffset == m.Selection.StartRowOffset {
+			s.WriteString(style.Render(m.CursorBeforeSelection()))
+		}
+
+		visStyle := style.Background(theme.ColourSelection)
+		m.write([]rune(selection.Content), s, &visStyle)
+
+		if m.LineInfo().RowOffset == m.Selection.StartRowOffset {
+			s.WriteString(style.Render(m.CursorAfterSelection()))
+		}
+
+	case SelectVisualLine:
+		st := style.Background(theme.ColourSelection)
+		m.RenderLine(line, wrappedLine, l, wl, s, &st)
+	}
+	s.WriteString(selection.After)
+}
+
+func (m *Model) RenderMultiSelection(
+	matches *[]int,
+	wrappedLine *[]rune,
+	l, wl int,
+	s *strings.Builder,
+	style *lipgloss.Style,
+) {
+	queryLen := len(m.Search.Query)
+	lineInfo := m.LineInfo()
+	wrLine := *wrappedLine
+	cursorRowMatch := (m.row == l && lineInfo.RowOffset == wl)
+
+	cursorPos := 0
+
+	for _, hlStart := range *matches {
+		hlEnd := hlStart + queryLen
+		if hlStart > len(wrLine)-queryLen {
+			break
+		}
+
+		// text segments before highlight
+		if hlStart > cursorPos {
+			if cursorRowMatch {
+				m.writeWithCursor(cursorPos, hlStart, wrappedLine, s, style)
+			} else {
+				m.write(wrLine[cursorPos:hlStart], s, style)
+			}
+		}
+
+		// Highlightes matches
+		hlStyle := lipgloss.NewStyle().
+			Background(theme.ColourSearchHighlight).
+			Foreground(theme.ColourSearchFg)
+
+		if cursorRowMatch {
+			m.writeWithCursor(hlStart, hlEnd, wrappedLine, s, &hlStyle)
+		} else {
+			m.write(wrLine[hlStart:hlEnd], s, &hlStyle)
+		}
+
+		cursorPos = hlEnd
+	}
+
+	// Remainder after last matches
+	if cursorPos < len(wrLine) {
+		if cursorRowMatch {
+			m.writeWithCursor(cursorPos, len(wrLine), wrappedLine, s, style)
+		} else {
+			m.write(wrLine[cursorPos:], s, style)
+		}
+	}
+
 }
 
 func (m *Model) LineLength(index int) int {
@@ -784,6 +898,15 @@ func (p CursorPos) InRange(minPos, maxPos CursorPos) bool {
 		p.ColumnOffset >= minColOffset && p.ColumnOffset <= maxColOffset
 }
 
+func (m *Model) NewMultiSelection() [][]Selection {
+	return make([][]Selection, len(m.value), maxLines)
+}
+
+func (m *Model) ResetMultiSelection() {
+	m.Search.Query = ""
+	m.Search.Matches = make(map[int][]int, 1)
+}
+
 func (m *Model) SelectionStyle() lipgloss.Style {
 	return m.activeStyle().computedCursorLine()
 }
@@ -799,16 +922,24 @@ func (m *Model) ResetSelection() {
 // SelectionContent returns the buffer content within the current selection
 // range, along with the unselected text before and after it.
 func (m *Model) SelectionContent() SelectionContent {
-	line := m.Selection.wrappedLline
-	l := m.Selection.lineIndex
+	sel := m.Selection
 
-	//colOffset := m.LineInfo().ColumnOffset
-	colOffset := m.LineInfo().ColumnOffset
+	var (
+		line                       []rune
+		l, colOffset               int
+		minRange, maxRange, cursor CursorPos
+	)
+
+	line = sel.wrappedLline
+	l = sel.lineIndex
+
+	colOffset = m.LineInfo().ColumnOffset
 	rowOffset := m.LineInfo().RowOffset
-	//selRowOffset := m.Selection.StartRowOffset
-	minRange, maxRange := m.SelectionRange()
-	cursor := CursorPos{m.row, rowOffset, colOffset}
+	minRange, maxRange = m.SelectionRange()
+	cursor = CursorPos{m.row, rowOffset, colOffset}
+
 	isInRange := cursor.InRange(minRange, maxRange)
+
 	wrappedStr := string(line)
 
 	var (
@@ -818,8 +949,8 @@ func (m *Model) SelectionContent() SelectionContent {
 	)
 
 	cursorOffset := colOffset
-	//debug.LogDebug(colOffset, m.width, m.LineInfo().RowOffset)
-	if minRange.ColumnOffset < m.Selection.StartCol {
+
+	if minRange.ColumnOffset < sel.StartCol {
 		cursorOffset = minRange.ColumnOffset
 	}
 
@@ -828,17 +959,13 @@ func (m *Model) SelectionContent() SelectionContent {
 	// slice for unicode safety
 	runes := []rune(wrappedStr)
 	lineLen := len(runes)
-	//rowLen := m.LineInfo().Width
 
 	if isInRange {
-		if m.Selection.Mode == SelectVisualLine {
+		if sel.Mode == SelectVisualLine {
 			before = ""
 			if l >= minRange.Row && l <= maxRange.Row {
 				selection = string(runes)
 			}
-			//if m.row >= minRange.Row && m.row <= maxRange.Row {
-			//	selection = wrappedStr
-			//}
 			after = ""
 		} else {
 			minCol := clamp(minRange.ColumnOffset, 0, lineLen)
@@ -856,7 +983,7 @@ func (m *Model) SelectionContent() SelectionContent {
 
 				if isCursorBeforeSel {
 					minCol = clamp(minCol+1, 0, lineLen)
-					colOffset = clamp(m.Selection.StartCol+1, 0, lineLen)
+					colOffset = clamp(sel.StartCol+1, 0, lineLen)
 				}
 
 				if colOffset <= lineLen {
@@ -871,8 +998,8 @@ func (m *Model) SelectionContent() SelectionContent {
 			case minRow == l:
 				beforePos := minCol
 
-				if m.Selection.StartRow > minRow {
-					if minCol < m.Selection.StartCol {
+				if sel.StartRow > minRow {
+					if minCol < sel.StartCol {
 						minCol = clamp(minCol+1, 0, lineLen)
 					} else {
 						beforePos = minCol - 1
@@ -893,7 +1020,7 @@ func (m *Model) SelectionContent() SelectionContent {
 				beforePos := clamp(maxCol+1, 0, lineLen)
 				afterPos := maxCol
 
-				if m.Selection.StartRow > minRow {
+				if sel.StartRow > minRow {
 					afterPos = clamp(maxCol+1, 0, lineLen)
 				}
 
@@ -912,11 +1039,15 @@ func (m *Model) SelectionContent() SelectionContent {
 		}
 	}
 
-	return SelectionContent{
-		Before:  before,
-		Content: selection,
-		After:   after,
+	if selection != "" {
+		return SelectionContent{
+			Before:  before,
+			Content: selection,
+			After:   after,
+		}
 	}
+
+	return SelectionContent{}
 }
 
 // CursorBeforeSelection returns the cursor that is at the beginning

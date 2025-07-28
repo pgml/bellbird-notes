@@ -53,6 +53,8 @@ type StatusBar struct {
 
 	// Registered prompt commands
 	Commands Commands
+
+	TeaCmd tea.Cmd
 }
 
 var StatusBarColumn = struct {
@@ -92,7 +94,9 @@ func (s *StatusBar) Init() tea.Cmd {
 func (s *StatusBar) Update(
 	msgs []message.StatusBarMsg,
 	teaMsg tea.Msg,
-) *StatusBar {
+) (*StatusBar, tea.Cmd) {
+	var cmd tea.Cmd
+
 	for i := range msgs {
 		msg := msgs[i]
 
@@ -117,20 +121,41 @@ func (s *StatusBar) Update(
 		//s.Sender = msg.Sender
 	}
 
+	switch s.Mode {
+	case mode.SearchPrompt:
+		s.TeaCmd = func() tea.Msg {
+			return SearchMsg{
+				SearchTerm: s.Prompt.Value(),
+			}
+		}
+
+	default:
+		s.TeaCmd = nil
+	}
+
 	switch teaMsg.(type) {
 	case tea.KeyMsg:
 		if s.Focused && s.shouldShowMode() && s.Prompt.Focused() {
 			s.Prompt, _ = s.Prompt.Update(teaMsg)
-			return s
+			return s, cmd
 		}
 
 	case tea.WindowSizeMsg:
 		termWidth, _ := theme.TerminalSize()
 		s.Size.Width = termWidth
 		s.Size.Height = s.Height
+
+	case SearchConfirmedMsg:
+		s.Mode = mode.Search
+		s.Focused = false
+		s.Prompt.Blur()
+
+	case SearchCancelMsg:
+		s.Focused = false
+		s.BlurPrompt(false)
 	}
 
-	return s
+	return s, cmd
 }
 
 // View renders the StatusBar as a string
@@ -152,6 +177,12 @@ func (s *StatusBar) View() string {
 	// Append the prompt to the prompt message
 	// and focus for allow quick input
 	if s.isPrompt() {
+		switch s.Mode {
+		case mode.Command:
+			s.Prompt.Prompt = ":"
+		case mode.SearchPrompt, mode.Search:
+			s.Prompt.Prompt = "/"
+		}
 		s.Prompt.Focus()
 		promptView := strings.TrimSpace(s.Prompt.View())
 		colGeneral = fmt.Sprint(colGeneral, promptView)
@@ -210,7 +241,7 @@ func (s *StatusBar) ConfirmAction(
 	fnMsg := s.execPromptFn()
 
 	s.setColContent(statusMsg.Column, &statusMsg.Content)
-	s.blurPrompt()
+	s.BlurPrompt(false)
 
 	statusMsg.Cmd = tea.Batch(
 		s.SendDeferredActionMsg(),
@@ -259,7 +290,7 @@ func (s *StatusBar) execPromptFn() message.StatusBarMsg {
 // CancelAction cancels the current prompt input and resets the status bar state.
 func (s *StatusBar) CancelAction(cb func()) message.StatusBarMsg {
 	s.Type = message.Success
-	s.blurPrompt()
+	s.BlurPrompt(false)
 	return message.StatusBarMsg{}
 }
 
@@ -273,19 +304,25 @@ func (s *StatusBar) setColContent(col sbc.Column, cnt *string) {
 	s.Columns[col] = *cnt
 }
 
-func (s *StatusBar) blurPrompt() {
-	s.Prompt.SetValue("")
+func (s *StatusBar) BlurPrompt(keepValue bool) {
+	if !keepValue {
+		s.Prompt.SetValue("")
+	}
+
 	s.Prompt.Blur()
 	s.Mode = mode.Normal
 }
 
 func (s *StatusBar) isPrompt() bool {
-	return s.Type == message.Prompt || s.Type == message.PromptError
+	return s.Type == message.Prompt ||
+		s.Type == message.PromptError
 }
 
 func (s *StatusBar) shouldShowMode() bool {
 	return s.Mode == mode.Insert ||
 		s.Mode == mode.Command ||
+		s.Mode == mode.Search ||
+		s.Mode == mode.SearchPrompt ||
 		s.Mode == mode.Replace ||
 		s.Mode == mode.Visual ||
 		s.Mode == mode.VisualLine ||

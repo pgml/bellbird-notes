@@ -323,6 +323,8 @@ type Model struct {
 	rsan runeutil.Sanitizer
 
 	Selection Selection
+
+	Search Search
 }
 
 // New creates a new model with default settings.
@@ -1260,29 +1262,20 @@ func (m Model) View() string {
 			m.Selection.wrappedLline = wrappedLine
 			m.Selection.lineIndex = l
 			selection := m.SelectionContent()
-			//debug.LogDebug(m.LineInfo().RowOffset, m.Selection.StartRowOffset)
 
 			if selection.Content != "" {
-				selectionColour := lipgloss.Color("#666")
-				s.WriteString(style.Render(selection.Before))
-
-				switch m.Selection.Mode {
-				case SelectVisual:
-					if m.LineInfo().RowOffset == m.Selection.StartRowOffset {
-						s.WriteString(style.Render(m.CursorBeforeSelection()))
-					}
-					s.WriteString(style.Background(selectionColour).Render(selection.Content))
-					if m.LineInfo().RowOffset == m.Selection.StartRowOffset {
-						s.WriteString(style.Render(m.CursorAfterSelection()))
-					}
-
-				case SelectVisualLine:
-					st := style.Background(selectionColour)
-					m.RenderLine(&line, &wrappedLine, l, wl, &s, st)
-				}
-				s.WriteString(selection.After)
+				m.RenderSelection(&selection, &line, &wrappedLine, l, wl, &s, &style)
 			} else {
-				m.RenderLine(&line, &wrappedLine, l, wl, &s, style)
+				wrappedStr := string(wrappedLine)
+				matches := m.Search.FindMatches(&wrappedStr, l)
+
+				if len(matches) == 0 {
+					delete(m.Search.Matches, l)
+					m.RenderLine(&line, &wrappedLine, l, wl, &s, &style)
+				} else {
+					m.RenderMultiSelection(&matches, &wrappedLine, l, wl, &s, &style)
+					m.Search.Matches[l] = matches
+				}
 			}
 			// --- MERGE END
 			s.WriteString(style.Render(strings.Repeat(" ", max(0, padding))))

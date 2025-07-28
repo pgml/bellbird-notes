@@ -21,6 +21,23 @@ var keyMapCustomTpl []byte
 
 const keyMapFileName = "keymap.json"
 
+var Args = struct {
+	Outer, Prev, WhiteSpace, Remaining, Operator, AwaitInput,
+	End, NewLine, MultiLine, Cycle, IgnoreCase string
+}{
+	Outer:      "outer",
+	Prev:       "prev",
+	WhiteSpace: "white_space",
+	Remaining:  "remaining",
+	Operator:   "operator",
+	AwaitInput: "await_input",
+	End:        "end",
+	NewLine:    "new_line",
+	MultiLine:  "multiline",
+	Cycle:      "cycle",
+	IgnoreCase: "ignore_case",
+}
+
 type KeyMap struct {
 	path    string
 	entries []KeyMapEntry

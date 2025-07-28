@@ -131,6 +131,9 @@ func (a *App) UpdateComponents(msg tea.Msg) []tea.Cmd {
 		editorMode := a.Editor.Mode.Current
 		a.Mode.Current = editorMode
 
+		// Hire cursor in when search prompt is active
+		a.Editor.Textarea.VirtualCursor = (a.Mode.Current != mode.SearchPrompt)
+
 		// This is probably a dirty workaround - since key events are
 		// being executed before the editor receives updates, insert
 		// mode is already active which means we already start typing
@@ -155,20 +158,11 @@ func (a *App) UpdateComponents(msg tea.Msg) []tea.Cmd {
 	// collect dirty buffers
 	a.NotesList.DirtyBuffers = a.Editor.DirtyBuffers()
 
-	return cmds
-}
-
-// updateStatusBar synchronises the status bar
-// with the current component states and mode.
-func (a *App) UpdateStatusBar() {
-	a.StatusBar.Editor = *a.Editor
-
-	currMode := a.Mode.Current
-	if currMode != mode.Normal {
-		a.StatusBar.Mode = currMode
-	} else {
+	if a.StatusBar.Mode != mode.Search {
 		a.StatusBar.Mode = a.Mode.Current
 	}
+
+	return cmds
 }
 
 // overlayPosition returns the top center position of the application screen

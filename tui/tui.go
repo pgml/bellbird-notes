@@ -5,6 +5,7 @@ import (
 	"bellbird-notes/tui/components"
 	"bellbird-notes/tui/keyinput"
 	"bellbird-notes/tui/message"
+	"bellbird-notes/tui/mode"
 	sbc "bellbird-notes/tui/types/statusbar_column"
 	"bellbird-notes/tui/vim"
 
@@ -93,11 +94,13 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		statusMsg = append(statusMsg, m.app.Editor.StatusBarInfo())
 
+		sb, sbCmd := m.app.StatusBar.Update(statusMsg, msg)
+		m.app.StatusBar = sb
+		cmds = append(cmds, m.app.StatusBar.TeaCmd, sbCmd)
+
 		for _, m := range statusMsg {
 			cmds = append(cmds, m.Cmd)
 		}
-
-		m.app.StatusBar = m.app.StatusBar.Update(statusMsg, msg)
 
 	case tea.WindowSizeMsg:
 		m.app.DirTree.Update(msg)
@@ -121,10 +124,12 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.app.StatusBar.Size, _ = msg.Size(m.app.StatusBar.ID)
 
 	case keyinput.ResetSequenceMsg:
-		m.app.StatusBar = m.app.StatusBar.Update(
+		sb, cmd := m.app.StatusBar.Update(
 			[]message.StatusBarMsg{m.keyInput.ResetKeysDown()},
 			msg,
 		)
+		m.app.StatusBar = sb
+		cmds = append(cmds, cmd)
 
 	case components.BufferSavedMsg:
 		// reload keymap if there's any updates
@@ -138,6 +143,15 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.app.Editor.RefreshTextAreaStyles()
 			m.app.BufferList.RefreshStyles()
 		}
+
+	case components.SearchConfirmedMsg:
+		m.app.StatusBar.Update(nil, msg)
+		m.app.Editor.Mode.Current = mode.Normal
+
+	case components.SearchCancelMsg:
+		m.app.Editor.CancelSearch()
+		m.app.StatusBar.Mode = mode.Normal
+		m.app.StatusBar.Update(nil, msg)
 	}
 
 	// exit programme when `:q` is entered in command prompt
@@ -150,7 +164,6 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	cmds = append(cmds, m.app.UpdateComponents(msg)...)
-	m.app.UpdateStatusBar()
 
 	return m, tea.Batch(cmds...)
 }

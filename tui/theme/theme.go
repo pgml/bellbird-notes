@@ -21,6 +21,11 @@ var (
 	ColourBgSelected    = lipgloss.Color("#424B5D")
 	ColourDirty         = lipgloss.Color("#c05d5f")
 	ColourTitle         = lipgloss.Color("#999999")
+	ColourSelection     = lipgloss.Color("#666")
+
+	ColourSearchHighlight        = lipgloss.Color("#ffcb78")
+	ColourSearchHighlightFocused = lipgloss.Color("#ffbe73")
+	ColourSearchFg               = lipgloss.Color("#333")
 )
 
 type icon struct {

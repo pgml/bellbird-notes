@@ -18,28 +18,34 @@ const (
 	Replace
 	Operator
 	Command
+	Search
+	SearchPrompt
 )
 
 var modeName = map[Mode]string{
-	Normal:      "n",
-	Insert:      "i",
-	Visual:      "v",
-	VisualLine:  "vl",
-	VisualBlock: "vb",
-	Operator:    "o",
-	Replace:     "r",
-	Command:     "c",
+	Normal:       "n",
+	Insert:       "i",
+	Visual:       "v",
+	VisualLine:   "vl",
+	VisualBlock:  "vb",
+	Replace:      "r",
+	Operator:     "o",
+	Command:      "c",
+	Search:       "s",
+	SearchPrompt: "sp",
 }
 
 var fullName = map[Mode]string{
-	Normal:      "normal",
-	Insert:      "insert",
-	Visual:      "visual",
-	VisualLine:  "visual_line",
-	VisualBlock: "visual_block",
-	Replace:     "replace",
-	Operator:    "",
-	Command:     "command",
+	Normal:       "normal",
+	Insert:       "insert",
+	Visual:       "visual",
+	VisualLine:   "visual_line",
+	VisualBlock:  "visual_block",
+	Replace:      "replace",
+	Operator:     "",
+	Command:      "command",
+	Search:       "/",
+	SearchPrompt: "/",
 }
 
 var colour = map[Mode]color.Color{
@@ -51,6 +57,9 @@ var colour = map[Mode]color.Color{
 	Replace:     lipgloss.Color("#9e84b7"),
 	Operator:    lipgloss.NoColor{},
 	Command:     lipgloss.NoColor{},
+
+	Search:       lipgloss.NoColor{},
+	SearchPrompt: lipgloss.NoColor{},
 }
 
 func (m Mode) String() string {

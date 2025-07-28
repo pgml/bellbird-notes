@@ -79,6 +79,8 @@ func (v *Vim) FnRegistry() ki.MotionRegistry {
 		"NextWord":               v.nextWord,
 		"PrevWord":               v.prevWord,
 		"FindCharacter":          v.findCharacter,
+		"Find":                   v.find,
+		"MoveToMatch":            v.moveToMatch,
 		"GoToFirstNonWhiteSpace": bind(v.app.Editor.GoToInputStart),
 		"GoToLineStart":          bind(v.app.Editor.GoToLineStart),
 		"GoToLineEnd":            bind(v.app.Editor.GoToLineEnd),
@@ -129,7 +131,7 @@ func (v *Vim) lineDown(opts ki.Options) func() StatusBarMsg {
 		}
 
 		if v.app.Editor.Focused() {
-			multiline := opts.GetBool("multiline")
+			multiline := opts.GetBool(ki.Args.MultiLine)
 			msg = v.app.Editor.LineDown(multiline)
 		}
 
@@ -152,7 +154,7 @@ func (v *Vim) lineUp(opts ki.Options) func() StatusBarMsg {
 		}
 
 		if v.app.Editor.Focused() {
-			multiline := opts.GetBool("multiline")
+			multiline := opts.GetBool(ki.Args.MultiLine)
 			msg = v.app.Editor.LineUp(multiline)
 		}
 
@@ -197,7 +199,7 @@ func (v *Vim) focusNextColumn(opts ki.Options) func() StatusBarMsg {
 		nbrCols := 3
 		currenColumn := v.app.CurrColFocus
 
-		cycle := opts.GetBool("cycle")
+		cycle := opts.GetBool(ki.Args.Cycle)
 
 		if cycle && currenColumn == nbrCols {
 			currenColumn = 0
@@ -215,7 +217,7 @@ func (v *Vim) focusPrevColumn(opts ki.Options) func() StatusBarMsg {
 		firstCol := 1
 		currenColumn := v.app.CurrColFocus
 
-		cycle := opts.GetBool("cycle")
+		cycle := opts.GetBool(ki.Args.Cycle)
 
 		if cycle && currenColumn == 1 {
 			currenColumn = 4
@@ -567,21 +569,21 @@ func (m *Vim) insertAbove(_ ki.Options) func() StatusBarMsg {
 
 func (v *Vim) selectWord(opts ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
-		outer := opts.GetBool("outer")
+		outer := opts.GetBool(ki.Args.Outer)
 		return v.app.Editor.SelectWord(outer)
 	}
 }
 
 func (v *Vim) nextWord(opts ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
-		end := opts.GetBool("end")
+		end := opts.GetBool(ki.Args.End)
 		return v.app.Editor.WordForward(end)
 	}
 }
 
 func (v *Vim) prevWord(opts ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
-		end := opts.GetBool("end")
+		end := opts.GetBool(ki.Args.End)
 		return v.app.Editor.WordBack(end)
 	}
 }
@@ -590,17 +592,47 @@ func (v *Vim) findCharacter(opts ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
 		action := *v.KeyMap.AwaitInputAction
 		binding := []rune(action.Binding())
-		back := action.Opts().GetBool("back")
+		prev := action.Opts().GetBool(ki.Args.Prev)
 		char := v.KeyMap.KeySequence[len(binding):]
-		return v.app.Editor.FindCharacter(char, back)
+		return v.app.Editor.FindCharacter(char, prev)
+	}
+}
+
+func (v *Vim) find(opts ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		v.app.Editor.Textarea.Search = textarea.Search{
+			IgnoreCase: opts.GetBool(ki.Args.IgnoreCase),
+			//Matches:    make([]textarea.SearchMatch, 1),
+			Matches: make(map[int][]int, 1),
+		}
+
+		v.app.Editor.Mode.Current = mode.SearchPrompt
+		v.app.Mode.Current = mode.SearchPrompt
+		v.app.StatusBar.Focused = true
+
+		return StatusBarMsg{
+			Type:   message.Prompt,
+			Column: sbc.General,
+		}
+	}
+}
+
+func (v *Vim) moveToMatch(opts ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		if opts.GetBool("prev") {
+			v.app.Editor.Textarea.FindPrevMatch()
+		} else {
+			v.app.Editor.Textarea.FindNextMatch()
+		}
+		return StatusBarMsg{}
 	}
 }
 
 func (v *Vim) deleteWord(opts ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
-		outer := opts.GetBool("outer")
+		outer := opts.GetBool(ki.Args.Outer)
 
-		if opts.GetBool("remaining") {
+		if opts.GetBool(ki.Args.Remaining) {
 			return v.app.Editor.DeleteWordRight()
 		}
 
@@ -633,7 +665,7 @@ func (v *Vim) substituteText(opts ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
 		msg := v.app.Editor.DeleteRune(false, true, false)
 
-		if opts.GetBool("new_line") {
+		if opts.GetBool(ki.Args.NewLine) {
 			v.app.Editor.Textarea.EmptyLineAbove()
 		}
 
@@ -665,9 +697,9 @@ func (v *Vim) changeLine(_ ki.Options) func() StatusBarMsg {
 
 func (v *Vim) changeWord(opts ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
-		outer := opts.GetBool("outer")
+		outer := opts.GetBool(ki.Args.Outer)
 
-		if opts.GetBool("remaining") {
+		if opts.GetBool(ki.Args.Remaining) {
 			v.app.Editor.DeleteWordRight()
 			return v.app.Editor.EnterInsertMode(false)
 		}

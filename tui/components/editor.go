@@ -272,7 +272,7 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch e.Mode.Current {
 		case mode.Normal:
-			e.saveCursorPosToConf()
+			cmd = e.handleNormalMode(msg)
 
 		case mode.Insert:
 			cmd = e.handleInsertMode(msg)
@@ -285,6 +285,9 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case mode.Command:
 			cmd = e.handleCommandMode(msg)
+
+		case mode.SearchPrompt, mode.Search:
+			cmd = e.handleSearchMode(msg)
 		}
 
 		e.checkDirty()
@@ -300,6 +303,22 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case errMsg:
 		e.err = msg
 		return e, nil
+
+	case SearchMsg:
+		caseOverride := strings.HasPrefix(msg.SearchTerm, "\\c")
+
+		if caseOverride {
+			msg.SearchTerm = msg.SearchTerm[2:]
+			//if e.Textarea.Search.IgnoreCase == msg.IgnoreCase {
+			//	e.Textarea.Search.IgnoreCase = !msg.IgnoreCase
+			//}
+		}
+
+		e.Textarea.Search.Query = msg.SearchTerm
+
+	case SearchConfirmedMsg:
+		match := e.Textarea.Search.FirstMatch()
+		e.Textarea.MoveCursor(match.Row, match.RowOffset, match.ColumnOffset)
 	}
 
 	e.setTextareaSize()
