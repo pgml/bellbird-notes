@@ -36,17 +36,18 @@ func (s Search) FindMatch(current CursorPos, prev bool) (CursorPos, bool) {
 
 	rows := s.sortedRows(prev)
 
-	// Helper: find next column > curCol in sorted slice
+	// Helper: find next column in sorted slice depending
+	// on matching direction
 	findCol := func(cols []int, col int) (int, bool) {
 		sort.Ints(cols)
-		for _, c := range cols {
-			if prev {
-				for i := len(cols) - 1; i >= 0; i-- {
-					if cols[i] < col {
-						return cols[i], true
-					}
+		if prev {
+			for i := len(cols) - 1; i >= 0; i-- {
+				if cols[i] < col {
+					return cols[i], true
 				}
-			} else {
+			}
+		} else {
+			for _, c := range cols {
 				if c > col {
 					return c, true
 				}
@@ -55,16 +56,16 @@ func (s Search) FindMatch(current CursorPos, prev bool) (CursorPos, bool) {
 		return 0, false
 	}
 
-	// Check current row for next column > curCol
+	// Check current row for next column
 	if cols, ok := matches[current.Row]; ok {
-		if c, found := findCol(cols, current.ColumnOffset); found {
+		if c, ok := findCol(cols, current.ColumnOffset); ok {
 			return CursorPos{current.Row, 0, c}, true
 		}
 	}
 
 	// Check rows > curRow for first column
 	for _, r := range rows {
-		if (prev && r < current.Row) || (r > current.Row) {
+		if (prev && r < current.Row) || (!prev && r > current.Row) {
 			cols := matches[r]
 			sort.Ints(cols)
 
@@ -78,11 +79,8 @@ func (s Search) FindMatch(current CursorPos, prev bool) (CursorPos, bool) {
 		}
 	}
 
-	// Wrap around - return first column of smallest row
+	// Wrap around - return first column first or last row
 	firstRow := rows[0]
-	if prev {
-		firstRow = rows[len(rows)-1]
-	}
 	cols := matches[firstRow]
 	sort.Ints(cols)
 
