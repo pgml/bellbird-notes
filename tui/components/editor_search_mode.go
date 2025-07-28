@@ -39,8 +39,8 @@ func (e *Editor) handleSearchMode(msg tea.KeyMsg) tea.Cmd {
 }
 
 func (e *Editor) CancelSearch() {
-	e.EnterNormalMode(true)
 	e.Textarea.ResetMultiSelection()
+	e.EnterNormalMode(false)
 }
 
 func (e *Editor) SendConfirmedMsg() tea.Cmd {

@@ -79,7 +79,7 @@ func (s Search) FindMatch(current CursorPos, prev bool) (CursorPos, bool) {
 		}
 	}
 
-	// Wrap around - return first column first or last row
+	// Wrap around - return first column of smallest row
 	firstRow := rows[0]
 	cols := matches[firstRow]
 	sort.Ints(cols)

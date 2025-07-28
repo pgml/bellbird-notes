@@ -153,6 +153,7 @@ func (s *StatusBar) Update(
 	case SearchCancelMsg:
 		s.Focused = false
 		s.BlurPrompt(false)
+		s.CancelAction(func() {})
 	}
 
 	return s, cmd

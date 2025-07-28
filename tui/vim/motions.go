@@ -602,8 +602,7 @@ func (v *Vim) find(opts ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
 		v.app.Editor.Textarea.Search = textarea.Search{
 			IgnoreCase: opts.GetBool(ki.Args.IgnoreCase),
-			//Matches:    make([]textarea.SearchMatch, 1),
-			Matches: make(map[int][]int, 1),
+			Matches:    make(map[int][]int, 1),
 		}
 
 		v.app.Editor.Mode.Current = mode.SearchPrompt

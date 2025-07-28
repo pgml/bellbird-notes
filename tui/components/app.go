@@ -128,8 +128,15 @@ func (a *App) UpdateComponents(msg tea.Msg) []tea.Cmd {
 	if a.Editor.Focused() {
 		_, cmd := a.Editor.Update(msg)
 		cmds = append(cmds, cmd)
+
 		editorMode := a.Editor.Mode.Current
 		a.Mode.Current = editorMode
+
+		if len(a.Editor.Textarea.Search.Matches) == 0 &&
+			a.Mode.Current != mode.SearchPrompt {
+
+			a.Editor.CancelSearch()
+		}
 
 		// Hire cursor in when search prompt is active
 		a.Editor.Textarea.VirtualCursor = (a.Mode.Current != mode.SearchPrompt)

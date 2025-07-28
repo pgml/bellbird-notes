@@ -904,7 +904,7 @@ func (m *Model) NewMultiSelection() [][]Selection {
 
 func (m *Model) ResetMultiSelection() {
 	m.Search.Query = ""
-	m.Search.Matches = make(map[int][]int, 1)
+	m.Search.Matches = make(map[int][]int, 0)
 }
 
 func (m *Model) SelectionStyle() lipgloss.Style {
