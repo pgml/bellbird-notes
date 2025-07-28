@@ -244,6 +244,7 @@ func NewEditor(conf *config.Config) *Editor {
 	editor.ShowLineNumbers = editor.LineNumbers()
 	editor.Textarea.ShowLineNumbers = editor.ShowLineNumbers
 	editor.Textarea.ResetSelection()
+	editor.Textarea.Search.IgnoreCase = editor.SearchIgnoreCase()
 
 	if err := clipboard.Init(); err != nil {
 		debug.LogErr(err)
@@ -307,11 +308,11 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case SearchMsg:
 		caseOverride := strings.HasPrefix(msg.SearchTerm, "\\c")
 
+		e.Textarea.Search.IgnoreCase = e.SearchIgnoreCase()
+
 		if caseOverride {
 			msg.SearchTerm = msg.SearchTerm[2:]
-			//if e.Textarea.Search.IgnoreCase == msg.IgnoreCase {
-			//	e.Textarea.Search.IgnoreCase = !msg.IgnoreCase
-			//}
+			e.Textarea.Search.IgnoreCase = true
 		}
 
 		e.Textarea.Search.Query = msg.SearchTerm
@@ -1544,9 +1545,23 @@ func (e *Editor) LineNumbers() bool {
 	return number
 }
 
+func (e *Editor) SearchIgnoreCase() bool {
+	n, err := e.conf.Value(config.Editor, config.SearchIgnoreCase)
+
+	if err != nil {
+		return false
+	}
+
+	ignoreCase := n == "true"
+
+	return ignoreCase
+}
+
 func (e *Editor) RefreshTextAreaStyles() {
 	s := defaultStyles()
 	e.Textarea.Styles.Blurred.Base = s.blurred
 	e.Textarea.Styles.Focused.Base = s.focused
+	e.Textarea.ShowLineNumbers = e.LineNumbers()
 	e.BuildHeader(e.Size.Width, true)
+	e.build()
 }

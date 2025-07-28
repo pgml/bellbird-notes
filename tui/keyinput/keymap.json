@@ -119,7 +119,7 @@
 			"u": "Undo",
 			"ctrl+r": "Redo",
 			"o": "InsertBelow",
-			"/": ["Find", { "ignore_case": false}],
+			"/": "Find",
 			"n": "MoveToMatch",
 			"N": ["MoveToMatch", { "prev": true }],
 			"O": "InsertAbove",

@@ -138,6 +138,8 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		if msg.Buffer.Path(false) == m.app.Conf.File() {
+			m.app.Conf.Reload()
+
 			m.app.DirTree.RefreshStyles()
 			m.app.NotesList.RefreshStyles()
 			m.app.Editor.RefreshTextAreaStyles()

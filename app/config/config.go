@@ -56,6 +56,7 @@ const (
 	ShowLineNumbers
 	NerdFonts
 	Border
+	SearchIgnoreCase
 )
 
 // Map of Option enum values to their string names as used in the ini file
@@ -73,6 +74,7 @@ var options = map[Option]string{
 	ShowLineNumbers:  "ShowLineNumbers",
 	NerdFonts:        "NerdFonts",
 	Border:           "Border",
+	SearchIgnoreCase: "SearchIgnoreCase",
 }
 
 // String returns the string representation of an Option
@@ -162,6 +164,15 @@ func New() *Config {
 		metaFile:     metaConf,
 		flushDelay:   400 * time.Millisecond,
 	}
+}
+
+func (c *Config) Reload() {
+	conf, err := ini.Load(c.filePath)
+	if err != nil {
+		debug.LogErr("Failed to read config file:", err)
+	}
+
+	c.file = conf
 }
 
 // SetDefaults sets default config values if none are present
