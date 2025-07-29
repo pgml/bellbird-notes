@@ -1100,6 +1100,7 @@ func (e *Editor) GoToLineEnd() message.StatusBarMsg {
 func (e *Editor) GoToTop() message.StatusBarMsg {
 	e.Textarea.MoveToBegin()
 	e.Textarea.RepositionView()
+	e.saveCursorPos()
 	return e.UpdateSelectedRowsCount()
 }
 
@@ -1107,6 +1108,7 @@ func (e *Editor) GoToTop() message.StatusBarMsg {
 func (e *Editor) GoToBottom() message.StatusBarMsg {
 	e.Textarea.MoveToEnd()
 	e.Textarea.RepositionView()
+	e.saveCursorPos()
 	return e.UpdateSelectedRowsCount()
 }
 
