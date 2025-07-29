@@ -270,7 +270,7 @@ func (s *StatusBar) execPromptFn() message.StatusBarMsg {
 	promptCmd := s.Prompt.Value()
 	args := ""
 
-	re := regexp.MustCompile(`^(open|set)\s+(\S+)\s*(.*)`)
+	re := regexp.MustCompile(`^(open|set|reload)\s+(\S+)\s*(.*)`)
 	matches := re.FindStringSubmatch(promptCmd)
 
 	if len(matches) > 0 {

@@ -13,8 +13,10 @@ func (v *Vim) CmdRegistry() components.Commands {
 		message.CmdPrompt.WriteBuf:  v.writeBuffer,
 		message.CmdPrompt.WriteQuit: v.writeBufferAndQuit,
 
-		message.CmdPrompt.Set:  v.cmdSet,
-		message.CmdPrompt.Open: v.cmdOpen,
+		message.CmdPrompt.Set:       v.cmdSet,
+		message.CmdPrompt.Open:      v.cmdOpen,
+		message.CmdPrompt.Reload:    v.cmdReload,
+		message.CmdPrompt.CheckTime: v.cmdCheckTime,
 
 		message.CmdPrompt.DeleteBufstring: v.deleteCurrentBuffer,
 		"%bd":                             v.deleteAllBuffers,
@@ -40,6 +42,13 @@ func (v *Vim) cmdOpenRegistry() components.Commands {
 	}
 }
 
+func (v *Vim) cmdReloadRegistry() components.Commands {
+	return components.Commands{
+		"config": v.reloadConfig,
+		"keymap": v.reloadKeyMap,
+	}
+}
+
 func (v *Vim) cmdSet(args ...string) StatusBarMsg {
 	fns := v.cmdSetRegistry()
 	if fn, ok := fns[args[0]]; ok {
@@ -53,6 +62,19 @@ func (v *Vim) cmdOpen(args ...string) StatusBarMsg {
 	if fn, ok := fns[args[0]]; ok {
 		return fn()
 	}
+	return StatusBarMsg{}
+}
+
+func (v *Vim) cmdReload(args ...string) StatusBarMsg {
+	fns := v.cmdReloadRegistry()
+	if fn, ok := fns[args[0]]; ok {
+		return fn()
+	}
+	return StatusBarMsg{}
+}
+
+func (v *Vim) cmdCheckTime(_ ...string) StatusBarMsg {
+	v.app.Editor.CheckTime()
 	return StatusBarMsg{}
 }
 
@@ -93,6 +115,17 @@ func (v *Vim) openConfig(_ ...string) StatusBarMsg {
 
 func (v *Vim) openKeyMap(_ ...string) StatusBarMsg {
 	return v.app.Editor.OpenUserKeyMap()
+}
+
+func (v *Vim) reloadConfig(_ ...string) StatusBarMsg {
+	return StatusBarMsg{
+		Cmd: components.SendRefreshUiMsg(),
+	}
+}
+
+func (v *Vim) reloadKeyMap(_ ...string) StatusBarMsg {
+	v.app.KeyInput.ReloadKeyMap()
+	return StatusBarMsg{}
 }
 
 func (v *Vim) deleteCurrentBuffer(_ ...string) StatusBarMsg {

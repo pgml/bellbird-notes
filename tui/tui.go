@@ -139,12 +139,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		if msg.Buffer.Path(false) == m.app.Conf.File() {
-			m.app.Conf.Reload()
-
-			m.app.DirTree.RefreshStyles()
-			m.app.NotesList.RefreshStyles()
-			m.app.Editor.RefreshTextAreaStyles()
-			m.app.BufferList.RefreshStyles()
+			m.RefreshUi()
 		}
 
 	case components.SearchConfirmedMsg:
@@ -155,6 +150,9 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.app.Editor.CancelSearch()
 		m.app.StatusBar.Mode = mode.Normal
 		m.app.StatusBar.Update(nil, msg)
+
+	case components.RefreshUiMsg:
+		m.RefreshUi()
 	}
 
 	// exit programme when `:q` is entered in command prompt
@@ -227,4 +225,13 @@ func (m *Model) componentsInit() {
 
 	m.keyInput.FetchKeyMap(true)
 	m.app.StatusBar.Commands = m.vim.CmdRegistry()
+}
+
+func (m *Model) RefreshUi() {
+	m.app.Conf.Reload()
+
+	m.app.DirTree.RefreshStyles()
+	m.app.NotesList.RefreshStyles()
+	m.app.Editor.RefreshTextAreaStyles()
+	m.app.BufferList.RefreshStyles()
 }

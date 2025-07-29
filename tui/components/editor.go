@@ -484,6 +484,21 @@ func (e *Editor) SwitchBuffer(buf *Buffer) message.StatusBarMsg {
 	return message.StatusBarMsg{}
 }
 
+func (e *Editor) CheckTime() {
+	buf := e.CurrentBuffer
+	note, err := os.ReadFile(buf.path)
+
+	if err != nil {
+		debug.LogErr(err)
+		return
+	}
+
+	noteContent := string(note)
+	e.CurrentBuffer.Content = noteContent
+	e.SetContent()
+	e.updateHistoryEntry()
+}
+
 func (e *Editor) SetContent() {
 	buf := e.CurrentBuffer
 	e.Textarea.SetValue(buf.Content)

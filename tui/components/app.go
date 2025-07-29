@@ -53,6 +53,14 @@ type App struct {
 	focus FocusController
 }
 
+type RefreshUiMsg struct{}
+
+func SendRefreshUiMsg() tea.Cmd {
+	return func() tea.Msg {
+		return RefreshUiMsg{}
+	}
+}
+
 func NewApp(fc FocusController) *App {
 	conf := config.New()
 	conf.SetDefaults()

@@ -2,7 +2,7 @@ package message
 
 var CmdPrompt = struct {
 	Yes, No, Quit, WriteBuf, WriteQuit, DeleteBufstring, ListBufs,
-	Set, Open, New string
+	Set, Open, New, Reload, CheckTime string
 }{
 	Yes:             "y",
 	No:              "n",
@@ -14,6 +14,8 @@ var CmdPrompt = struct {
 	Set:             "set",
 	Open:            "open",
 	New:             "new",
+	Reload:          "reload",
+	CheckTime:       "checktime",
 }
 
 var StatusBar = struct {
