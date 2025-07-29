@@ -493,8 +493,10 @@ func (e *Editor) CheckTime() {
 		return
 	}
 
-	noteContent := string(note)
-	e.CurrentBuffer.Content = noteContent
+	content := string(note)
+	buf.Content = content
+	buf.LastSavedContentHash = utils.HashContent(content)
+
 	e.SetContent()
 	e.updateHistoryEntry()
 }
