@@ -518,7 +518,7 @@ func (v *Vim) enterNormalMode(_ ki.Options) func() StatusBarMsg {
 
 func (v *Vim) toggleVisual(opts ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
-		if v.app.Mode.Current == mode.Visual {
+		if v.app.Editor.Mode.Current == mode.Visual {
 			return v.app.Editor.EnterNormalMode(true)
 		}
 
@@ -528,7 +528,7 @@ func (v *Vim) toggleVisual(opts ki.Options) func() StatusBarMsg {
 
 func (v *Vim) toggleVisualLine(opts ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
-		if v.app.Mode.Current == mode.VisualLine {
+		if v.app.Editor.Mode.Current == mode.VisualLine {
 			return v.app.Editor.EnterNormalMode(true)
 		}
 
@@ -538,7 +538,7 @@ func (v *Vim) toggleVisualLine(opts ki.Options) func() StatusBarMsg {
 
 func (v *Vim) toggleVisualBlock(opts ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
-		if v.app.Mode.Current == mode.VisualBlock {
+		if v.app.Editor.Mode.Current == mode.VisualBlock {
 			return v.app.Editor.EnterNormalMode(true)
 		}
 
