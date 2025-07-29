@@ -139,7 +139,7 @@ func (ki *Input) HandleSequences(key tea.Key) []message.StatusBarMsg {
 	}
 
 	// special treatment for space to make it simulate a leader key
-	if ki.Mode.Current == mode.Normal && !ki.Space {
+	if ki.Mode.Current == mode.Normal && !ki.Space && ki.KeySequence == "" {
 		if key.Code == 32 {
 			ki.KeySequence += key.Keystroke()
 			ki.Space = true
