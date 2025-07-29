@@ -86,11 +86,12 @@ func (v *Vim) FnRegistry() ki.MotionRegistry {
 		"GoToLineEnd":            bind(v.app.Editor.GoToLineEnd),
 		"MergeLines":             bind(v.app.Editor.MergeLineBelow),
 
-		"DeleteLine":        bind(v.app.Editor.DeleteLine),
-		"DeleteWord":        v.deleteWord,
-		"DeleteAfterCursor": v.deleteAfterCursor,
-		"DeleteSelection":   v.deleteSelection,
-		"DeleteCharacter":   v.deleteCharacter,
+		"DeleteLine":             bind(v.app.Editor.DeleteLine),
+		"DeleteWord":             v.deleteWord,
+		"DeleteAfterCursor":      v.deleteAfterCursor,
+		"DeleteSelection":        v.deleteSelection,
+		"DeleteCharacter":        v.deleteCharacter,
+		"DeleteFromCursorToChar": v.deleteFromCursorToChar,
 
 		"SubstituteText":    v.substituteText,
 		"ChangeAfterCursor": v.changeAfterCursor,
@@ -588,9 +589,18 @@ func (v *Vim) findCharacter(opts ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
 		action := *v.KeyMap.AwaitInputAction
 		binding := []rune(action.Binding())
+
 		prev := action.Opts().GetBool(ki.Args.Prev)
+		input := action.Opts().GetBool(ki.Args.Insert)
 		char := v.KeyMap.KeySequence[len(binding):]
-		return v.app.Editor.FindCharacter(char, prev)
+
+		v.app.Editor.FindCharacter(char, prev)
+
+		if input {
+			v.app.Editor.EnterInsertMode(true)
+		}
+
+		return message.StatusBarMsg{}
 	}
 }
 
@@ -653,6 +663,29 @@ func (v *Vim) deleteSelection(_ ki.Options) func() StatusBarMsg {
 func (v *Vim) deleteCharacter(_ ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
 		return v.app.Editor.DeleteRune(false, true, false)
+	}
+}
+
+func (v *Vim) deleteFromCursorToChar(opts ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		action := *v.KeyMap.AwaitInputAction
+		binding := []rune(action.Binding())
+
+		includeChar := action.Opts().GetBool(ki.Args.Include)
+		prev := action.Opts().GetBool(ki.Args.Prev)
+		char := v.KeyMap.KeySequence[len(binding):]
+
+		if ok := v.app.Editor.Textarea.DeleteFromCursorToChar(
+			char,
+			includeChar,
+			prev,
+		); ok {
+			if action.Opts().GetBool(ki.Args.Insert) {
+				v.app.Editor.EnterInsertMode(true)
+			}
+		}
+
+		return message.StatusBarMsg{}
 	}
 }
 

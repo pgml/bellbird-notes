@@ -81,31 +81,39 @@
 
 ### Editing
 
-| Key        | Mode           | Action                                                 | Info   |
-| ---------- | -------------- | ------------------------------------------------------ | ------ |
-| `i`        | Normal         | Insert at cursor                                       |        |
-| `I`        | Normal         | Insert at start of line                                |        |
-| `a`        | Normal         | Insert after cursor                                    |        |
-| `A`        | Normal         | Insert at end of line                                  |        |
-| `o`        | Normal         | Insert line below                                      |        |
-| `O`        | Normal         | Insert line above                                      |        |
-| `r`        | Normal         | Replace character under cursor                         |        |
-| `u`        | Normal         | Undo last change                                       |        |
-| `ctrl+r`   | Normal         | Redo last change                                       |        |
-| `J`        | Normal         | Join line below                                        |        |
-| `dd`       | Normal         | Delete line                                            |        |
-| `dw`       | Normal         | Delete characters from cursor position to end of word  |        |
-| `diw`      | Normal         | Delete word under cursor                               |        |
-| `daw`      | Normal         | Delete word under cursor and the space after           |        |
-| `dj`       | Normal         | Delete current and line below                          |        |
-| `dk`       | Normal         | Delete current and line above                          |        |
-| `D`        | Normal         | Delete to the end of the line                          |        |
-| `C`        | Normal         | Delete to the end of the line and substitute           |        |
-| `cc`       | Normal         | Delete line and substitute                             |        |
-| `ciw`      | Normal         | Change word under cursor                               |        |
-| `caw`      | Normal         | Change word under cursor including space after	       |        |
-| `s`        | Normal         | Delete character and substitute 	                     |        |
-| `x`        | Normal         | Delete character                                       |        |
+| Key        | Mode           | Action                                                      | Info   |
+| ---------- | -------------- | ----------------------------------------------------------- | ------ |
+| `i`        | Normal         | Insert at cursor                                            |        |
+| `I`        | Normal         | Insert at start of line                                     |        |
+| `a`        | Normal         | Insert after cursor                                         |        |
+| `A`        | Normal         | Insert at end of line                                       |        |
+| `o`        | Normal         | Insert line below                                           |        |
+| `O`        | Normal         | Insert line above                                           |        |
+| `r`        | Normal         | Replace character under cursor                              |        |
+| `u`        | Normal         | Undo last change                                            |        |
+| `ctrl+r`   | Normal         | Redo last change                                            |        |
+| `J`        | Normal         | Join line below                                             |        |
+| `dd`       | Normal         | Delete line                                                 |        |
+| `dw`       | Normal         | Delete characters from cursor position to end of word       |        |
+| `diw`      | Normal         | Delete word under cursor                                    |        |
+| `daw`      | Normal         | Delete word under cursor and the space after                |        |
+| `dj`       | Normal         | Delete current and line below                               |        |
+| `dk`       | Normal         | Delete current and line above                               |        |
+| `df`       | Normal         | Delete from cursor to (including) next occurence            |        |
+| `dF`       | Normal         | Delete from cursor to (including) previous occurence        |        |
+| `dt`       | Normal         | Delete from cursor to next occurence                        |        |
+| `dT`       | Normal         | Delete from cursor to previous occurence                    |        |
+| `D`        | Normal         | Delete to the end of the line                               |        |
+| `C`        | Normal         | Delete to the end of the line and substitute                |        |
+| `cc`       | Normal         | Delete line and substitute                                  |        |
+| `ciw`      | Normal         | Change word under cursor                                    |        |
+| `caw`      | Normal         | Change word under cursor including space after	            |        |
+| `cf`       | Normal         | Change from cursor to (including) next occurence            |        |
+| `cF`       | Normal         | Change from cursor to (including) previous occurence        |        |
+| `ct`       | Normal         | Change from cursor to next occurence                        |        |
+| `cT`       | Normal         | Change from cursor to previous occurence                    |        |
+| `s`        | Normal         | Delete character and substitute 	                        |        |
+| `x`        | Normal         | Delete character                                            |        |
 
 ### Selecting
 

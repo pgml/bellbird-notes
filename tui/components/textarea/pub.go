@@ -211,6 +211,36 @@ func (m *Model) FindCharacter(char string, back bool) *CursorPos {
 	return nil
 }
 
+// DeleteFromCursorToChar removes every character between the current
+// cursor position and the position before given character string of the
+// current row.
+// If includeChar is true it includes the given character
+func (m *Model) DeleteFromCursorToChar(char string, includeChar bool, prev bool) bool {
+	if pos := m.FindCharacter(char, prev); pos != nil {
+		lineStr := string(m.value[m.row])
+
+		toCol := pos.ColumnOffset
+		if (includeChar && !prev) || (!includeChar && prev) {
+			toCol++
+		}
+
+		before := lineStr[:m.col]
+		after := lineStr[toCol:]
+
+		if prev {
+			before = lineStr[:toCol]
+			after = lineStr[m.col:]
+			m.SetCursorColumn(toCol)
+		}
+
+		m.value[m.row] = []rune(before + after)
+
+		return true
+	}
+
+	return false
+}
+
 // CursorInputStart moves the cursor to the first non-blank character of the line
 func (m *Model) CursorInputStart() {
 	for i, r := range m.value[m.row] {

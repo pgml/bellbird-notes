@@ -128,12 +128,56 @@
 			"dw": ["DeleteWord", { "remaining": true }],
 			"diw": ["DeleteWord", { "outer": false }],
 			"daw": ["DeleteWord", { "outer": true }],
+			"df": ["DeleteFromCursorToChar", {
+				"operator": true,
+				"await_input": true,
+				"include": true,
+			}],
+			"dF": ["DeleteFromCursorToChar", {
+				"operator": true,
+				"await_input": true,
+				"include": true,
+				"prev": true
+			}],
+			"dt": ["DeleteFromCursorToChar", {
+				"operator": true,
+				"await_input": true,
+			}],
+			"dT": ["DeleteFromCursorToChar", {
+				"operator": true,
+				"await_input": true,
+				"prev": true
+			}],
 			"D": "DeleteAfterCursor",
 			"C": "ChangeAfterCursor",
 			"cc": "ChangeLine",
 			"cw": ["ChangeWord", { "remaining": true }],
 			"ciw": ["ChangeWord", { "outer": false }],
 			"caw": ["ChangeWord", { "outer": true }],
+			"cf": ["DeleteFromCursorToChar", {
+				"operator": true,
+				"await_input": true,
+				"insert": true,
+				"include": true
+			}],
+			"cF": ["DeleteFromCursorToChar", {
+				"operator": true,
+				"await_input": true,
+				"insert": true,
+				"include": true,
+				"prev": true
+			}],
+			"ct": ["DeleteFromCursorToChar", {
+				"operator": true,
+				"await_input": true,
+				"insert": true,
+			}],
+			"cT": ["DeleteFromCursorToChar", {
+				"operator": true,
+				"await_input": true,
+				"insert": true,
+				"prev": true
+			}],
 			"yy": "YankLine",
 			"yiw": ["YankWord", { "outer": false }],
 			"yaw": ["YankWord", { "outer": true }]
@@ -162,4 +206,3 @@
 		}
 	}
 ]
-

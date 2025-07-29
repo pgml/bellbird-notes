@@ -151,17 +151,18 @@ func (ki *Input) HandleSequences(key tea.Key) []message.StatusBarMsg {
 		}
 	}
 
-	// If we need to wait for further input cache the original action
-	if action, ok := ki.componentActions[ki.Mode.Current][key.String()]; ok {
-		if ki.AwaitInputAction == nil && action.opts.GetBool("await_input") {
-			ki.AwaitInputAction = &action
-		}
-	}
-
 	if ki.Ctrl || ki.Alt || ki.Space {
 		ki.KeySequence += " " + key.String()
 	} else {
 		ki.KeySequence += key.String()
+	}
+
+	// If we need to wait for further input cache the original action
+	if action, ok := ki.componentActions[ki.Mode.Current][ki.KeySequence]; ok {
+		debug.LogDebug(ki.KeySequence, key.String(), action.opts.GetBool("await_input"))
+		if ki.AwaitInputAction == nil && action.opts.GetBool("await_input") {
+			ki.AwaitInputAction = &action
+		}
 	}
 
 	// reset keybinds if we exceed the max length of sequences found in

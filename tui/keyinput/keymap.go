@@ -23,7 +23,7 @@ const keyMapFileName = "keymap.json"
 
 var Args = struct {
 	Outer, Prev, WhiteSpace, Remaining, Operator, AwaitInput,
-	End, NewLine, MultiLine, Cycle, IgnoreCase string
+	End, NewLine, MultiLine, Cycle, IgnoreCase, Insert, Include string
 }{
 	Outer:      "outer",
 	Prev:       "prev",
@@ -36,6 +36,8 @@ var Args = struct {
 	MultiLine:  "multiline",
 	Cycle:      "cycle",
 	IgnoreCase: "ignore_case",
+	Insert:     "insert",
+	Include:    "include",
 }
 
 type KeyMap struct {
