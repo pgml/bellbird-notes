@@ -1123,6 +1123,18 @@ func (e *Editor) FindCharacter(char string, back bool) message.StatusBarMsg {
 
 	if charPos != nil {
 		e.Textarea.SetCursorColumn(charPos.ColumnOffset)
+		e.saveCursorPos()
+	}
+
+	return message.StatusBarMsg{}
+}
+
+func (e *Editor) DeleteBeforeCharacter(char string, back bool) message.StatusBarMsg {
+	charPos := e.Textarea.FindCharacter(char, back)
+
+	if charPos != nil {
+		e.Textarea.SetCursorColumn(charPos.ColumnOffset)
+		e.saveCursorPos()
 	}
 
 	return message.StatusBarMsg{}
