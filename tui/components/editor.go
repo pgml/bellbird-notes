@@ -692,8 +692,9 @@ func (e *Editor) EnterNormalMode(withHistory bool) message.StatusBarMsg {
 	// so that lineup and linedown moves the cursor to the end
 	// when it's supposed to do so
 	isInsertMode := e.Mode.Current == mode.Insert
-	e.isAtLineEnd = false
-	if e.Textarea.IsExceedingLine() {
+
+	// check if we're at the end of a non empty line and set isAtLineEnd flag
+	if e.Textarea.IsExceedingLine() && e.Textarea.LineInfo().Width > 1 {
 		e.Textarea.CursorLineVimEnd()
 		e.isAtLineEnd = true
 	} else if isInsertMode {
@@ -1374,6 +1375,8 @@ func (e *Editor) Undo() message.StatusBarMsg {
 	)
 	e.Textarea.RepositionView()
 	e.CurrentBuffer.Content = e.Textarea.Value()
+	e.isAtLineEnd = e.Textarea.IsAtLineEnd()
+	e.isAtLineStart = e.Textarea.IsAtLineStart()
 	e.saveCursorPos()
 
 	return message.StatusBarMsg{}
