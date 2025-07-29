@@ -6,6 +6,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea/v2"
 
 	"bellbird-notes/app/config"
+	"bellbird-notes/tui/keyinput"
 	"bellbird-notes/tui/message"
 	"bellbird-notes/tui/mode"
 	"bellbird-notes/tui/theme"
@@ -39,6 +40,8 @@ type App struct {
 
 	// Buffers holds the loaded content of all open files.
 	Buffers Buffers
+
+	KeyInput *keyinput.Input
 
 	// ShouldQuit is set to true when the user requests to exit the application.
 	ShouldQuit bool
@@ -125,7 +128,7 @@ func (a *App) UpdateComponents(msg tea.Msg) []tea.Cmd {
 		cmds = append(cmds, cmd)
 	}
 
-	if a.Editor.Focused() {
+	if a.Editor.Focused() || a.BufferList.Focused() {
 		_, cmd := a.Editor.Update(msg)
 		cmds = append(cmds, cmd)
 
@@ -157,13 +160,20 @@ func (a *App) UpdateComponents(msg tea.Msg) []tea.Cmd {
 		}
 	}
 
+	switch msg.(type) {
+	case RequestSwitchBufferMsg:
+		a.KeyInput.FetchKeyMap(true)
+		a.BufferList.SetSelectedIndex(0)
+	}
+
 	// let the buffer list know if anything changes
 	if a.BufferList.NeedsUpdate() {
 		cmds = append(cmds, a.Editor.SendBuffersChangedMsg())
 	}
 
-	_, cmd := a.BufferList.Update(msg)
-	cmds = append(cmds, cmd)
+	if _, cmd := a.BufferList.Update(msg); cmd != nil {
+		cmds = append(cmds, cmd)
+	}
 
 	// collect dirty buffers
 	a.NotesList.DirtyBuffers = a.Editor.DirtyBuffers()

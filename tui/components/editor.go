@@ -117,6 +117,16 @@ func (e *Editor) SendBufferSavedMsg() tea.Cmd {
 	}
 }
 
+type RequestSwitchBufferMsg struct {
+	Path string
+}
+
+func SendRequestSwitchBufferMsg(path string) tea.Cmd {
+	return func() tea.Msg {
+		return RequestSwitchBufferMsg{Path: path}
+	}
+}
+
 type BuffersChangedMsg struct {
 	Buffers *Buffers
 }
@@ -320,6 +330,13 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case SearchConfirmedMsg:
 		match := e.Textarea.Search.FirstMatch()
 		e.Textarea.MoveCursor(match.Row, match.RowOffset, match.ColumnOffset)
+
+	case RequestSwitchBufferMsg:
+		if buf, exists, _ := e.Buffers.Contain(msg.Path); exists {
+			e.ListBuffers = false
+			e.SwitchBuffer(buf)
+			e.BuildHeader(e.Size.Width, true)
+		}
 	}
 
 	e.setTextareaSize()
@@ -459,6 +476,10 @@ func (e *Editor) SwitchBuffer(buf *Buffer) message.StatusBarMsg {
 	e.Textarea.RepositionView()
 	e.saveLineLength()
 	e.UpdateMetaInfo()
+
+	if !e.focused {
+		e.focused = true
+	}
 
 	return message.StatusBarMsg{}
 }

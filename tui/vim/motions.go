@@ -444,11 +444,7 @@ func (v *Vim) confirmAction(opts ki.Options) func() StatusBarMsg {
 				sel := items[v.app.BufferList.SelectedIndex()]
 
 				if buf, ok, _ := v.app.Editor.Buffers.Contain(sel.Path()); ok {
-					// close buffer list overlay
-					v.app.Editor.ListBuffers = false
-					v.app.Editor.SwitchBuffer(buf)
-					v.app.BufferList.SetSelectedIndex(0)
-					v.focusEditor(opts)()
+					statusMsg.Cmd = components.SendRequestSwitchBufferMsg(buf.Path(false))
 				}
 
 				//default:
@@ -763,7 +759,7 @@ func (v *Vim) FocusColumn(index int) StatusBarMsg {
 	v.app.NotesList.BuildHeader(v.app.NotesList.Size.Width, true)
 
 	v.app.Editor.SetFocus(index == 3)
-	v.app.Editor.BuildHeader(v.app.NotesList.Size.Width, true)
+	v.app.Editor.BuildHeader(v.app.Editor.Size.Width, true)
 
 	v.app.CurrColFocus = index
 	v.KeyMap.FetchKeyMap(true)

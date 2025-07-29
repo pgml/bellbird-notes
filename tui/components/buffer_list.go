@@ -154,9 +154,21 @@ func (l *BufferList) Init() tea.Cmd {
 }
 
 func (l *BufferList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	var cmd tea.Cmd
+	var cmds []tea.Cmd
 
-	switch msg.(type) {
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		if l.Focused() {
+			// check if input is a numeric value
+			num, err := strconv.Atoi(msg.String())
+
+			// switch to buffer if existent
+			if err == nil && num-1 < len(l.items) {
+				path := l.items[num-1].path
+				cmds = append(cmds, SendRequestSwitchBufferMsg(path))
+			}
+		}
+
 	case tea.WindowSizeMsg:
 		l.UpdateSize()
 
@@ -172,10 +184,12 @@ func (l *BufferList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			l.Ready = true
 		}
 
+		var cmd tea.Cmd
 		l.viewport, cmd = l.viewport.Update(msg)
+		cmds = append(cmds, cmd)
 	}
 
-	return l, cmd
+	return l, tea.Batch(cmds...)
 }
 
 func (l *BufferList) buildItems() {

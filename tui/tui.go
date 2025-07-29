@@ -46,6 +46,7 @@ func InitialModel() *Model {
 
 	// Initialise key input handler with Vim commands and components
 	m.keyInput = keyinput.New(vim)
+	m.app.KeyInput = m.keyInput
 
 	m.keyInput.Components = []keyinput.FocusedComponent{
 		m.app.DirTree,
