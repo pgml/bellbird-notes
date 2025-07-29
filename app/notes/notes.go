@@ -157,6 +157,10 @@ func Write(path string, content string, forceCreate bool) (int, error) {
 func Rename(oldPath string, newPath string) error {
 	newPath = CheckPath(newPath)
 
+	if f, _ := Exists(newPath); f != nil {
+		return errors.New("Couldn't rename note. Note already exists.")
+	}
+
 	if err := os.Rename(oldPath, newPath); err != nil {
 		debug.LogErr(err)
 		return err
