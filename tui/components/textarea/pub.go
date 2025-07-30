@@ -494,7 +494,7 @@ func (m *Model) SetCursorColor(color color.Color) {
 func (m *Model) EmptyLineAbove() {
 	if m.row == 0 {
 		// extend slice
-		m.value = m.value[:len(m.value)+1]
+		m.value = m.value[:len(m.value)]
 		// add empty item at the beginning
 		m.value = append([][]rune{{}}, m.value...)
 		// move column offset internally to the beginning of the line
