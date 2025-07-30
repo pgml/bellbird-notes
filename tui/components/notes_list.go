@@ -156,7 +156,7 @@ func NewNotesList(conf *config.Config) *NotesList {
 	ti.VirtualCursor = true
 	ti.CharLimit = 100
 
-	notesDir, err := conf.MetaValue("", config.CurrentDirectory)
+	notesDir, err := conf.MetaValue("", config.LastDirectory)
 	if err != nil {
 		debug.LogErr(err)
 	}

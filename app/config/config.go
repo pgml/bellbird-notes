@@ -46,7 +46,7 @@ const (
 	NotesDirectory Option = iota
 	LastNotes
 	LastOpenNote
-	CurrentDirectory
+	LastDirectory
 	CurrentComponent
 	Visible
 	Width
@@ -64,7 +64,7 @@ var options = map[Option]string{
 	NotesDirectory:   "NotesDirectory",
 	LastNotes:        "LastNotes",
 	LastOpenNote:     "LastOpenNote",
-	CurrentDirectory: "CurrentDirectory",
+	LastDirectory:    "LastDirectory",
 	CurrentComponent: "CurrentComponent",
 	Visible:          "Visible",
 	Width:            "Width",
@@ -350,4 +350,31 @@ func (c *Config) NerdFonts() bool {
 
 	c.nerdFonts = &nerdFonts
 	return nerdFonts
+}
+
+// CleanMetaFile attempts to remove orphaned sections from the meta files.
+// E.g. notes that were deleted
+func (c *Config) CleanMetaFile() {
+	go func() {
+		for _, section := range c.metaFile.Sections() {
+			// Skip general, non-note or non-directory related info
+			if section.Name() == ini.DefaultSection {
+				continue
+			}
+
+			if _, err := os.Stat(section.Name()); err != nil {
+				// fake index set to 0 to avoid AllowNonUniqueSections option
+				// since the note was deleted we're sure that this sections
+				// isn't needed anymore
+				err := c.metaFile.DeleteSectionWithIndex(section.Name(), 0)
+
+				if err != nil {
+					debug.LogDebug(err)
+				}
+			}
+		}
+
+		// write out changes
+		c.metaFile.SaveTo(c.metaFilePath)
+	}()
 }

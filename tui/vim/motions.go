@@ -432,7 +432,7 @@ func (v *Vim) confirmAction(opts ki.Options) func() StatusBarMsg {
 			case v.app.DirTree:
 				path := v.app.DirTree.SelectedDir().Path()
 				v.app.NotesList.CurrentPath = path
-				//m.conf.SetMetaValue("", config.CurrentDirectory, path)
+				v.app.Conf.SetMetaValue("", config.LastDirectory, path)
 				statusMsg = v.app.NotesList.Refresh(true, true)
 
 			case v.app.NotesList:

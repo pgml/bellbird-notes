@@ -78,6 +78,8 @@ func NewApp(fc FocusController) *App {
 		focus:        fc,
 	}
 
+	conf.CleanMetaFile()
+
 	return &a
 }
 

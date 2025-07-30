@@ -707,7 +707,7 @@ func findDirInTree(directories []*TreeItem, path string) *TreeItem {
 
 // SelectLastDir selects the last directory
 func (t *DirectoryTree) SelectLastDir() string {
-	dirPath, err := t.conf.MetaValue("", config.CurrentDirectory)
+	dirPath, err := t.conf.MetaValue("", config.LastDirectory)
 	if err == nil && dirPath != "" {
 		for i := range t.dirsListFlat {
 			if t.dirsListFlat[i].path != dirPath {

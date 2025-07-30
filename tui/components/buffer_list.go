@@ -236,7 +236,7 @@ func (l *BufferList) RefreshSize() {
 func (l *BufferList) render() string {
 	var list strings.Builder
 
-	if l.items[l.selectedIndex] == nil {
+	if l.items == nil || l.items[l.selectedIndex] == nil {
 		l.selectedIndex = 0
 	}
 
