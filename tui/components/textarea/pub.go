@@ -1127,6 +1127,10 @@ func (m *Model) CursorAfterSelection() string {
 	return ""
 }
 
+func (m *Model) Val() [][]rune {
+	return m.value
+}
+
 func (m *Model) GoTO(row int) {
 	m.row = row
 }

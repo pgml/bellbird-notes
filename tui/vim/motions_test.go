@@ -15,7 +15,7 @@ func createTestApp(t *testing.T) (*Vim, *components.App) {
 	tmp := t.TempDir()
 	path := filepath.Join(tmp, "test_note.txt")
 
-	content := "TEST\nTest\nTest\ntest\ntest"
+	content := "TEST1\nTest2\nTest3\ntest4\ntes5t"
 	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
 		t.Fatalf("Write failed: %v", err)
 	}
@@ -283,3 +283,54 @@ func TestEnterInsertMode(t *testing.T) {
 		)
 	}
 }
+
+func TestInsertBelow(t *testing.T) {
+	vim, app := createTestApp(t)
+
+	buf := app.Editor.CurrentBuffer
+	ta := app.Editor.Textarea
+
+	vim.insertBelow(keyinput.Options{})()
+
+	if len(ta.Val()[buf.CursorPos.Row+1]) != 0 {
+		t.Fatalf(
+			"An empty line should be at position: %d, but isn't",
+			buf.CursorPos.Row+1,
+		)
+	}
+}
+
+func TestInsertAbove(t *testing.T) {
+	vim, app := createTestApp(t)
+
+	buf := app.Editor.CurrentBuffer
+	ta := app.Editor.Textarea
+
+	vim.lineDown(keyinput.Options{})()
+	vim.insertAbove(keyinput.Options{})()
+
+	if len(ta.Val()[buf.CursorPos.Row]) != 0 {
+		t.Fatalf(
+			"An empty line should be at position: %d, but isn't",
+			buf.CursorPos.Row,
+		)
+	}
+}
+
+// func TestSelectWord(t *testing.T) {}
+// func TestNextWord(t *testing.T) {}
+// func TestPrevWord(t *testing.T) {}
+// func TestFindCharachter(t *testing.T) {}
+// func TestFind(t *testing.T) {}
+// func TestMoveToMatch(t *testing.T) {}
+// func TestDeleteWord(t *testing.T) {}
+// func TestDeleteAfterCursor(t *testing.T) {}
+// func TestDeleteSelection(t *testing.T) {}
+// func TestDeleteCharacter(t *testing.T) {}
+// func TestDeleteFromCursorToChar(t *testing.T) {}
+// func TestSubstituteText(t *testing.T) {}
+// func TestChangeAfterCursor(t *testing.T) {}
+// func TestChangeLine(t *testing.T) {}
+// func TestChangeWord(t *testing.T) {}
+// func TestYankSelection(t *testing.T) {}
+// func TestPaste(t *testing.T) {}
