@@ -363,9 +363,13 @@ func (m *Model) writeWithCursor(
 
 		// cursor
 		m.virtualCursor.SetChar(string(wrLine[m.col]))
+
+		// @todo make this fetch colours either from terminal
+		// or from config
 		m.virtualCursor.Style = m.virtualCursor.Style.
 			Background(theme.ColourSearchFg).
-			Foreground(theme.ColourSearchHighlightFocused)
+			Foreground(lipgloss.Color("#eee"))
+
 		s.WriteString(st.Render(m.virtualCursor.View()))
 
 		// After cursor
