@@ -363,9 +363,12 @@ func (m *Model) writeWithCursor(
 
 		// cursor
 		m.virtualCursor.SetChar(string(wrLine[m.col]))
+		m.virtualCursor.Style = m.virtualCursor.Style.
+			Background(theme.ColourSearchFg).
+			Foreground(theme.ColourSearchHighlightFocused)
 		s.WriteString(st.Render(m.virtualCursor.View()))
 
-		// Atfter cursor
+		// After cursor
 		m.write(wrLine[m.col+1:end], s, st)
 	} else {
 		m.write(wrLine[start:end], s, st)

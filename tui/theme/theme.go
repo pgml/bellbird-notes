@@ -24,7 +24,7 @@ var (
 	ColourSelection     = lipgloss.Color("#666")
 
 	ColourSearchHighlight        = lipgloss.Color("#ffcb78")
-	ColourSearchHighlightFocused = lipgloss.Color("#ffbe73")
+	ColourSearchHighlightFocused = lipgloss.Color("#c59359")
 	ColourSearchFg               = lipgloss.Color("#333")
 )
 
