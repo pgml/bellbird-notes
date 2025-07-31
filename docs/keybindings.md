@@ -78,6 +78,7 @@
 | `/`        | Normal         | Find in buffer                                         |        |
 | `n`        | Normal         | Move to next match                                     |        |
 | `N`        | Normal         | Move to previous match                                 |        |
+| `*`        | Normal         | Highlight word under cursor                            |        |
 
 ### Editing
 

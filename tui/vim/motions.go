@@ -80,7 +80,7 @@ func (v *Vim) FnRegistry() ki.MotionRegistry {
 		"NextWord":               v.nextWord,
 		"PrevWord":               v.prevWord,
 		"FindCharacter":          v.findCharacter,
-		"FindWord":               v.findWord,
+		"FindWordUnderCursor":    v.findWordUnderCursor,
 		"Find":                   v.find,
 		"MoveToMatch":            v.moveToMatch,
 		"GoToFirstNonWhiteSpace": bind(v.app.Editor.GoToInputStart),
@@ -606,31 +606,37 @@ func (v *Vim) findCharacter(opts ki.Options) func() StatusBarMsg {
 	}
 }
 
-func (v *Vim) findWord(opts ki.Options) func() StatusBarMsg {
+func (v *Vim) findWordUnderCursor(opts ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
-		v.app.Editor.Textarea.SelectInnerWord()
-		word := v.app.Editor.Textarea.SelectionStr()
-		v.app.Editor.Textarea.ResetSelection()
+		if len(v.app.Editor.Textarea.Search.Matches) > 0 {
+			v.app.Editor.Textarea.FindNextMatch()
+			return message.StatusBarMsg{}
+		} else {
 
-		if !unicode.IsLetter([]rune(word)[0]) {
-			v.app.Editor.Textarea.WordRight()
-			return v.findWord(opts)()
-		}
+			v.app.Editor.Textarea.SelectInnerWord()
+			word := v.app.Editor.Textarea.SelectionStr()
+			v.app.Editor.Textarea.ResetSelection()
 
-		v.app.Editor.Textarea.Search = textarea.Search{
-			IgnoreCase: opts.GetBool(ki.Args.IgnoreCase),
-			Matches:    make(map[int][]int, 1),
-			Query:      word,
-			ExactWord:  true,
-		}
+			if !unicode.IsLetter([]rune(word)[0]) {
+				v.app.Editor.Textarea.WordRight()
+				return v.findWordUnderCursor(opts)()
+			}
 
-		v.app.Editor.Mode.Current = mode.SearchPrompt
-		v.app.Mode.Current = mode.SearchPrompt
+			v.app.Editor.Textarea.Search = textarea.Search{
+				IgnoreCase: opts.GetBool(ki.Args.IgnoreCase),
+				Matches:    make(map[int][]int, 1),
+				Query:      word,
+				ExactWord:  true,
+			}
 
-		return StatusBarMsg{
-			Type:   message.Prompt,
-			Column: sbc.General,
-			Cmd:    v.app.Editor.SendSearchConfirmedMsg(true),
+			v.app.Editor.Mode.Current = mode.SearchPrompt
+			v.app.Mode.Current = mode.SearchPrompt
+
+			return StatusBarMsg{
+				Type:   message.Prompt,
+				Column: sbc.General,
+				Cmd:    v.app.Editor.SendSearchConfirmedMsg(true),
+			}
 		}
 	}
 }
