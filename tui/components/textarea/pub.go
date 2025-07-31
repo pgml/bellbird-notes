@@ -389,6 +389,7 @@ func (m *Model) RenderLine(
 	style *lipgloss.Style,
 ) {
 	lineInfo := m.LineInfo()
+	m.col = clamp(m.col, 0, len(m.value[m.row]))
 
 	wrLine := *wrappedLine
 	if m.row == l && lineInfo.RowOffset == wl {
