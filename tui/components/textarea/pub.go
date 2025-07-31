@@ -127,50 +127,117 @@ func (m *Model) WordLeft() {
 // Skips any non-letter characters that follow.
 func (m *Model) WordRight() {
 	m.col = clamp(m.col, 0, len(m.value[m.row])-1)
-	li := m.LineInfo()
 
-	if len(m.value[m.row]) == 0 {
-		m.MoveCursor(m.row+1, li.RowOffset, 0)
-		m.repositionView()
+	if m.tryNextLine() {
 		return
 	}
 
-	for {
-		m.characterRight()
+	for m.col <= len(m.value[m.row]) && unicode.IsPunct(m.value[m.row][m.col]) {
+		m.CharacterRight(false)
+		m.skipPunct()
+		m.skipSpaces()
+		return
+	}
 
-		if m.col >= len(m.value[m.row]) {
-			m.MoveCursor(m.row+1, li.RowOffset, 0)
-			break
-		}
-
-		if !unicode.IsLetter(m.value[m.row][m.col]) {
-			m.CharacterRight(false)
-			break
+	for m.col <= len(m.value[m.row]) && unicode.IsLetter(m.value[m.row][m.col]) {
+		m.CharacterRight(false)
+		if m.tryNextLine() {
+			return
 		}
 	}
 
-	m.repositionView()
+	m.skipSpaces()
 }
 
 // WordRightEnd moves the cursor to the end of the next word.
 func (m *Model) WordRightEnd() {
-	if m.col >= len(m.value[m.row])-1 {
-		m.MoveCursor(m.row+1, m.LineInfo().RowOffset, 0)
+	m.col = clamp(m.col, 0, len(m.value[m.row])-1)
+
+	if m.tryNextLine() {
+		if len(m.value[m.row]) > 1 {
+			m.WordRightEnd()
+		}
+		return
 	}
 
-	for {
-		m.characterRight()
+	m.skipSpaces()
+
+	for m.col+1 < len(m.value[m.row]) {
+		m.CharacterRight(false)
+		m.skipSpaces()
 
 		if m.col+1 >= len(m.value[m.row]) {
 			break
 		}
 
-		if !unicode.IsLetter(m.value[m.row][m.col+1]) {
+		curRune := m.value[m.row][m.col]
+		nextRune := m.value[m.row][m.col+1]
+
+		if unicode.IsPunct(curRune) && unicode.IsLetter(nextRune) {
+			return
+		}
+
+		// move to the last occurence of a punctuation
+		if unicode.IsPunct(curRune) {
+			for !unicode.IsSpace(m.value[m.row][m.col+1]) {
+				m.CharacterRight(false)
+			}
+		}
+
+		// check bounds
+		if m.col+1 >= len(m.value[m.row]) {
+			return
+		}
+
+		nextRune = m.value[m.row][m.col+1]
+		if unicode.IsPunct(nextRune) || unicode.IsSpace(nextRune) || m.tryNextLine() {
+			return
+		}
+	}
+}
+
+func (m *Model) tryNextLine() bool {
+	if m.col >= len(m.value[m.row])-1 {
+		m.MoveCursor(m.row+1, m.LineInfo().RowOffset, 0)
+		return true
+	}
+	return false
+}
+
+func (m *Model) skipSpaces() {
+	for {
+		if m.col >= len(m.value[m.row]) {
+			break
+		}
+
+		if !unicode.IsSpace(m.value[m.row][m.col]) {
+			break
+		}
+
+		m.CharacterRight(false)
+
+		if m.tryNextLine() {
 			break
 		}
 	}
+}
 
-	m.repositionView()
+func (m *Model) skipPunct() {
+	for {
+		if m.col >= len(m.value[m.row]) {
+			break
+		}
+
+		if !unicode.IsPunct(m.value[m.row][m.col]) {
+			break
+		}
+
+		m.CharacterRight(false)
+
+		if m.tryNextLine() {
+			return
+		}
+	}
 }
 
 // FindCharacter scans the current line for the specified character.
