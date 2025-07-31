@@ -122,6 +122,7 @@
 			"/": "Find",
 			"n": "MoveToMatch",
 			"N": ["MoveToMatch", { "prev": true }],
+			"*": "FindWord",
 			"O": "InsertAbove",
 			"r": "Replace",
 			"dd": "DeleteLine",

@@ -3,12 +3,14 @@ package textarea
 import (
 	"sort"
 	"strings"
+	"unicode"
 )
 
 type Search struct {
 	Query      string
 	IgnoreCase bool
 	Matches    map[int][]int
+	ExactWord  bool
 }
 
 // FirstMatch returns the first item of a search result
@@ -97,7 +99,7 @@ func (s Search) FindMatch(current CursorPos, prev bool) (CursorPos, bool) {
 
 // FindMatches returns all occurences of the current search query for
 // the given row
-func (s *Search) FindMatches(lineStr *string, row int) []int {
+func (s *Search) FindMatches(line *[]rune, row int) []int {
 	var positions []int
 
 	query := s.Query
@@ -106,13 +108,34 @@ func (s *Search) FindMatches(lineStr *string, row int) []int {
 		return nil
 	}
 
-	if s.IgnoreCase {
+	lineStr := string(*line)
+	queryLen := len(query)
+
+	if s.IgnoreCase || s.ExactWord {
 		query = strings.ToLower(query)
-		*lineStr = strings.ToLower(*lineStr)
+		lineStr = strings.ToLower(lineStr)
 	}
 
-	for i := 0; i <= len(*lineStr)-len(query); i++ {
-		if (*lineStr)[i:i+len(query)] == query {
+	for i := 0; i <= len(lineStr)-len(query); i++ {
+		if lineStr[i:i+queryLen] == query {
+			if s.ExactWord {
+				line := *line
+				bef := clamp(i-1, 0, len(line))
+				aft := clamp(i+queryLen, 0, len(line))
+
+				if len(line) <= aft {
+					continue
+				}
+
+				// if we need to look for the exact word check if there are any
+				// letters surrounding the search query and break if there are
+				if (bef > 0 && unicode.IsLetter(line[bef])) ||
+					unicode.IsLetter(line[aft]) {
+
+					continue
+				}
+			}
+
 			positions = append(positions, i)
 		}
 	}

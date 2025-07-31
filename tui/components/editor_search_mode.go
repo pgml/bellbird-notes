@@ -10,7 +10,8 @@ type SearchMsg struct {
 }
 
 type SearchConfirmedMsg struct {
-	Search string
+	Search      string
+	ResetPrompt bool
 }
 
 type SearchCancelMsg struct{}
@@ -33,7 +34,7 @@ func (e *Editor) handleSearchMode(msg tea.KeyMsg) tea.Cmd {
 		}
 
 	case "enter":
-		cmd = e.SendConfirmedMsg()
+		cmd = e.SendSearchConfirmedMsg(false)
 	}
 
 	return cmd
@@ -41,13 +42,13 @@ func (e *Editor) handleSearchMode(msg tea.KeyMsg) tea.Cmd {
 
 func (e *Editor) CancelSearch() {
 	e.Textarea.ResetMultiSelection()
-	//e.EnterNormalMode(false)
 }
 
-func (e *Editor) SendConfirmedMsg() tea.Cmd {
+func (e *Editor) SendSearchConfirmedMsg(resetPrompt bool) tea.Cmd {
 	return func() tea.Msg {
 		return SearchConfirmedMsg{
-			Search: e.Textarea.Search.Query,
+			Search:      e.Textarea.Search.Query,
+			ResetPrompt: resetPrompt,
 		}
 	}
 }

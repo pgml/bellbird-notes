@@ -442,6 +442,7 @@ func (m *Model) RenderMultiSelection(
 
 	for _, hlStart := range *matches {
 		hlEnd := hlStart + queryLen
+
 		if hlStart > len(wrLine)-queryLen {
 			break
 		}
@@ -455,6 +456,8 @@ func (m *Model) RenderMultiSelection(
 			}
 		}
 
+		match := wrLine[hlStart:hlEnd]
+
 		// Highlightes matches
 		hlStyle := lipgloss.NewStyle().
 			Background(theme.ColourSearchHighlight).
@@ -463,7 +466,7 @@ func (m *Model) RenderMultiSelection(
 		if cursorRowMatch {
 			m.writeWithCursor(hlStart, hlEnd, wrappedLine, s, &hlStyle)
 		} else {
-			m.write(wrLine[hlStart:hlEnd], s, &hlStyle)
+			m.write(match, s, &hlStyle)
 		}
 
 		cursorPos = hlEnd

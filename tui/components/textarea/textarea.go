@@ -1266,8 +1266,7 @@ func (m Model) View() string {
 			if selection.Content != "" {
 				m.RenderSelection(&selection, &line, &wrappedLine, l, wl, &s, &style)
 			} else {
-				wrappedStr := string(wrappedLine)
-				matches := m.Search.FindMatches(&wrappedStr, l)
+				matches := m.Search.FindMatches(&wrappedLine, l)
 
 				if len(matches) == 0 {
 					delete(m.Search.Matches, l)

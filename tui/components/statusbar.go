@@ -133,7 +133,7 @@ func (s *StatusBar) Update(
 		s.TeaCmd = nil
 	}
 
-	switch teaMsg.(type) {
+	switch msg := teaMsg.(type) {
 	case tea.KeyMsg:
 		if s.Focused && s.shouldShowMode() && s.Prompt.Focused() {
 			s.Prompt, _ = s.Prompt.Update(teaMsg)
@@ -148,11 +148,11 @@ func (s *StatusBar) Update(
 	case SearchConfirmedMsg:
 		s.Mode = mode.Search
 		s.Focused = false
-		s.Prompt.Blur()
+		s.BlurPrompt(msg.ResetPrompt)
 
 	case SearchCancelMsg:
 		s.Focused = false
-		s.BlurPrompt(false)
+		s.BlurPrompt(true)
 		s.CancelAction(func() {})
 	}
 
@@ -242,7 +242,7 @@ func (s *StatusBar) ConfirmAction(
 	fnMsg := s.execPromptFn()
 
 	s.setColContent(statusMsg.Column, &statusMsg.Content)
-	s.BlurPrompt(false)
+	s.BlurPrompt(true)
 
 	statusMsg.Cmd = tea.Batch(
 		s.SendDeferredActionMsg(),
@@ -291,7 +291,7 @@ func (s *StatusBar) execPromptFn() message.StatusBarMsg {
 // CancelAction cancels the current prompt input and resets the status bar state.
 func (s *StatusBar) CancelAction(cb func()) message.StatusBarMsg {
 	s.Type = message.Success
-	s.BlurPrompt(false)
+	s.BlurPrompt(true)
 	return message.StatusBarMsg{}
 }
 
@@ -305,8 +305,8 @@ func (s *StatusBar) setColContent(col sbc.Column, cnt *string) {
 	s.Columns[col] = *cnt
 }
 
-func (s *StatusBar) BlurPrompt(keepValue bool) {
-	if !keepValue {
+func (s *StatusBar) BlurPrompt(resetValue bool) {
+	if resetValue {
 		s.Prompt.SetValue("")
 	}
 
