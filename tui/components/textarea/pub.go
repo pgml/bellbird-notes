@@ -909,11 +909,22 @@ func (m *Model) SelectRange(
 	//m.Selection.Content = &content
 }
 
-func (m *Model) SelectInnerWord() {
-	// if the current character is space then just enter visual mode
-	if unicode.IsSpace(m.value[m.row][m.col]) {
+func (m *Model) SelectInnerWord() string {
+	// if it's just a single letter just enter visual mode
+	if m.col-1 >= 0 && m.col+1 < len(m.value[m.row]) {
+		prevRune := m.value[m.row][m.col-1]
+		nextRune := m.value[m.row][m.col+1]
+
+		if !unicode.IsLetter(nextRune) && !unicode.IsLetter(prevRune) {
+			m.StartSelection(SelectVisual)
+			return ""
+		}
+	}
+
+	// if the current character is not a letter then just enter visual mode
+	if !unicode.IsLetter(m.value[m.row][m.col]) {
 		m.StartSelection(SelectVisual)
-		return
+		return ""
 	}
 
 	m.col = clamp(m.col, 0, len(m.value[m.row])-1)
@@ -941,8 +952,10 @@ func (m *Model) SelectInnerWord() {
 	m.Selection.StartCol = m.col
 	m.Selection.Mode = SelectVisual
 
+	var word strings.Builder
 	// move right until we find a space and break
 	for {
+		word.WriteRune(m.value[m.row][m.col])
 		m.characterRight()
 		if m.col == len(m.value[m.row])-1 {
 			break
@@ -951,12 +964,15 @@ func (m *Model) SelectInnerWord() {
 			break
 		}
 	}
+
+	return word.String()
 }
 
-func (m *Model) SelectOuterWord() {
-	m.SelectInnerWord()
+func (m *Model) SelectOuterWord() string {
+	word := m.SelectInnerWord()
 	//m.SetCursorColumn(m.col + 1)
 	m.col = clamp(m.col+1, 0, len(m.value[m.row])-1)
+	return word
 }
 
 // SelectionRange determines the range of the active selection
