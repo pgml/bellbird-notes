@@ -179,6 +179,9 @@ func (m *Model) WordRightEnd() {
 
 		// move to the last occurence of a punctuation
 		if unicode.IsPunct(curRune) {
+			if m.col+1 >= len(m.value[m.row])-1 {
+				break
+			}
 			for !unicode.IsSpace(m.value[m.row][m.col+1]) {
 				m.CharacterRight(false)
 			}
