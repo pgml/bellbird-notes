@@ -450,6 +450,7 @@ func (v *Vim) confirmAction(opts ki.Options) func() StatusBarMsg {
 
 				if buf, ok, _ := v.app.Editor.Buffers.Contain(sel.Path()); ok {
 					statusMsg.Cmd = components.SendRequestSwitchBufferMsg(buf.Path(false))
+					v.FocusColumn(3)
 				}
 
 				//default:
