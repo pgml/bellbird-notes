@@ -2,6 +2,7 @@ package components
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"slices"
 	"strconv"
@@ -208,6 +209,14 @@ type DirectoryTree struct {
 
 	// Stores currently expanded directories
 	expandedDirs map[string]bool
+
+	visible bool
+}
+
+func (t DirectoryTree) Visible() bool { return t.visible }
+
+func (t *DirectoryTree) SetVisible(visible string) {
+	t.conf.SetValue(config.Editor, config.Visible, visible)
 }
 
 // Init initialises the Model on program load.
@@ -283,6 +292,8 @@ func (t *DirectoryTree) View() string {
 
 // NewDirectoryTree creates a new model with default settings.
 func NewDirectoryTree(conf *config.Config) *DirectoryTree {
+	vis, _ := conf.Value(config.Folders, config.Visible)
+
 	tree := &DirectoryTree{
 		List: List[*TreeItem]{
 			title:         "FOLDERS",
@@ -294,33 +305,24 @@ func NewDirectoryTree(conf *config.Config) *DirectoryTree {
 			PinnedItems:   PinnedItems[*TreeItem]{},
 		},
 		expandedDirs: make(map[string]bool),
+		visible:      vis.GetBool(),
 	}
 
 	tree.input = tree.Input()
-
-	// fetch notes directory
-	notesDir, err := conf.Value(
-		config.General,
-		config.NotesDirectory,
-	)
-
-	if err != nil {
-		debug.LogErr(err)
-	}
 
 	// append root directory
 	tree.items = append(tree.items, &TreeItem{
 		Item: Item{
 			index:     0,
 			name:      app.Name(),
-			path:      notesDir,
+			path:      tree.NotesDir(),
 			styles:    DirTreeStyle(),
 			nerdFonts: conf.NerdFonts(),
 		},
 		expanded: true,
 		level:    0,
 		parent:   -1,
-		children: tree.getChildren(notesDir, 0),
+		children: tree.getChildren(tree.NotesDir(), 0),
 	})
 
 	tree.build()
@@ -329,6 +331,24 @@ func NewDirectoryTree(conf *config.Config) *DirectoryTree {
 }
 
 func (t DirectoryTree) Name() string { return "Folders" }
+func (t DirectoryTree) NotesDir() string {
+	// fetch notes directory
+	notesDir, err := t.conf.Value(
+		config.General,
+		config.NotesDirectory,
+	)
+
+	if err != nil {
+		debug.LogErr(err)
+	}
+
+	if strings.HasPrefix(notesDir.Value, "~/") {
+		homeDir, _ := os.UserHomeDir()
+		notesDir.Value = filepath.Join(homeDir, notesDir.Value[2:])
+	}
+
+	return notesDir.Value
+}
 
 // Input returns and textinput model tailored to the directory tree
 func (t *DirectoryTree) Input() textinput.Model {

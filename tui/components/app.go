@@ -63,7 +63,6 @@ func SendRefreshUiMsg() tea.Cmd {
 
 func NewApp(fc FocusController) *App {
 	conf := config.New()
-	conf.SetDefaults()
 
 	a := App{
 		Conf:         conf,

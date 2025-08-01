@@ -127,7 +127,7 @@ func BorderStyle() lipgloss.Border {
 		return style
 	}
 
-	switch border {
+	switch border.Value {
 	case "normal":
 		return lipgloss.NormalBorder()
 	case "thick":

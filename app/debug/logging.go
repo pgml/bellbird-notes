@@ -88,9 +88,9 @@ func ConfigDir() (string, error) {
 
 	configDir := ConfigDir
 	appName := "bellbird-notes"
-	if os.Getenv("CHANNEL") == "dev" {
-		configDir += "-dev"
-		appName += "-dev"
+	if channel := os.Getenv("CHANNEL"); channel != "" {
+		configDir += "-" + channel
+		appName += "-" + channel
 	}
 
 	confDir := filepath.Join(ConfigDir, appName)

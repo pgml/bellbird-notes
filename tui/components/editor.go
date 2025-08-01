@@ -1590,27 +1590,23 @@ func (e *Editor) UpdateMetaInfo() {
 
 // LineNumbers returns whether line numbers are enabled in the config file
 func (e *Editor) LineNumbers() bool {
-	n, err := e.conf.Value(config.Editor, config.ShowLineNumbers)
+	numbers, err := e.conf.Value(config.Editor, config.LineNumbers)
 
 	if err != nil {
 		return false
 	}
 
-	number := n == "true"
-
-	return number
+	return numbers.GetBool()
 }
 
 func (e *Editor) SearchIgnoreCase() bool {
-	n, err := e.conf.Value(config.Editor, config.SearchIgnoreCase)
+	ignoreCase, err := e.conf.Value(config.Editor, config.SearchIgnoreCase)
 
 	if err != nil {
 		return false
 	}
 
-	ignoreCase := n == "true"
-
-	return ignoreCase
+	return ignoreCase.GetBool()
 }
 
 func (e *Editor) RefreshTextAreaStyles() {

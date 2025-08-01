@@ -1,6 +1,7 @@
 package config
 
 import (
+	_ "embed"
 	"errors"
 	"fmt"
 	"os"
@@ -14,12 +15,15 @@ import (
 	"gopkg.in/ini.v1"
 )
 
+//go:embed default.conf
+var defaultConf []byte
+
 type Section int
 
 const (
 	General Section = iota
 	Theme
-	SideBar
+	Folders
 	NotesList
 	Editor
 	BreadCrumb
@@ -29,7 +33,7 @@ const (
 var sections = map[Section]string{
 	General:    "General",
 	Theme:      "Theme",
-	SideBar:    "Sidebar",
+	Folders:    "Folders",
 	NotesList:  "NotesList",
 	Editor:     "Editor",
 	BreadCrumb: "Breadcrumb",
@@ -53,10 +57,11 @@ const (
 	CursorPosition
 	Pinned
 	Expanded
-	ShowLineNumbers
+	LineNumbers
 	NerdFonts
 	Border
 	SearchIgnoreCase
+	OpenNewNote
 )
 
 // Map of Option enum values to their string names as used in the ini file
@@ -71,10 +76,11 @@ var options = map[Option]string{
 	CursorPosition:   "CursorPosition",
 	Pinned:           "Pinned",
 	Expanded:         "Expanded",
-	ShowLineNumbers:  "ShowLineNumbers",
+	LineNumbers:      "LineNumbers",
 	NerdFonts:        "NerdFonts",
 	Border:           "Border",
 	SearchIgnoreCase: "SearchIgnoreCase",
+	OpenNewNote:      "OpenNewNote",
 }
 
 // String returns the string representation of an Option
@@ -82,11 +88,15 @@ func (o Option) String() string {
 	return options[o]
 }
 
-// MetaValue represents an entry in the metadata file
-type MetaValue struct {
-	Section string
-	Option  Option
-	Value   string
+// Value represents an entry in the metadata file
+type Value struct {
+	//Section string
+	//Option  Option
+	Value string
+}
+
+func (v Value) GetBool() bool {
+	return v.Value == "true"
 }
 
 // Config holds all config data
@@ -97,8 +107,11 @@ type Config struct {
 	// path to the meta data config file
 	metaFilePath string
 
-	// parsed main config file
+	// parsed default config file
 	file *ini.File
+
+	// parsed user config file
+	userFile *ini.File
 
 	// parse meta data file
 	metaFile *ini.File
@@ -124,27 +137,35 @@ func New() *Config {
 
 	filePath, err := app.ConfigFile(false)
 	if err != nil {
-		debug.LogErr(err)
 		return config
 	}
 
 	metaFilePath, err := app.ConfigFile(true)
 	if err != nil {
 		debug.LogErr(err)
-		return config
+		return nil
 	}
 
 	if _, err := os.Stat(filePath); err != nil {
-		utils.CreateFile(filePath, false)
+		_, err := utils.CreateFile(filePath, false)
+		if err != nil {
+			debug.LogErr(err)
+		}
 	}
 
 	ini.PrettyFormat = false
 	ini.PrettyEqual = true
 
-	conf, err := ini.Load(filePath)
+	conf, err := ini.Load(defaultConf)
 	if err != nil {
 		debug.LogErr("Failed to read config file:", err)
-		return config
+		return nil
+	}
+
+	userConf, err := ini.Load(filePath)
+	if err != nil {
+		debug.LogErr("Failed to read user config file:", err)
+		return nil
 	}
 
 	if _, err := os.Stat(metaFilePath); err != nil {
@@ -154,13 +175,14 @@ func New() *Config {
 	metaConf, err := ini.Load(metaFilePath)
 	if err != nil {
 		debug.LogErr("Failed to read meta infos file:", err)
-		return config
+		return nil
 	}
 
 	return &Config{
 		filePath:     filePath,
 		metaFilePath: metaFilePath,
 		file:         conf,
+		userFile:     userConf,
 		metaFile:     metaConf,
 		flushDelay:   400 * time.Millisecond,
 	}
@@ -172,55 +194,32 @@ func (c *Config) Reload() {
 		debug.LogErr("Failed to read config file:", err)
 	}
 
-	c.file = conf
-}
-
-// SetDefaults sets default config values if none are present
-func (c *Config) SetDefaults() {
-	if n, err := c.Value(General, NotesDirectory); err == nil && n == "" {
-		notesRootDir, _ := app.NotesRootDir()
-		c.SetValue(General, NotesDirectory, notesRootDir)
-	}
-
-	if n, err := c.Value(Theme, Border); err == nil && n == "" {
-		c.SetValue(Theme, Border, "rounded")
-	}
-
-	if n, err := c.MetaValue("", LastNotes); err == nil && n == "" {
-		c.SetMetaValue("", LastNotes, "")
-	}
-
-	if n, err := c.MetaValue("", LastOpenNote); err == nil && n == "" {
-		c.SetMetaValue("", LastOpenNote, "")
-	}
+	c.userFile = conf
 }
 
 // Value retrieves the value of a configuration option in a given section.
-func (c *Config) Value(section Section, option Option) (string, error) {
-	if c.file == nil {
-		return "", errors.New("could not find config file")
+func (c *Config) Value(section Section, option Option) (Value, error) {
+	if sect := c.userFile.Section(section.String()); sect != nil {
+		if opt := sect.Key(option.String()); opt.String() != "" {
+			return Value{opt.String()}, nil
+		}
 	}
 
 	sect := c.file.Section(section.String())
 
 	if sect == nil {
-		return "", fmt.Errorf("could not find config section: %s", section)
+		return Value{}, fmt.Errorf("No section: %s", section.String())
 	}
 
-	opt := c.file.Section(section.String()).Key(option.String())
-
-	if opt == nil {
-		return "", fmt.Errorf(
-			"could not find config option `%s` in section `%s`",
-			option,
-			section,
+	if opt := sect.Key(option.String()); opt.String() != "" {
+		return Value{opt.String()}, nil
+	} else {
+		return Value{}, fmt.Errorf(
+			"couldn't find config option `%s` in section `%s`",
+			option.String(),
+			section.String(),
 		)
 	}
-
-	return c.file.
-		Section(section.String()).
-		Key(option.String()).
-		String(), nil
 }
 
 // MetaValue retrieves a metadata value by a section and option.
@@ -339,8 +338,8 @@ func (c *Config) NerdFonts() bool {
 	nerdFonts := true
 
 	// if setting is found in config file use it
-	if err == nil && nf != "" {
-		nerdFonts = nf == "true"
+	if err == nil && nf.Value != "" {
+		nerdFonts = nf.GetBool()
 	}
 
 	// overwrite if cli flag is found

@@ -26,9 +26,12 @@ func Name() string {
 // Huh?
 func ModuleName() string {
 	moduleName := "bellbird-notes"
-	if IsDev() {
-		moduleName += "-dev"
+	if channel := os.Getenv("CHANNEL"); channel != "" {
+		moduleName += "-" + channel
 	}
+	//if IsDev() {
+	//	moduleName += "-dev"
+	//}
 
 	return moduleName
 }
@@ -58,11 +61,6 @@ func ConfigDir() (string, error) {
 		msg := "Could not get config directory in config.go/ConfigDir()"
 		debug.LogErr(msg, err)
 		return "", err
-	}
-
-	configDir := ConfigDir
-	if IsDev() {
-		configDir += "-dev"
 	}
 
 	appName := ModuleName()
