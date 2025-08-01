@@ -443,6 +443,12 @@ func (l *NotesList) Remove() message.StatusBarMsg {
 
 	l.Refresh(false, false)
 
+	// if we deleted the last item in the list select the note
+	// that is the last after the deletion
+	if l.selectedIndex >= len(l.items) {
+		l.selectedIndex = len(l.items) - 1
+	}
+
 	return message.StatusBarMsg{
 		Content: resultMsg,
 		Type:    msgType,
