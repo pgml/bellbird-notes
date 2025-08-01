@@ -135,6 +135,10 @@ func (l *NotesList) View() string {
 		return "\n  Initializing..."
 	}
 
+	if !l.Visible {
+		return ""
+	}
+
 	l.viewport.SetContent(l.build())
 	l.UpdateViewportInfo()
 
@@ -176,6 +180,9 @@ func NewNotesList(conf *config.Config) *NotesList {
 		},
 		CurrentPath: notesDir,
 	}
+
+	vis, _ := conf.Value(config.NotesList, config.Visible)
+	list.Visible = vis.GetBool()
 
 	list.Refresh(false, true)
 	return list

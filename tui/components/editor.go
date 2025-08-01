@@ -365,6 +365,12 @@ func (e *Editor) RefreshSize() {
 	e.setTextareaSize()
 }
 
+func (e *Editor) SetWidth(w int) {
+	e.viewport.SetWidth(w)
+	e.Textarea.SetWidth(w)
+	e.Size.Width = w
+}
+
 func (e *Editor) SetBuffers(b *Buffers) {
 	e.Buffers = b
 }

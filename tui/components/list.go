@@ -464,4 +464,15 @@ func (l *List[T]) RefreshStyles() {
 	)
 	l.Remove()
 	l.BuildHeader(l.Size.Width, true)
+
+	visible := true
+	switch l.title {
+	case "FOLDERS":
+		vis, _ := l.conf.Value(config.Folders, config.Visible)
+		visible = vis.GetBool()
+	case "NOTES":
+		vis, _ := l.conf.Value(config.NotesList, config.Visible)
+		visible = vis.GetBool()
+	}
+	l.Visible = visible
 }

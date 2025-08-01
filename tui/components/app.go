@@ -118,6 +118,8 @@ func (a *App) UpdateComponents(msg tea.Msg) []tea.Cmd {
 	if a.componentsReady() && !a.Editor.LastOpenNoteLoaded {
 		a.Editor.OpenLastNotes()
 		a.Editor.LastOpenNoteLoaded = true
+
+		cmds = append(cmds, SendRefreshUiMsg())
 	}
 
 	// focus notes list if not buffer is open

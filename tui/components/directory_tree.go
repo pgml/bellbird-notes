@@ -209,14 +209,6 @@ type DirectoryTree struct {
 
 	// Stores currently expanded directories
 	expandedDirs map[string]bool
-
-	visible bool
-}
-
-func (t DirectoryTree) Visible() bool { return t.visible }
-
-func (t *DirectoryTree) SetVisible(visible string) {
-	t.conf.SetValue(config.Editor, config.Visible, visible)
 }
 
 // Init initialises the Model on program load.
@@ -276,6 +268,10 @@ func (t *DirectoryTree) View() string {
 		return "\n  Initializing..."
 	}
 
+	if !t.Visible {
+		return ""
+	}
+
 	t.viewport.SetContent(t.render())
 	t.UpdateViewportInfo()
 
@@ -292,7 +288,6 @@ func (t *DirectoryTree) View() string {
 
 // NewDirectoryTree creates a new model with default settings.
 func NewDirectoryTree(conf *config.Config) *DirectoryTree {
-	vis, _ := conf.Value(config.Folders, config.Visible)
 
 	tree := &DirectoryTree{
 		List: List[*TreeItem]{
@@ -305,9 +300,10 @@ func NewDirectoryTree(conf *config.Config) *DirectoryTree {
 			PinnedItems:   PinnedItems[*TreeItem]{},
 		},
 		expandedDirs: make(map[string]bool),
-		visible:      vis.GetBool(),
 	}
 
+	vis, _ := conf.Value(config.Folders, config.Visible)
+	tree.Visible = vis.GetBool()
 	tree.input = tree.Input()
 
 	// append root directory

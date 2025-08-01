@@ -1,11 +1,13 @@
 package tui
 
 import (
+	"bellbird-notes/app/debug"
 	"bellbird-notes/internal/interfaces"
 	"bellbird-notes/tui/components"
 	"bellbird-notes/tui/keyinput"
 	"bellbird-notes/tui/message"
 	"bellbird-notes/tui/mode"
+	"bellbird-notes/tui/theme"
 	sbc "bellbird-notes/tui/types/statusbar_column"
 	"bellbird-notes/tui/vim"
 
@@ -234,4 +236,21 @@ func (m *Model) RefreshUi() {
 	m.app.NotesList.RefreshStyles()
 	m.app.Editor.RefreshTextAreaStyles()
 	m.app.BufferList.RefreshStyles()
+
+	m.updateEditorWidth()
+}
+
+func (m *Model) updateEditorWidth() {
+	termW, _ := theme.TerminalSize()
+	editorWidth := termW
+
+	if m.app.DirTree.Visible {
+		editorWidth -= m.app.DirTree.Size.Width
+	}
+
+	if m.app.NotesList.Visible {
+		editorWidth -= m.app.NotesList.Size.Width
+	}
+
+	m.app.Editor.SetWidth(editorWidth)
 }
