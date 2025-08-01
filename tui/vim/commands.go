@@ -5,6 +5,8 @@ import (
 	"bellbird-notes/tui/message"
 )
 
+type Commands = components.Commands
+
 func (v *Vim) CmdRegistry() components.Commands {
 	return components.Commands{
 		message.CmdPrompt.Yes:       v.statusBarConfirm,
@@ -24,6 +26,13 @@ func (v *Vim) CmdRegistry() components.Commands {
 		"buffers":                         v.listBuffers,
 
 		message.CmdPrompt.New: v.cmdNewScratchBuffer,
+
+		"ToggleFolders": func(_ ...string) StatusBarMsg {
+			return v.app.DirTree.Toggle()
+		},
+		"ToggleNotes": func(_ ...string) StatusBarMsg {
+			return v.app.NotesList.Toggle()
+		},
 	}
 }
 

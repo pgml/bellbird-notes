@@ -1,7 +1,6 @@
 package tui
 
 import (
-	"bellbird-notes/app/debug"
 	"bellbird-notes/internal/interfaces"
 	"bellbird-notes/tui/components"
 	"bellbird-notes/tui/keyinput"

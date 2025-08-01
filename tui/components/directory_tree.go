@@ -1046,3 +1046,10 @@ func (t *DirectoryTree) ItemsContain(path string) (*TreeItem, bool) {
 
 	return nil, false
 }
+
+func (t *DirectoryTree) Toggle() message.StatusBarMsg {
+	t.Visible = !t.Visible
+	return message.StatusBarMsg{
+		Cmd: SendRefreshUiMsg(),
+	}
+}

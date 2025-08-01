@@ -583,3 +583,10 @@ func (l *NotesList) PasteSelection() message.StatusBarMsg {
 
 	return statusMsg
 }
+
+func (l *NotesList) Toggle() message.StatusBarMsg {
+	l.Visible = !l.Visible
+	return message.StatusBarMsg{
+		Cmd: SendRefreshUiMsg(),
+	}
+}

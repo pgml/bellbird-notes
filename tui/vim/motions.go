@@ -58,6 +58,8 @@ func (v *Vim) FnRegistry() ki.MotionRegistry {
 		"CancelAction":    v.cancelAction,
 		"CloseNote":       bind(v.app.Editor.DeleteCurrentBuffer),
 		"NewScratch":      v.newScratchBuffer,
+		"ToggleFolders":   bind(v.app.DirTree.Toggle),
+		"ToggleNotes":     bind(v.app.NotesList.Toggle),
 
 		// Text editing
 		"EnterNormalMode":   v.enterNormalMode,
