@@ -78,7 +78,7 @@ func (b BufferListItem) render(
 
 // String is string representation of a Note
 func (b BufferListItem) String() string {
-	index := b.render(strconv.Itoa(b.index+1), false, false, 0, 0, 2)
+	index := b.render(strconv.Itoa(b.index+1), false, false, 0, 2, 2)
 	name := b.render(b.name, false, false, 0, 0, 2)
 
 	icon := theme.Icon(theme.IconNote, b.nerdFonts)
