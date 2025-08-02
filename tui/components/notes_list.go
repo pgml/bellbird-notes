@@ -471,6 +471,7 @@ func (l *NotesList) ConfirmAction() message.StatusBarMsg {
 		oldPath := ""
 		newPath := filepath.Join(l.CurrentPath, l.input.Value()+ext)
 		resultMsg := ""
+		var cmd tea.Cmd
 
 		switch l.EditState {
 		case EditStates.Rename:
@@ -482,9 +483,7 @@ func (l *NotesList) ConfirmAction() message.StatusBarMsg {
 
 				if oldPath != newPath {
 					// update the meta file so we don't lose meta data
-					err := l.conf.RenameMetaSection(oldPath, newPath)
-
-					if err != nil {
+					if err := l.conf.RenameMetaSection(oldPath, newPath); err != nil {
 						debug.LogErr(err)
 					}
 
@@ -492,6 +491,7 @@ func (l *NotesList) ConfirmAction() message.StatusBarMsg {
 					// what's going on
 					if buf, ok, _ := l.Buffers.Contain(oldPath); ok {
 						buf.path = newPath
+						cmd = SendRefreshBufferMsg(buf.Path(false))
 					}
 
 					l.Refresh(false, true)
@@ -499,14 +499,21 @@ func (l *NotesList) ConfirmAction() message.StatusBarMsg {
 			}
 
 		case EditStates.Create:
-			if _, err := notes.Create(newPath); err == nil {
+			if note, err := notes.Create(newPath); err == nil {
 				l.Refresh(true, true)
 
-				if note, ok := l.ItemsContain(newPath); ok {
+				if note, ok := l.ItemsContain(note.Path); ok {
 					l.selectedIndex = note.index
 				} else {
 					debug.LogErr(ok)
 				}
+
+				openNewNote, _ := l.conf.Value(config.General, config.OpenNewNote)
+				if openNewNote.GetBool() {
+					cmd = SendSwitchBufferMsg(note.Path, true)
+				}
+
+				resultMsg = note.Path
 			} else {
 				debug.LogErr(err)
 			}
@@ -520,6 +527,7 @@ func (l *NotesList) ConfirmAction() message.StatusBarMsg {
 			Content: resultMsg,
 			Sender:  message.SenderNotesList,
 			Column:  sbc.General,
+			Cmd:     cmd,
 		}
 	}
 

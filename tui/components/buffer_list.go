@@ -165,7 +165,7 @@ func (l *BufferList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// switch to buffer if existent
 			if err == nil && num-1 < len(l.items) {
 				path := l.items[num-1].path
-				cmds = append(cmds, SendRequestSwitchBufferMsg(path))
+				cmds = append(cmds, SendSwitchBufferMsg(path, true))
 			}
 		}
 

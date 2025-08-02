@@ -171,10 +171,19 @@ func (a *App) UpdateComponents(msg tea.Msg) []tea.Cmd {
 		}
 	}
 
-	switch msg.(type) {
-	case RequestSwitchBufferMsg:
+	switch msg := msg.(type) {
+	case RefreshBufferMsg:
+		a.Editor.Update(msg)
+
+	case SwitchBufferMsg:
 		a.KeyInput.FetchKeyMap(true)
 		a.BufferList.SetSelectedIndex(0)
+		// send the switch request to the editor
+		a.Editor.Update(msg)
+
+		if msg.FocusEditor {
+			a.focus.FocusColumn(3)
+		}
 	}
 
 	// let the buffer list know if anything changes

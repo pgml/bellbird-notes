@@ -417,14 +417,7 @@ func (v *Vim) confirmAction(opts ki.Options) func() StatusBarMsg {
 			!v.app.StatusBar.Focused &&
 			!v.app.Editor.Focused() {
 
-			editState := v.app.NotesList.EditState
 			statusMsg = f.ConfirmAction()
-
-			// Update the editor in case we're renaming the currently open buffer
-			if editState == components.EditStates.Rename {
-				v.app.Editor.BuildHeader(v.app.Editor.Size.Width, true)
-				v.app.Editor.UpdateMetaInfo()
-			}
 		} else {
 			// only open stuff if we're in normal mode
 			if v.app.Mode.Current != mode.Normal {
@@ -447,18 +440,15 @@ func (v *Vim) confirmAction(opts ki.Options) func() StatusBarMsg {
 			case v.app.BufferList:
 				items := v.app.BufferList.Items()
 				sel := items[v.app.BufferList.SelectedIndex()]
-
-				if buf, ok, _ := v.app.Editor.Buffers.Contain(sel.Path()); ok {
-					statusMsg.Cmd = components.SendRequestSwitchBufferMsg(buf.Path(false))
-					v.FocusColumn(3)
-				}
-
-				//default:
-				//	f.ConfirmAction()
+				statusMsg.Cmd = components.SendSwitchBufferMsg(
+					sel.Path(),
+					true,
+				)
 			}
 		}
 
 		v.app.Mode.Current = mode.Normal
+		v.app.UpdateComponents(statusMsg)
 
 		return statusMsg
 	}

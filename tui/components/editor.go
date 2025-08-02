@@ -117,13 +117,27 @@ func (e *Editor) SendBufferSavedMsg() tea.Cmd {
 	}
 }
 
-type RequestSwitchBufferMsg struct {
+type RefreshBufferMsg struct {
 	Path string
 }
 
-func SendRequestSwitchBufferMsg(path string) tea.Cmd {
+func SendRefreshBufferMsg(path string) tea.Cmd {
 	return func() tea.Msg {
-		return RequestSwitchBufferMsg{Path: path}
+		return RefreshBufferMsg{Path: path}
+	}
+}
+
+type SwitchBufferMsg struct {
+	Path        string
+	FocusEditor bool
+}
+
+func SendSwitchBufferMsg(path string, focusEditor bool) tea.Cmd {
+	return func() tea.Msg {
+		return SwitchBufferMsg{
+			Path:        path,
+			FocusEditor: focusEditor,
+		}
 	}
 }
 
@@ -331,11 +345,17 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		match := e.Textarea.Search.FirstMatch()
 		e.Textarea.MoveCursor(match.Row, match.RowOffset, match.ColumnOffset)
 
-	case RequestSwitchBufferMsg:
+	case RefreshBufferMsg:
+		e.BuildHeader(e.Size.Width, true)
+		e.UpdateMetaInfo()
+
+	case SwitchBufferMsg:
 		if buf, exists, _ := e.Buffers.Contain(msg.Path); exists {
 			e.ListBuffers = false
 			e.SwitchBuffer(buf)
 			e.BuildHeader(e.Size.Width, true)
+		} else {
+			e.OpenBuffer(msg.Path)
 		}
 	}
 
