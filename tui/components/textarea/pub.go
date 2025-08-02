@@ -132,16 +132,33 @@ func (m *Model) WordRight() {
 		return
 	}
 
-	for m.col <= len(m.value[m.row]) && unicode.IsPunct(m.value[m.row][m.col]) {
-		m.CharacterRight(false)
-		m.skipPunct()
-		m.skipSpaces()
-		return
-	}
-
-	for m.col <= len(m.value[m.row]) && unicode.IsLetter(m.value[m.row][m.col]) {
-		m.CharacterRight(false)
+	for m.col < len(m.value[m.row]) {
 		if m.tryNextLine() {
+			return
+		}
+
+		m.CharacterRight(true)
+
+		curRune := m.value[m.row][m.col]
+		prevRune := m.value[m.row][m.col-1]
+
+		if (unicode.IsSymbol(prevRune) && unicode.IsSymbol(curRune)) ||
+			(unicode.IsPunct(prevRune) && unicode.IsLetter(curRune)) {
+
+			m.skipSymbols()
+			return
+		}
+
+		if (unicode.IsPunct(curRune) && unicode.IsPunct(prevRune)) ||
+			(unicode.IsSymbol(prevRune) && unicode.IsPunct(curRune)) {
+
+			m.skipPunct()
+			m.skipSpaces()
+			return
+		}
+
+		if !unicode.IsLetter(m.value[m.row][m.col]) {
+			m.skipSpaces()
 			return
 		}
 	}
@@ -231,7 +248,29 @@ func (m *Model) skipPunct() {
 			break
 		}
 
-		if !unicode.IsPunct(m.value[m.row][m.col]) {
+		if !unicode.IsPunct(m.value[m.row][m.col]) &&
+			!unicode.IsPunct(m.value[m.row][m.col+1]) {
+
+			break
+		}
+
+		m.CharacterRight(false)
+
+		if m.tryNextLine() {
+			return
+		}
+	}
+}
+
+func (m *Model) skipSymbols() {
+	for {
+		if m.col >= len(m.value[m.row]) {
+			break
+		}
+
+		if !unicode.IsSymbol(m.value[m.row][m.col]) &&
+			!unicode.IsSymbol(m.value[m.row][m.col+1]) {
+
 			break
 		}
 
