@@ -946,16 +946,16 @@ func (m *Model) SelectInnerWord() string {
 	if m.col > 0 {
 		for {
 			m.characterLeft(false)
-			// break early if we're at the first word and don't move
-			// to the previous row
-			if m.col == 0 {
-				break
-			}
 			// move left until we hit a space rune
 			if m.col >= 0 && !unicode.IsLetter(m.value[m.row][m.col]) {
 				// increment column offset so that the cursor
 				// isn't at the position where the space rune was
 				m.col++
+				break
+			}
+			// break early if we're at the first word and don't move
+			// to the previous row
+			if m.col == 0 {
 				break
 			}
 		}
