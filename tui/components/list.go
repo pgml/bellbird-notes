@@ -9,7 +9,6 @@ import (
 	"bellbird-notes/app/directories"
 	"bellbird-notes/app/notes"
 	"bellbird-notes/tui/message"
-	"bellbird-notes/tui/theme"
 
 	"github.com/charmbracelet/bubbles/v2/textinput"
 	"github.com/charmbracelet/lipgloss/v2"
@@ -452,13 +451,13 @@ func (l *List[T]) BuildHeader(width int, rebuild bool) string {
 		}
 	}
 
-	header := theme.Header(l.title, width, l.Focused()) + "\n"
+	header := l.theme.Header(l.title, width, l.Focused()) + "\n"
 	l.header = &header
 	return header
 }
 
 func (l *List[T]) RefreshStyles() {
-	l.viewport.Style = theme.BaseColumnLayout(
+	l.viewport.Style = l.theme.BaseColumnLayout(
 		l.Size,
 		l.Focused(),
 	)

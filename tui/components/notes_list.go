@@ -142,7 +142,7 @@ func (l *NotesList) View() string {
 	l.viewport.SetContent(l.build())
 	l.UpdateViewportInfo()
 
-	l.viewport.Style = theme.BaseColumnLayout(
+	l.viewport.Style = l.theme.BaseColumnLayout(
 		l.Size,
 		l.Focused(),
 	)
@@ -180,6 +180,8 @@ func NewNotesList(conf *config.Config) *NotesList {
 		},
 		CurrentPath: notesDir,
 	}
+
+	list.theme = theme.New(conf)
 
 	vis, _ := conf.Value(config.NotesList, config.Visible)
 	list.Visible = vis.GetBool()

@@ -170,17 +170,17 @@ type Styles struct {
 	blurred lipgloss.Style
 }
 
-func defaultStyles() Styles {
+func defaultStyles(t theme.Theme) Styles {
 	var s Styles
 
 	s.focused = lipgloss.NewStyle().
-		Border(theme.BorderStyle()).
+		Border(t.BorderStyle()).
 		BorderTop(false).
 		Padding(0, 1).
 		BorderForeground(theme.ColourBorderFocused)
 
 	s.blurred = lipgloss.NewStyle().
-		Border(theme.BorderStyle()).
+		Border(t.BorderStyle()).
 		BorderTop(false).
 		Padding(0, 1).
 		BorderForeground(theme.ColourBorder)
@@ -240,7 +240,8 @@ type Editor struct {
 }
 
 func NewEditor(conf *config.Config) *Editor {
-	styles := defaultStyles()
+	theme := theme.New(conf)
+	styles := defaultStyles(theme)
 
 	ta := textarea.New()
 	ta.Prompt = ""
@@ -265,6 +266,7 @@ func NewEditor(conf *config.Config) *Editor {
 		LastOpenNoteLoaded: false,
 	}
 
+	editor.theme = theme
 	editor.ShowLineNumbers = editor.LineNumbers()
 	editor.Textarea.ShowLineNumbers = editor.ShowLineNumbers
 	editor.Textarea.ResetSelection()
@@ -632,7 +634,7 @@ func (e *Editor) BuildHeader(width int, rebuild bool) string {
 		title = e.breadcrumb()
 	}
 
-	header := theme.Header(title, width, e.Focused()) + "\n"
+	header := e.theme.Header(title, width, e.Focused()) + "\n"
 	e.CurrentBuffer.header = &header
 	return header
 }
@@ -1636,7 +1638,7 @@ func (e *Editor) SearchIgnoreCase() bool {
 }
 
 func (e *Editor) RefreshTextAreaStyles() {
-	s := defaultStyles()
+	s := defaultStyles(e.theme)
 	e.Textarea.Styles.Blurred.Base = s.blurred
 	e.Textarea.Styles.Focused.Base = s.focused
 	e.Textarea.ShowLineNumbers = e.LineNumbers()

@@ -178,14 +178,14 @@ func New() *Config {
 		return nil
 	}
 
-	return &Config{
-		filePath:     filePath,
-		metaFilePath: metaFilePath,
-		file:         conf,
-		userFile:     userConf,
-		metaFile:     metaConf,
-		flushDelay:   400 * time.Millisecond,
-	}
+	config.filePath = filePath
+	config.metaFilePath = metaFilePath
+	config.file = conf
+	config.userFile = userConf
+	config.metaFile = metaConf
+	config.flushDelay = 400 * time.Millisecond
+
+	return config
 }
 
 func (c *Config) Reload() {

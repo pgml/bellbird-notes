@@ -5,6 +5,7 @@ import (
 	bl "github.com/winder/bubblelayout"
 
 	"bellbird-notes/tui/mode"
+	"bellbird-notes/tui/theme"
 )
 
 type DeferredActionMsg struct{}
@@ -32,6 +33,8 @@ type Component struct {
 	Ready bool
 
 	Visible bool
+
+	theme theme.Theme
 }
 
 // Focused returns whether the component is focused

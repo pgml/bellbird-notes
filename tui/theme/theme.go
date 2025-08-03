@@ -1,11 +1,10 @@
 package theme
 
 import (
+	"bellbird-notes/app/config"
 	"image/color"
 	"os"
 	"strings"
-
-	"bellbird-notes/app/config"
 
 	"github.com/charmbracelet/lipgloss/v2"
 	bl "github.com/winder/bubblelayout"
@@ -50,7 +49,25 @@ func Icon(icon icon, nerdFont bool) string {
 	return icn
 }
 
-func Header(title string, colWidth int, focused bool) string {
+func BorderColour(focused bool) color.Color {
+	borderColour := ColourBorder
+	if focused {
+		borderColour = ColourBorderFocused
+	}
+	return borderColour
+}
+
+type Theme struct {
+	Conf *config.Config
+}
+
+func New(conf *config.Config) Theme {
+	return Theme{
+		Conf: conf,
+	}
+}
+
+func (t *Theme) Header(title string, colWidth int, focused bool) string {
 	borderColour := BorderColour(focused)
 	titleColour := ColourTitle
 
@@ -59,8 +76,8 @@ func Header(title string, colWidth int, focused bool) string {
 	}
 
 	// @todo clean this shit up
-	b := BorderStyle()
-	b.Left = BorderStyle().TopLeft
+	b := t.BorderStyle()
+	b.Left = t.BorderStyle().TopLeft
 	ts := lipgloss.NewStyle().
 		Border(b, false, false, false, true).
 		BorderForeground(borderColour).
@@ -70,11 +87,11 @@ func Header(title string, colWidth int, focused bool) string {
 	ls := lipgloss.NewStyle().Foreground(borderColour)
 	title = ts.Render(title)
 	line := ls.Render(strings.Repeat(
-		BorderStyle().Top,
+		t.BorderStyle().Top,
 		max(0, colWidth-lipgloss.Width(title)-1)),
 	)
 
-	borderTopRight := ls.Render(BorderStyle().TopRight)
+	borderTopRight := ls.Render(t.BorderStyle().TopRight)
 
 	return lipgloss.JoinHorizontal(
 		lipgloss.Center,
@@ -85,25 +102,17 @@ func Header(title string, colWidth int, focused bool) string {
 }
 
 // BaseColumnLayout provides thae basic layout style for a column
-func BaseColumnLayout(size bl.Size, focused bool) lipgloss.Style {
+func (t *Theme) BaseColumnLayout(size bl.Size, focused bool) lipgloss.Style {
 	borderColour := BorderColour(focused)
 	_, termHeight := TerminalSize()
 
 	return lipgloss.NewStyle().
-		Border(BorderStyle()).
+		Border(t.BorderStyle()).
 		BorderTop(false).
 		BorderForeground(borderColour).
 		Foreground(ColourFg).
 		Width(size.Width).
 		Height(termHeight)
-}
-
-func BorderColour(focused bool) color.Color {
-	borderColour := ColourBorder
-	if focused {
-		borderColour = ColourBorderFocused
-	}
-	return borderColour
 }
 
 // TerminalSize determines the current
@@ -118,9 +127,8 @@ func TerminalSize() (int, int) {
 	return width, height
 }
 
-func BorderStyle() lipgloss.Border {
-	conf := config.New()
-	border, err := conf.Value(config.Theme, config.Border)
+func (t *Theme) BorderStyle() lipgloss.Border {
+	border, err := t.Conf.Value(config.Theme, config.Border)
 	style := lipgloss.NormalBorder()
 
 	if err != nil {

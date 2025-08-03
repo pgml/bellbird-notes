@@ -431,7 +431,8 @@ func (m *Model) RenderLine(
 	m.col = clamp(m.col, 0, len(m.value[m.row]))
 
 	wrLine := *wrappedLine
-	if m.row == l && lineInfo.RowOffset == wl {
+
+	if m.row == l && lineInfo.RowOffset == wl && len(wrLine) > m.col {
 		s.WriteString(style.Render(string(wrLine[:m.col])))
 
 		if m.col >= len(*line) && lineInfo.CharOffset >= m.width {

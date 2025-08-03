@@ -122,6 +122,7 @@ func NewBufferList(conf *config.Config) *BufferList {
 		height: 10,
 		width:  termW / 3,
 	}
+	panel.theme = theme.New(conf)
 	panel.focused = false
 	panel.Mode = mode.Normal
 
@@ -209,7 +210,7 @@ func (l *BufferList) View() string {
 
 	l.viewport.SetContent(l.render())
 
-	l.viewport.Style = theme.BaseColumnLayout(
+	l.viewport.Style = l.theme.BaseColumnLayout(
 		l.Size,
 		l.Focused(),
 	)
@@ -305,7 +306,7 @@ func (l *BufferList) NeedsUpdate() bool {
 }
 
 func (l *BufferList) RefreshStyles() {
-	l.viewport.Style = theme.BaseColumnLayout(
+	l.viewport.Style = l.theme.BaseColumnLayout(
 		l.Size,
 		l.Focused(),
 	)

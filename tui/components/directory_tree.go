@@ -275,7 +275,7 @@ func (t *DirectoryTree) View() string {
 	t.viewport.SetContent(t.render())
 	t.UpdateViewportInfo()
 
-	t.viewport.Style = theme.BaseColumnLayout(
+	t.viewport.Style = t.theme.BaseColumnLayout(
 		t.Size,
 		t.Focused(),
 	)
@@ -302,6 +302,7 @@ func NewDirectoryTree(conf *config.Config) *DirectoryTree {
 		expandedDirs: make(map[string]bool),
 	}
 
+	tree.theme = theme.New(conf)
 	vis, _ := conf.Value(config.Folders, config.Visible)
 	tree.Visible = vis.GetBool()
 	tree.input = tree.Input()

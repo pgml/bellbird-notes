@@ -83,7 +83,10 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		if msg.Key().Code == 32 {
 			// Reset spacebar key sequence
-			cmds = append(cmds, m.keyInput.ResetSequence())
+			cmds = append(
+				cmds,
+				m.keyInput.ResetSequence(),
+			)
 		}
 
 		if msg.String() == "ctrl+c" {
@@ -94,10 +97,14 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}}
 		}
 
-		statusMsg = append(statusMsg, m.app.Editor.StatusBarInfo())
+		statusMsg = append(
+			statusMsg,
+			m.app.Editor.StatusBarInfo(),
+		)
 
-		sb, sbCmd := m.app.StatusBar.Update(statusMsg, msg)
-		m.app.StatusBar = sb
+		var sbCmd tea.Cmd
+		m.app.StatusBar, sbCmd = m.app.StatusBar.Update(statusMsg, msg)
+
 		cmds = append(cmds, m.app.StatusBar.TeaCmd, sbCmd)
 
 		for _, m := range statusMsg {
