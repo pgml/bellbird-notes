@@ -102,10 +102,11 @@ func (v *Vim) FnRegistry() ki.MotionRegistry {
 		"ChangeLine":        v.changeLine,
 		"ChangeWord":        v.changeWord,
 
-		"YankSelection": v.yankSelection,
-		"YankLine":      bind(v.app.Editor.YankLine),
-		"YankWord":      v.yankWord,
-		"Paste":         v.paste,
+		"YankAfterCursor": bind(v.app.Editor.YankAfterCursor),
+		"YankSelection":   v.yankSelection,
+		"YankLine":        bind(v.app.Editor.YankLine),
+		"YankWord":        v.yankWord,
+		"Paste":           v.paste,
 	}
 }
 

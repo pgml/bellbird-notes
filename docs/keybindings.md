@@ -135,6 +135,7 @@
 | `s`        | Visual         | Delete (cut) selection and substitute                  |        |
 | `c`        | Visual         | Delete (cut) selection and substitute                  |        |
 | `y`        | Visual         | Yank selection	                                       |        |
+| `Y`        | normal         | Yank text after cursor                                 |        |
 | `yy`       | Normal         | Yank line     	                                       |        |
 | `yiw`      | Normal         | Yank word     	                                       |        |
 | `yaw`      | Normal         | Yank word and space after                              |        |

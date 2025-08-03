@@ -1447,24 +1447,32 @@ func (e *Editor) YankSelection(keepCursor bool) message.StatusBarMsg {
 	clipboard.Write(clipboard.FmtText, []byte(sel))
 	var cursorDeferredCmd tea.Cmd
 
+	buf := e.CurrentBuffer
+	startRow := e.Textarea.Selection.StartRow
+	startCol := e.Textarea.Selection.StartCol
+
+	if e.Mode.Current == mode.VisualLine {
+		startCol = 0
+	}
+
+	cursorPos := textarea.CursorPos{
+		Row:          startRow,
+		RowOffset:    buf.CursorPos.RowOffset,
+		ColumnOffset: startCol,
+	}
+
 	if keepCursor {
-		e.Textarea.SetCursorColumn(e.CurrentBuffer.CursorPos.ColumnOffset)
-	} else {
-		buf := e.CurrentBuffer
-		startRow := e.Textarea.Selection.StartRow
-		startCol := e.Textarea.Selection.StartCol
+		cursorPos.ColumnOffset = e.Textarea.Selection.StartCol
+	}
 
-		if e.Mode.Current == mode.VisualLine {
-			startCol = 0
-		}
+	// move the cursor to the beginning of the selection after
+	// a short delay to briefly show the selection
+	cursorDeferredCmd = func() tea.Msg {
+		time.Sleep(150 * time.Millisecond)
+		e.Textarea.MoveCursor(cursorPos.Row, cursorPos.RowOffset, cursorPos.ColumnOffset)
+		e.isAtLineEnd = e.Textarea.IsAtLineEnd()
 
-		// move the cursor to the beginning of the selection after
-		// a short delay to briefly show the selection
-		cursorDeferredCmd = func() tea.Msg {
-			time.Sleep(150 * time.Millisecond)
-			e.Textarea.MoveCursor(startRow, buf.CursorPos.RowOffset, startCol)
-			return DeferredActionMsg{}
-		}
+		return DeferredActionMsg{}
 	}
 
 	return message.StatusBarMsg{
@@ -1473,6 +1481,14 @@ func (e *Editor) YankSelection(keepCursor bool) message.StatusBarMsg {
 			e.SendEnterNormalModeDeferredMsg(),
 		),
 	}
+}
+
+func (e *Editor) YankAfterCursor() message.StatusBarMsg {
+	e.saveCursorPos()
+	e.Textarea.StartSelection(textarea.SelectVisual)
+	e.GoToLineEnd()
+
+	return e.YankSelection(true)
 }
 
 // YankLine copies the current line to the clipboard

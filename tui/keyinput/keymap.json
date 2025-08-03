@@ -179,6 +179,7 @@
 				"insert": true,
 				"prev": true
 			}],
+			"Y": "YankAfterCursor",
 			"yy": "YankLine",
 			"yiw": ["YankWord", { "outer": false }],
 			"yaw": ["YankWord", { "outer": true }]
