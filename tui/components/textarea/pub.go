@@ -360,14 +360,16 @@ func (m *Model) CursorInputStart() {
 	}
 }
 
-// moveToBegin moves the cursor to the beginning of the input.
-func (m *Model) MoveToBegin() {
-	m.moveToBegin()
+// moveToTop moves the cursor to the top of the textarea.
+// Keeps the cursor column
+func (m *Model) MoveToTop() {
+	m.row = 0
 }
 
-// moveToEnd moves the cursor to the end of the input.
-func (m *Model) MoveToEnd() {
-	m.moveToEnd()
+// moveToBottom moves the cursor to the bottom of the textarea.
+// Keeps the cursor column
+func (m *Model) MoveToBottom() {
+	m.row = len(m.value) - 1
 }
 
 // deleteAfterCursor deletes all text after the cursor. Returns whether or not

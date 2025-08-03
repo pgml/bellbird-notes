@@ -1126,7 +1126,7 @@ func (e *Editor) GoToLineEnd() message.StatusBarMsg {
 
 // GoToTop moves the cursor to the beginning of the buffer
 func (e *Editor) GoToTop() message.StatusBarMsg {
-	e.Textarea.MoveToBegin()
+	e.Textarea.MoveToTop()
 	e.Textarea.RepositionView()
 	e.saveCursorPos()
 	return e.UpdateSelectedRowsCount()
@@ -1134,7 +1134,7 @@ func (e *Editor) GoToTop() message.StatusBarMsg {
 
 // GoToBottom moves the cursor to the bottom of the buffer
 func (e *Editor) GoToBottom() message.StatusBarMsg {
-	e.Textarea.MoveToEnd()
+	e.Textarea.MoveToBottom()
 	e.Textarea.RepositionView()
 	e.saveCursorPos()
 	return e.UpdateSelectedRowsCount()
