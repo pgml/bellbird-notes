@@ -99,7 +99,9 @@ func (h *History) Entry(index int) *Entry {
 // RemoveLastEntry deletes the last entry from history.
 func (h *History) RemoveLastEntry() {
 	last := len(h.entries) - 1
-	h.entries = slices.Delete(h.entries, last, last+1)
+	if last >= 0 && last < len(h.entries) {
+		h.entries = slices.Delete(h.entries, last, last+1)
+	}
 }
 
 // MakePatch generates a diff patch between oldStr and newStr.
@@ -110,8 +112,12 @@ func (h *History) MakePatch(oldStr string, newStr string) []dmp.Patch {
 // Undo returns the undo patch, content hash, and cursor position.
 // If no undo is available, returns empty values.
 func (h *History) Undo() ([]dmp.Patch, string, CursorPos) {
-	if h.EntryIndex < 0 || len(h.entries) == 0 {
+	if h.EntryIndex < 0 || h.EntryIndex >= len(h.entries) {
 		return nil, "", CursorPos{}
+	}
+
+	if h.EntryIndex >= len(h.entries) {
+		h.EntryIndex = len(h.entries) - 1
 	}
 
 	entry := h.entries[h.EntryIndex]
