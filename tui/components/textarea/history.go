@@ -2,7 +2,6 @@ package textarea
 
 import (
 	"fmt"
-	"slices"
 
 	"bellbird-notes/app/debug"
 
@@ -16,6 +15,8 @@ type History struct {
 
 	// entries holds all recorded undo/redo history entries.
 	entries []Entry
+
+	tmpEntry Entry
 
 	// maxItems is the maximum number of entries allowed in history
 	maxItems uint
@@ -43,6 +44,7 @@ func (e *Entry) Hash() string {
 func NewHistory() History {
 	history := History{
 		entries:    []Entry{},
+		tmpEntry:   Entry{},
 		maxItems:   100,
 		Dmp:        dmp.New(),
 		EntryIndex: -1,
@@ -51,9 +53,14 @@ func NewHistory() History {
 	return history
 }
 
+func (h *History) NewTmpEntry(cursorPos CursorPos) {
+	h.tmpEntry = Entry{UndoCursorPos: cursorPos}
+}
+
 // NewEntry creates a new history entry.
 // If future entries exist (after undo), they are discarded.
 func (h *History) NewEntry(cursorPos CursorPos) {
+	debug.LogDebug("new entry")
 	// if the current index is lower the the length of all entries
 	// truncate the slice to the current index so the history doesn't
 	// get too confusing
@@ -68,6 +75,11 @@ func (h *History) NewEntry(cursorPos CursorPos) {
 	h.EntryIndex = len(h.entries) - 1
 }
 
+func (h *History) AppendTmpEntry() {
+	h.NewEntry(h.tmpEntry.UndoCursorPos)
+	h.tmpEntry = Entry{}
+}
+
 // UpdateEntry updates the current entry with patches and metadata.
 func (h *History) UpdateEntry(
 	redoPatch []dmp.Patch,
@@ -75,6 +87,8 @@ func (h *History) UpdateEntry(
 	cursorPos CursorPos,
 	hash string,
 ) error {
+	h.AppendTmpEntry()
+
 	if h.EntryIndex >= len(h.entries) || h.EntryIndex < 0 {
 		debug.LogErr("History entry index not found:", h.EntryIndex)
 		return fmt.Errorf("History entry index %d not found", h.EntryIndex)
@@ -94,14 +108,6 @@ func (h *History) Entry(index int) *Entry {
 		return nil
 	}
 	return &h.entries[index]
-}
-
-// RemoveLastEntry deletes the last entry from history.
-func (h *History) RemoveLastEntry() {
-	last := len(h.entries) - 1
-	if last >= 0 && last < len(h.entries) {
-		h.entries = slices.Delete(h.entries, last, last+1)
-	}
 }
 
 // MakePatch generates a diff patch between oldStr and newStr.

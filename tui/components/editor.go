@@ -762,8 +762,6 @@ func (e *Editor) EnterNormalMode(withHistory bool) message.StatusBarMsg {
 	// remove the entry we added in newHistoryEntry
 	if currHash != buf.hash() {
 		e.updateBufferContent(withHistory)
-	} else {
-		e.CurrentBuffer.History.RemoveLastEntry()
 	}
 
 	e.Textarea.ResetSelection()
@@ -837,7 +835,7 @@ func (e *Editor) EnterVisualMode(
 // newHistoryEntry creates a new history entry for the current Buffers
 // saving the correct undo cursor position
 func (e *Editor) newHistoryEntry() {
-	e.CurrentBuffer.History.NewEntry(e.Textarea.CursorPos())
+	e.CurrentBuffer.History.NewTmpEntry(e.Textarea.CursorPos())
 }
 
 // updateHistoryEntry update the history entry saving the undo/redo
