@@ -97,12 +97,34 @@ func (b *Buffer) Path(encoded bool) string {
 	return b.path
 }
 
+// undo applies the last undo patch, returning the restored content
+// and cursor position.
 func (b *Buffer) undo() (string, textarea.CursorPos) {
-	return b.History.Undo()
+	patch, hash, pos := b.History.Undo()
+
+	if patch != nil && hash != b.hash() {
+		restored, _ := b.History.Dmp.PatchApply(patch, b.Content)
+		return restored, pos
+	}
+
+	return "", textarea.CursorPos{}
 }
 
+// redo reapplies the most recently undone change.
 func (b *Buffer) redo() (string, textarea.CursorPos) {
-	return b.History.Redo()
+	patch, hash, pos := b.History.Redo()
+
+	if patch != nil && hash == b.hash() {
+		restored, _ := b.History.Dmp.PatchApply(patch, b.Content)
+		return restored, pos
+	}
+
+	return "", textarea.CursorPos{}
+}
+
+// hash returns the hash of the buffer content
+func (b Buffer) hash() string {
+	return utils.HashContent(b.Content)
 }
 
 type BufferSavedMsg struct {
@@ -419,18 +441,7 @@ func (e *Editor) NewBuffer(path string) message.StatusBarMsg {
 	buf.path = path
 	buf.CursorPos = cursorPos
 	buf.History = textarea.NewHistory()
-
-	content := ""
-	// If we're trying to
-	if e.CurrentBuffer.path == path {
-		content = e.CurrentBuffer.Content
-	}
-
-	e.newHistoryEntry()
-
-	e.CurrentBuffer.History.UpdateEntry(content, buf.CursorPos)
-	contentHash := utils.HashContent(content)
-	e.CurrentBuffer.LastSavedContentHash = contentHash
+	buf.LastSavedContentHash = buf.hash()
 
 	e.SetContent()
 	e.saveLineLength()
@@ -478,6 +489,7 @@ func (e *Editor) OpenBuffer(path string) message.StatusBarMsg {
 	}
 
 	buf, exists, _ := e.Buffers.Contain(path)
+
 	// create new buffer if we can't find anything
 	if len(*e.Buffers) <= 0 || !exists {
 		e.NewBuffer(path)
@@ -523,7 +535,7 @@ func (e *Editor) CheckTime() {
 
 	content := string(note)
 	buf.Content = content
-	buf.LastSavedContentHash = utils.HashContent(content)
+	buf.LastSavedContentHash = buf.hash()
 
 	e.SetContent()
 	e.updateHistoryEntry()
@@ -570,8 +582,7 @@ func (e *Editor) SaveBuffer() message.StatusBarMsg {
 		relativePath, e.Textarea.LineCount(), bytes,
 	)
 
-	contentHash := utils.HashContent(bufContent)
-	buf.LastSavedContentHash = contentHash
+	buf.LastSavedContentHash = buf.hash()
 
 	statusMsg.Content = resultMsg
 	statusMsg.Cmd = e.SendBufferSavedMsg()
@@ -740,7 +751,17 @@ func (e *Editor) EnterNormalMode(withHistory bool) message.StatusBarMsg {
 	}
 
 	e.saveCursorPos()
-	e.updateBufferContent(withHistory)
+
+	buf := e.CurrentBuffer
+	currHash := utils.HashContent(e.Textarea.Value())
+
+	// only update if there's a change otherwise
+	// remove the entry we added in newHistoryEntry
+	if currHash != buf.hash() {
+		e.updateBufferContent(withHistory)
+	} else {
+		e.CurrentBuffer.History.RemoveLastEntry()
+	}
 
 	e.Textarea.ResetSelection()
 	e.Textarea.SetCursorColor(mode.Normal.Colour())
@@ -810,15 +831,26 @@ func (e *Editor) EnterVisualMode(
 	return e.UpdateSelectedRowsCount()
 }
 
+// newHistoryEntry creates a new history entry for the current Buffers
+// saving the correct undo cursor position
 func (e *Editor) newHistoryEntry() {
 	e.CurrentBuffer.History.NewEntry(e.Textarea.CursorPos())
 }
 
+// updateHistoryEntry update the history entry saving the undo/redo
+// patch, the current cursor position and the hash of the buffer content
 func (e *Editor) updateHistoryEntry() {
+	buf := e.CurrentBuffer
 	e.saveCursorPos()
-	e.CurrentBuffer.History.UpdateEntry(
-		e.Textarea.Value(),
+
+	redoPatch := buf.History.MakePatch(buf.Content, e.Textarea.Value())
+	undoPatch := buf.History.MakePatch(e.Textarea.Value(), buf.Content)
+
+	buf.History.UpdateEntry(
+		redoPatch,
+		undoPatch,
 		e.Textarea.CursorPos(),
+		buf.hash(),
 	)
 }
 
@@ -1380,34 +1412,25 @@ func (e *Editor) Undo() message.StatusBarMsg {
 		return message.StatusBarMsg{}
 	}
 
-	val, cursorPos := e.CurrentBuffer.undo()
-	curBuf := e.CurrentBuffer
+	if val, cursorPos := e.CurrentBuffer.undo(); val != "" {
+		curBuf := e.CurrentBuffer
 
-	// dirty check
-	curBuf.Dirty = val != curBuf.LastSavedContentHash
-	e.Textarea.SetValue(val)
+		// dirty check
+		curBuf.Dirty = val != curBuf.LastSavedContentHash
+		e.Textarea.SetValue(val)
 
-	entryIndex := curBuf.History.EntryIndex
-	// EntryIndex 0 means the time in the buffer history where the buffer was
-	// opened to get the initial content of the buffer.
-	// We don't want to move the cursor there - just accept it.
-	if entryIndex == 0 {
-		cursorPos = curBuf.CursorPos
-		if entry := curBuf.History.Entry(entryIndex + 1); entry != nil {
-			cursorPos = entry.UndoCursorPos
-		}
+		e.Textarea.MoveCursor(
+			cursorPos.Row,
+			cursorPos.RowOffset,
+			cursorPos.ColumnOffset,
+		)
+
+		e.Textarea.RepositionView()
+		e.CurrentBuffer.Content = e.Textarea.Value()
+		e.isAtLineEnd = e.Textarea.IsAtLineEnd()
+		e.isAtLineStart = e.Textarea.IsAtLineStart()
+		e.saveCursorPos()
 	}
-
-	e.Textarea.MoveCursor(
-		cursorPos.Row,
-		cursorPos.RowOffset,
-		cursorPos.ColumnOffset,
-	)
-	e.Textarea.RepositionView()
-	e.CurrentBuffer.Content = e.Textarea.Value()
-	e.isAtLineEnd = e.Textarea.IsAtLineEnd()
-	e.isAtLineStart = e.Textarea.IsAtLineStart()
-	e.saveCursorPos()
 
 	return message.StatusBarMsg{}
 }
@@ -1418,17 +1441,20 @@ func (e *Editor) Redo() message.StatusBarMsg {
 		return message.StatusBarMsg{}
 	}
 
-	val, cursorPos := e.CurrentBuffer.redo()
-	// dirty check
-	e.CurrentBuffer.Dirty = val != e.CurrentBuffer.LastSavedContentHash
-	e.Textarea.SetValue(val)
-	e.Textarea.MoveCursor(
-		cursorPos.Row,
-		cursorPos.RowOffset,
-		cursorPos.ColumnOffset,
-	)
-	e.Textarea.RepositionView()
-	e.CurrentBuffer.Content = e.Textarea.Value()
+	if val, cursorPos := e.CurrentBuffer.redo(); val != "" {
+		// dirty check
+		e.CurrentBuffer.Dirty = val != e.CurrentBuffer.LastSavedContentHash
+		e.Textarea.SetValue(val)
+
+		e.Textarea.MoveCursor(
+			cursorPos.Row,
+			cursorPos.RowOffset,
+			cursorPos.ColumnOffset,
+		)
+
+		e.Textarea.RepositionView()
+		e.CurrentBuffer.Content = e.Textarea.Value()
+	}
 
 	return message.StatusBarMsg{}
 }
@@ -1610,11 +1636,13 @@ func (e *Editor) saveCursorPosToConf() {
 // updateBufferContent replaces the content of the current buffer with the
 // current textarea value
 func (e *Editor) updateBufferContent(withHistory bool) {
-	e.CurrentBuffer.Content = e.Textarea.Value()
-
 	if withHistory {
 		e.updateHistoryEntry()
 	}
+
+	// set the content after we updated the buffer history
+	// otherwise the undo/redo-patches won't be correct
+	e.CurrentBuffer.Content = e.Textarea.Value()
 }
 
 // UpdateMetaInfo records the current state of the editor by updating

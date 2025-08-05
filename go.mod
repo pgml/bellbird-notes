@@ -12,6 +12,7 @@ require (
 	github.com/mattn/go-runewidth v0.0.16
 	github.com/muesli/reflow v0.3.0
 	github.com/rivo/uniseg v0.4.7
+	github.com/sergi/go-diff v1.4.0
 	github.com/tailscale/hujson v0.0.0-20250605163823-992244df8c5a
 	github.com/winder/bubblelayout v0.0.1
 	golang.design/x/clipboard v0.7.1
