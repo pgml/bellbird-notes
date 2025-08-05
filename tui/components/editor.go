@@ -733,7 +733,10 @@ func (e *Editor) EnterNormalMode(withHistory bool) message.StatusBarMsg {
 	isInsertMode := e.Mode.Current == mode.Insert
 
 	// check if we're at the end of a non empty line and set isAtLineEnd flag
-	if e.Textarea.IsExceedingLine() && e.Textarea.LineInfo().Width > 1 {
+	if !isInsertMode &&
+		e.Textarea.IsExceedingLine() &&
+		e.Textarea.LineInfo().Width > 1 {
+
 		e.Textarea.CursorLineVimEnd()
 		e.isAtLineEnd = true
 	} else if isInsertMode {
