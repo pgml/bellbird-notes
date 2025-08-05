@@ -394,7 +394,7 @@ func (l *NotesList) Create(
 		vrtNote := l.createVirtualNote()
 		lastChild := l.getLastChild()
 
-		if lastChild.name == "" {
+		if lastChild == nil {
 			l.items = append(l.items, &vrtNote)
 		} else {
 			l.insertNoteAfter(lastChild.index, vrtNote)
