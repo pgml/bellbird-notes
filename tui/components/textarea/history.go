@@ -60,7 +60,6 @@ func (h *History) NewTmpEntry(cursorPos CursorPos) {
 // NewEntry creates a new history entry.
 // If future entries exist (after undo), they are discarded.
 func (h *History) NewEntry(cursorPos CursorPos) {
-	debug.LogDebug("new entry")
 	// if the current index is lower the the length of all entries
 	// truncate the slice to the current index so the history doesn't
 	// get too confusing
