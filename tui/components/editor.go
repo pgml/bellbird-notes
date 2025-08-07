@@ -15,6 +15,7 @@ import (
 	"bellbird-notes/app/debug"
 	"bellbird-notes/app/notes"
 	"bellbird-notes/app/utils"
+	"bellbird-notes/app/utils/clipboard"
 	"bellbird-notes/tui/components/textarea"
 	"bellbird-notes/tui/keyinput"
 	"bellbird-notes/tui/message"
@@ -25,7 +26,6 @@ import (
 	"github.com/charmbracelet/bubbles/v2/cursor"
 	tea "github.com/charmbracelet/bubbletea/v2"
 	"github.com/charmbracelet/lipgloss/v2"
-	"golang.design/x/clipboard"
 )
 
 const (
@@ -1462,7 +1462,9 @@ func (e *Editor) Redo() message.StatusBarMsg {
 
 // Yank copies the given string to the clipboard
 func (e *Editor) Yank(str string) message.StatusBarMsg {
-	clipboard.Write(clipboard.FmtText, []byte(str))
+	if err := clipboard.Write(str); err != nil {
+		debug.LogDebug(err)
+	}
 	return message.StatusBarMsg{}
 }
 
@@ -1471,7 +1473,11 @@ func (e *Editor) Yank(str string) message.StatusBarMsg {
 // otherwise the cursor is moved to the beginning of the selection
 func (e *Editor) YankSelection(keepCursor bool) message.StatusBarMsg {
 	sel := e.Textarea.SelectionStr()
-	clipboard.Write(clipboard.FmtText, []byte(sel))
+
+	if err := clipboard.Write(sel); err != nil {
+		debug.LogDebug(err)
+	}
+
 	var cursorDeferredCmd tea.Cmd
 
 	buf := e.CurrentBuffer
@@ -1482,21 +1488,21 @@ func (e *Editor) YankSelection(keepCursor bool) message.StatusBarMsg {
 		startCol = 0
 	}
 
-	cursorPos := textarea.CursorPos{
+	cursor := textarea.CursorPos{
 		Row:          startRow,
 		RowOffset:    buf.CursorPos.RowOffset,
 		ColumnOffset: startCol,
 	}
 
 	if keepCursor {
-		cursorPos.ColumnOffset = e.Textarea.Selection.StartCol
+		cursor.ColumnOffset = e.Textarea.Selection.StartCol
 	}
 
 	// move the cursor to the beginning of the selection after
 	// a short delay to briefly show the selection
 	cursorDeferredCmd = func() tea.Msg {
 		time.Sleep(150 * time.Millisecond)
-		e.Textarea.MoveCursor(cursorPos.Row, cursorPos.RowOffset, cursorPos.ColumnOffset)
+		e.Textarea.MoveCursor(cursor.Row, cursor.RowOffset, cursor.ColumnOffset)
 		e.isAtLineEnd = e.Textarea.IsAtLineEnd()
 
 		return DeferredActionMsg{}
@@ -1548,7 +1554,12 @@ func (e *Editor) Paste() message.StatusBarMsg {
 		return message.StatusBarMsg{}
 	}
 
-	cp := clipboard.Read(clipboard.FmtText)
+	cp, err := clipboard.Read()
+
+	if err != nil {
+		debug.LogDebug(err)
+	}
+
 	if len(cp) > 0 {
 		cnt := string(cp)
 		// save the curren cursor position to adjust the correct position
