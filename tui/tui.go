@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"bellbird-notes/app/debug"
 	"bellbird-notes/internal/interfaces"
 	"bellbird-notes/tui/components"
 	"bellbird-notes/tui/keyinput"
@@ -165,6 +166,10 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	// exit programme when `:q` is entered in command prompt
 	if m.app.ShouldQuit {
+		if err := m.app.State.Write(); err != nil {
+			debug.LogErr(err)
+		}
+
 		return m, tea.Quit
 	}
 

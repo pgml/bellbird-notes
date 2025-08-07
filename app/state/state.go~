@@ -1,0 +1,45 @@
+package state
+
+import (
+	"bellbird-notes/app"
+	"bellbird-notes/app/utils"
+	"os"
+
+	"gopkg.in/ini.v1"
+)
+
+type StateType int
+
+const (
+	Search StateType = iota
+	Command
+	Marks
+)
+
+type StateEntry struct {
+	timestamp string
+	stateType StateType
+	content   string
+}
+
+type State struct {
+	filePath string
+	// parsed state file
+	file    *ini.File
+	entries []StateEntry
+}
+
+func New() *State {
+	state := &State{}
+
+	filePath, err := app.StateFile()
+	if err != nil {
+		return state
+	}
+
+	if _, err := os.Stat(filePath); err != nil {
+		utils.CreateFile(filePath, false)
+	}
+
+	return state
+}

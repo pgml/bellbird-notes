@@ -6,6 +6,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea/v2"
 
 	"bellbird-notes/app/config"
+	"bellbird-notes/app/state"
 	"bellbird-notes/tui/keyinput"
 	"bellbird-notes/tui/message"
 	"bellbird-notes/tui/mode"
@@ -19,6 +20,9 @@ type FocusController interface {
 type App struct {
 	// Conf holds the application's user configuration.
 	Conf *config.Config
+
+	// Conf holds the application's user configuration.
+	State *state.State
 
 	// Mode tracks the current vim mode
 	Mode *mode.ModeInstance
@@ -63,9 +67,13 @@ func SendRefreshUiMsg() tea.Cmd {
 
 func NewApp(fc FocusController) *App {
 	conf := config.New()
+	state := state.New()
+
+	state.Read()
 
 	a := App{
 		Conf:         conf,
+		State:        state,
 		Mode:         &mode.ModeInstance{Current: mode.Normal},
 		DirTree:      NewDirectoryTree(conf),
 		NotesList:    NewNotesList(conf),
@@ -76,6 +84,8 @@ func NewApp(fc FocusController) *App {
 		CurrColFocus: 1,
 		focus:        fc,
 	}
+
+	a.StatusBar.State = state
 
 	conf.CleanMetaFile()
 

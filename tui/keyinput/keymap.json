@@ -22,7 +22,9 @@
 		"mode": "command",
 		"bindings": {
 			"enter": "ConfirmAction",
-			"esc": "CancelAction"
+			"esc": "CancelAction",
+			"up": "CmdHistoryBack",
+			"down": "CmdHistoryForward",
 		}
 	},
 	{

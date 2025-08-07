@@ -5,6 +5,7 @@ package components
 // with the necessary functions directly from lipgloss
 
 import (
+	"bellbird-notes/app/utils"
 	"strings"
 
 	"github.com/charmbracelet/lipgloss/v2"
@@ -24,8 +25,8 @@ func PlaceOverlay(x, y int, fg, bg string, opts ...WhitespaceOption) string {
 		return fg
 	}
 	// TODO: allow placement outside of the bg box?
-	x = clamp(x, 0, bgWidth-fgWidth)
-	y = clamp(y, 0, bgHeight-fgHeight)
+	x = utils.Clamp(x, 0, bgWidth-fgWidth)
+	y = utils.Clamp(y, 0, bgHeight-fgHeight)
 
 	ws := &whitespace{}
 	for _, opt := range opts {
@@ -68,10 +69,6 @@ func PlaceOverlay(x, y int, fg, bg string, opts ...WhitespaceOption) string {
 	}
 
 	return b.String()
-}
-
-func clamp(v, lower, upper int) int {
-	return min(max(v, lower), upper)
 }
 
 // whitespace is a whitespace renderer.

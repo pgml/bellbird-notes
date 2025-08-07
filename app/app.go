@@ -94,6 +94,21 @@ func ConfigFile(isMetaInfo bool) (string, error) {
 	return configFile, nil
 }
 
+// StateFile returns the path to the state file
+func StateFile() (string, error) {
+	filename := "state"
+
+	configDir, err := ConfigDir()
+	if err != nil {
+		debug.LogErr("Could not read state file", err)
+		return "", err
+	}
+
+	stateFile := filepath.Join(configDir, filename)
+
+	return stateFile, nil
+}
+
 func IsFlagPassed(name string) bool {
 	found := false
 	flag.Visit(func(f *flag.Flag) {

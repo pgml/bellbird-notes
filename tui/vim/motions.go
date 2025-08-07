@@ -107,6 +107,10 @@ func (v *Vim) FnRegistry() ki.MotionRegistry {
 		"YankLine":        bind(v.app.Editor.YankLine),
 		"YankWord":        v.yankWord,
 		"Paste":           v.paste,
+
+		// Command
+		"CmdHistoryBack":    bind(v.app.StatusBar.PromptHistoryBack),
+		"CmdHistoryForward": bind(v.app.StatusBar.PromptHistoryForward),
 	}
 }
 
@@ -370,6 +374,7 @@ func (v *Vim) enterCmdMode(_ ki.Options) func() StatusBarMsg {
 		v.app.Editor.Mode.Current = mode.Command
 		v.app.Mode.Current = mode.Command
 		v.app.StatusBar.Focused = true
+		v.app.State.ResetIndex()
 
 		return StatusBarMsg{
 			Type:   message.Prompt,
@@ -406,11 +411,7 @@ func (v *Vim) confirmAction(opts ki.Options) func() StatusBarMsg {
 		f := v.focusedComponent()
 
 		if v.app.StatusBar.Focused {
-			statusMsg = v.app.StatusBar.ConfirmAction(
-				statusMsg.Sender,
-				f,
-				v.app.Editor,
-			)
+			statusMsg = v.app.StatusBar.ConfirmAction(statusMsg.Sender, f)
 			v.app.Editor.Mode.Current = mode.Normal
 		}
 
@@ -789,7 +790,6 @@ func (v *Vim) paste(opts ki.Options) func() StatusBarMsg {
 		// the word we replace - fix this
 		if v.app.Mode.IsAnyVisual() {
 			v.app.Editor.DeleteRune(true, false, true)
-			v.app.Editor.EnterInsertMode(false)
 			v.app.Editor.MoveCharacterLeft()
 		}
 

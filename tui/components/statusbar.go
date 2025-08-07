@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"bellbird-notes/app/state"
 	"bellbird-notes/app/utils"
 	"bellbird-notes/internal/interfaces"
 	"bellbird-notes/tui/message"
@@ -18,6 +19,10 @@ import (
 	"github.com/charmbracelet/lipgloss/v2"
 	bl "github.com/winder/bubblelayout"
 )
+
+type StateController interface {
+	Append(entry state.StateEntry)
+}
 
 type Focusable = interfaces.Focusable
 
@@ -43,7 +48,7 @@ type StatusBar struct {
 	//Sender message.Sender
 	//SenderMsg message.StatusBarMsg
 
-	Editor Editor
+	State *state.State
 
 	// The content for each column
 	Columns [4]string
@@ -230,7 +235,6 @@ func (s *StatusBar) ModeView() string {
 func (s *StatusBar) ConfirmAction(
 	sender message.Sender,
 	c Focusable,
-	e *Editor,
 ) message.StatusBarMsg {
 	statusMsg := message.StatusBarMsg{}
 
@@ -240,6 +244,7 @@ func (s *StatusBar) ConfirmAction(
 	}
 
 	fnMsg := s.execPromptFn()
+	s.State.Append(state.NewEntry(state.Command, s.Prompt.Value()))
 
 	s.setColContent(statusMsg.Column, &statusMsg.Content)
 	s.BlurPrompt(true)
@@ -292,6 +297,20 @@ func (s *StatusBar) execPromptFn() message.StatusBarMsg {
 func (s *StatusBar) CancelAction(cb func()) message.StatusBarMsg {
 	s.Type = message.Success
 	s.BlurPrompt(true)
+	return message.StatusBarMsg{}
+}
+
+func (s *StatusBar) PromptHistoryBack() message.StatusBarMsg {
+	entry := s.State.CycleCommands(false)
+	s.Prompt.SetValue(entry.Content())
+	s.Prompt.CursorEnd()
+	return message.StatusBarMsg{}
+}
+
+func (s *StatusBar) PromptHistoryForward() message.StatusBarMsg {
+	entry := s.State.CycleCommands(true)
+	s.Prompt.SetValue(entry.Content())
+	s.Prompt.CursorEnd()
 	return message.StatusBarMsg{}
 }
 

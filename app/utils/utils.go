@@ -121,3 +121,7 @@ func CreateFile(path string, keepOpen bool) (*os.File, error) {
 
 	return f, nil
 }
+
+func Clamp(v, lower, upper int) int {
+	return min(max(v, lower), upper)
+}
