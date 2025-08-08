@@ -153,10 +153,12 @@ func (s *StatusBar) Update(
 	case SearchConfirmedMsg:
 		s.Mode = mode.Search
 		s.Focused = false
+		s.State.Append(state.NewEntry(state.Search, s.Prompt.Value()))
 		s.BlurPrompt(msg.ResetPrompt)
 
 	case SearchCancelMsg:
 		s.Focused = false
+		s.State.Append(state.NewEntry(state.Search, s.Prompt.Value()))
 		s.BlurPrompt(true)
 		s.CancelAction(func() {})
 	}
@@ -244,8 +246,14 @@ func (s *StatusBar) ConfirmAction(
 	}
 
 	fnMsg := s.execPromptFn()
-	s.State.Append(state.NewEntry(state.Command, s.Prompt.Value()))
 
+	stateType := state.Command
+
+	if s.Mode == mode.SearchPrompt {
+		stateType = state.Search
+	}
+
+	s.State.Append(state.NewEntry(stateType, s.Prompt.Value()))
 	s.setColContent(statusMsg.Column, &statusMsg.Content)
 	s.BlurPrompt(true)
 
@@ -309,6 +317,20 @@ func (s *StatusBar) PromptHistoryBack() message.StatusBarMsg {
 
 func (s *StatusBar) PromptHistoryForward() message.StatusBarMsg {
 	entry := s.State.CycleCommands(true)
+	s.Prompt.SetValue(entry.Content())
+	s.Prompt.CursorEnd()
+	return message.StatusBarMsg{}
+}
+
+func (s *StatusBar) SearchHistoryBack() message.StatusBarMsg {
+	entry := s.State.CycleSearchResults(false)
+	s.Prompt.SetValue(entry.Content())
+	s.Prompt.CursorEnd()
+	return message.StatusBarMsg{}
+}
+
+func (s *StatusBar) SearchHistoryForward() message.StatusBarMsg {
+	entry := s.State.CycleSearchResults(true)
 	s.Prompt.SetValue(entry.Content())
 	s.Prompt.CursorEnd()
 	return message.StatusBarMsg{}

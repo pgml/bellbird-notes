@@ -45,7 +45,7 @@ var fullName = map[Mode]string{
 	Operator:     "",
 	Command:      "command",
 	Search:       "/",
-	SearchPrompt: "/",
+	SearchPrompt: "search",
 }
 
 var colour = map[Mode]color.Color{

@@ -111,6 +111,10 @@ func (v *Vim) FnRegistry() ki.MotionRegistry {
 		// Command
 		"CmdHistoryBack":    bind(v.app.StatusBar.PromptHistoryBack),
 		"CmdHistoryForward": bind(v.app.StatusBar.PromptHistoryForward),
+
+		// Search
+		"CmdSearchHistoryBack":    bind(v.app.StatusBar.SearchHistoryBack),
+		"CmdSearchHistoryForward": bind(v.app.StatusBar.SearchHistoryForward),
 	}
 }
 

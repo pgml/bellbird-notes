@@ -10,39 +10,39 @@ import (
 	"time"
 )
 
-type StateType int
+type HistoryType int
 
 const (
-	Search StateType = iota
+	Search HistoryType = iota
 	Command
 	Mark
 )
 
-var stateTypes = map[StateType]string{
-	Search:  "search",
-	Command: "command",
-	Mark:    "mark",
+var historyTypes = map[HistoryType]string{
+	Search:  "SEARCH",
+	Command: "CMD",
+	Mark:    "MARK",
 }
 
-func (t StateType) String() string {
-	return stateTypes[t]
+func (t HistoryType) String() string {
+	return historyTypes[t]
 }
 
 type StateEntry struct {
-	stateType StateType
-	timestamp string
-	content   string
+	historyType HistoryType
+	timestamp   string
+	content     string
 }
 
 func (e *StateEntry) Content() string {
 	return e.content
 }
 
-func NewEntry(stateType StateType, content string) StateEntry {
+func NewEntry(stateType HistoryType, content string) StateEntry {
 	return StateEntry{
-		stateType: stateType,
-		timestamp: time.Now().Format(time.RFC3339),
-		content:   content,
+		historyType: stateType,
+		timestamp:   time.Now().Format(time.RFC3339),
+		content:     content,
 	}
 }
 
@@ -52,13 +52,33 @@ type State struct {
 	curIndex int
 }
 
-func (s *State) Entries() []StateEntry { return s.entries }
+func (s *State) removeLastOccurences(st HistoryType, c string) {
+	for i := len(s.entries) - 1; i >= 0; i-- {
+		if s.entries[i].historyType == st && s.entries[i].content == c {
+			copy(s.entries[i:], s.entries[i+1:])
+			s.entries = s.entries[:len(s.entries)-1]
+			return
+		}
+	}
+}
+
+func (s *State) Entries(st HistoryType) []StateEntry {
+	entries := []StateEntry{}
+
+	for _, entry := range s.entries {
+		if entry.historyType == st {
+			entries = append(entries, entry)
+		}
+	}
+
+	return entries
+}
 
 func (s *State) Commands() []StateEntry {
 	commands := []StateEntry{}
 
 	for _, entry := range s.entries {
-		if entry.stateType != Command {
+		if entry.historyType != Command {
 			continue
 		}
 
@@ -66,6 +86,20 @@ func (s *State) Commands() []StateEntry {
 	}
 
 	return commands
+}
+
+func (s *State) SearchResults() []StateEntry {
+	searchResults := []StateEntry{}
+
+	for _, entry := range s.entries {
+		if entry.historyType != Search {
+			continue
+		}
+
+		searchResults = append(searchResults, entry)
+	}
+
+	return searchResults
 }
 
 func New() *State {
@@ -85,22 +119,22 @@ func New() *State {
 }
 
 func (s *State) Append(entry StateEntry) {
-	if len(s.entries) > 0 {
-		lastIndex := s.entries[len(s.entries)-1]
+	//if len(s.entries) > 0 {
+	//	lastIndex := s.entries[len(s.entries)-1]
 
-		debug.LogDebug(lastIndex.content, entry.content)
-		if lastIndex.content == entry.content {
-			debug.LogDebug("asdasd")
-			return
-		}
+	//	if lastIndex.content == entry.content || entry.content == "" {
+	//		return
+	//	}
+
+	//	s.removeLastOccurences(entry.historyType, entry.content)
+	//}
+
+	if entry.content == "" {
+		return
 	}
 
+	s.removeLastOccurences(entry.historyType, entry.content)
 	s.entries = append(s.entries, entry)
-
-	for _, entry := range s.entries {
-		debug.LogDebug(entry.stateType.String(), entry.timestamp, entry.content)
-	}
-
 	s.curIndex = len(s.entries) - 1
 }
 
@@ -123,21 +157,18 @@ func (s *State) Read() error {
 		}
 
 		ln := strings.Split(string(line), "|")
-		var state StateType
 
-		switch ln[0] {
-		case "command":
-			state = Command
-		case "search":
-			state = Search
-		case "mark":
-			state = Mark
+		var historyType HistoryType
+		for hisType, str := range historyTypes {
+			if ln[0] == str {
+				historyType = hisType
+			}
 		}
 
 		s.entries = append(s.entries, StateEntry{
-			stateType: state,
-			timestamp: ln[1],
-			content:   strings.TrimSuffix(ln[2], "\n"),
+			historyType: historyType,
+			timestamp:   ln[1],
+			content:     strings.TrimSuffix(ln[2], "\n"),
 		})
 	}
 
@@ -154,7 +185,7 @@ func (s *State) Write() error {
 
 	for _, entry := range s.entries {
 		var line strings.Builder
-		line.WriteString(entry.stateType.String())
+		line.WriteString(entry.historyType.String())
 		line.WriteRune('|')
 		line.WriteString(entry.timestamp)
 		line.WriteRune('|')
@@ -173,7 +204,8 @@ func (s *State) Write() error {
 }
 
 func (s *State) CycleCommands(forward bool) StateEntry {
-	s.curIndex = utils.Clamp(s.curIndex, 0, len(s.entries)-1)
+	commands := s.Entries(Command)
+	s.curIndex = utils.Clamp(s.curIndex, 0, len(commands)-1)
 
 	if len(s.Commands()) <= 0 {
 		return StateEntry{}
@@ -190,10 +222,25 @@ func (s *State) CycleCommands(forward bool) StateEntry {
 	return entry
 }
 
+func (s *State) CycleSearchResults(forward bool) StateEntry {
+	searchResults := s.Entries(Search)
+	s.curIndex = utils.Clamp(s.curIndex, 0, len(searchResults)-1)
+
+	if len(s.SearchResults()) <= 0 {
+		return StateEntry{}
+	}
+
+	entry := s.SearchResults()[s.curIndex]
+
+	if forward {
+		s.curIndex++
+	} else {
+		s.curIndex--
+	}
+
+	return entry
+}
+
 func (s *State) ResetIndex() {
 	s.curIndex = len(s.entries) - 1
 }
-
-//command|2025-08-05T19:20:15Z|open keymap
-//command|2025-08-05T19:20:15Z|w
-//search|2025-08-05T19:20:25Z|append(

@@ -28,6 +28,16 @@
 		}
 	},
 	{
+		"components": ["Folders", "Notes", "Editor"],
+		"mode": "search",
+		"bindings": {
+			"enter": "ConfirmAction",
+			"esc": "CancelAction",
+			"up": "CmdSearchHistoryBack",
+			"down": "CmdSearchHistoryForward",
+		}
+	},
+	{
 		"components": ["Folders", "Notes"],
 		"mode": "normal",
 		"bindings": {

@@ -138,6 +138,8 @@ func (e *KeyMapEntry) ResolveMode(ki *Input) mode.Mode {
 		return mode.VisualBlock
 	case "command":
 		return mode.Command
+	case "search":
+		return mode.SearchPrompt
 	}
 	return mode.Normal
 }
