@@ -52,7 +52,9 @@ type State struct {
 	curIndex int
 }
 
-func (s *State) removeLastOccurences(st HistoryType, c string) {
+// removeLastOccurrences removes the last occurrence of an entry
+// with the specified HistoryType and content from the entries slice.
+func (s *State) removeLastOccurrences(st HistoryType, c string) {
 	for i := len(s.entries) - 1; i >= 0; i-- {
 		if s.entries[i].historyType == st && s.entries[i].content == c {
 			copy(s.entries[i:], s.entries[i+1:])
@@ -62,6 +64,7 @@ func (s *State) removeLastOccurences(st HistoryType, c string) {
 	}
 }
 
+// Entries returns a slice of StateEntry filtered by the given HistoryType.
 func (s *State) Entries(st HistoryType) []StateEntry {
 	entries := []StateEntry{}
 
@@ -74,6 +77,7 @@ func (s *State) Entries(st HistoryType) []StateEntry {
 	return entries
 }
 
+// Commands returns all entries of type Command.
 func (s *State) Commands() []StateEntry {
 	commands := []StateEntry{}
 
@@ -88,6 +92,7 @@ func (s *State) Commands() []StateEntry {
 	return commands
 }
 
+// SearchResults returns all entries of type Search.
 func (s *State) SearchResults() []StateEntry {
 	searchResults := []StateEntry{}
 
@@ -102,6 +107,8 @@ func (s *State) SearchResults() []StateEntry {
 	return searchResults
 }
 
+// New initializes a new State from the state file.
+// If the state file doesn*t exist, it is created.
 func New() *State {
 	filePath, err := app.StateFile()
 	if err != nil {
@@ -118,26 +125,19 @@ func New() *State {
 	}
 }
 
+// Append adds a new StateEntry to the entries slice.
+// It removes previous occurrences to avoid duplication.
 func (s *State) Append(entry StateEntry) {
-	//if len(s.entries) > 0 {
-	//	lastIndex := s.entries[len(s.entries)-1]
-
-	//	if lastIndex.content == entry.content || entry.content == "" {
-	//		return
-	//	}
-
-	//	s.removeLastOccurences(entry.historyType, entry.content)
-	//}
-
 	if entry.content == "" {
 		return
 	}
 
-	s.removeLastOccurences(entry.historyType, entry.content)
+	s.removeLastOccurrences(entry.historyType, entry.content)
 	s.entries = append(s.entries, entry)
 	s.curIndex = len(s.entries) - 1
 }
 
+// Read loads history entries from the state file.
 func (s *State) Read() error {
 	file, err := os.OpenFile(s.filePath, os.O_RDONLY, 0644)
 
@@ -175,6 +175,8 @@ func (s *State) Read() error {
 	return nil
 }
 
+// Write saves the current entries to the state file.
+// TYPE|TIMESTAMP|CONTENT
 func (s *State) Write() error {
 	f, err := os.OpenFile(s.filePath, os.O_WRONLY|os.O_TRUNC, 0644)
 	if err != nil {
@@ -192,7 +194,6 @@ func (s *State) Write() error {
 		line.WriteString(entry.content)
 		line.WriteRune('\n')
 
-		debug.LogDebug(line.String())
 		_, err := f.WriteString(line.String())
 
 		if err != nil {
