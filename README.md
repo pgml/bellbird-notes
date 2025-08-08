@@ -56,7 +56,6 @@ A list of the default keybinds can be displayed with `:open defaultkeymap`.
 * `U` and `u` for lower- & uppercase in visual mode
 * visual block mode
 * improve performance on large notes
-* save history to file system
 * automatically create lists if line starts with a dash
 * create lists out of selection
 * store time and amount of changes in buffer history
