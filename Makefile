@@ -5,7 +5,14 @@ PKG = bellbird-notes/app
 GOFLAGS = -trimpath
 VERSION := $(shell git describe --tags --abbrev=0 || echo "dev")
 
-build-dev:
+all:
+	go mod tidy
+	go build $(GOFLAGS) -ldflags="\
+		-s -w -X '$(PKG).version=$(VERSION)' \
+		-X '$(PKG).commit=$(GIT_HASH)'" \
+		-o ${BIN_CLI} cmd/tui/main.go
+
+dev:
 	go mod tidy
 	go build $(GOFLAGS) -ldflags="\
 		-X '$(PKG).dev=true' \
@@ -13,22 +20,13 @@ build-dev:
 		-X '$(PKG).commit=$(GIT_HASH)'" \
 		-o ${BIN_CLI} cmd/tui/main.go
 
-build-release:
-	go mod tidy
-	go build $(GOFLAGS) -ldflags="\
-		-s -w -X '$(PKG).version=$(VERSION)' \
-		-X '$(PKG).commit=$(GIT_HASH)'" \
-		-o ${BIN_CLI} cmd/tui/main.go
-
 install-local:
 	rsync -azP ${BIN_CLI} ~/.local/bin/
 	go clean
-	rm ${BIN_CLI}
 
 install:
 	rsync -azP ${BIN_CLI} /usr/bin/
 	go clean
-	rm ${BIN_CLI}
 
 clean:
 	go clean

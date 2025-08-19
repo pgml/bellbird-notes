@@ -209,6 +209,7 @@ func (l *BufferList) View() string {
 	}
 
 	l.viewport.SetContent(l.render())
+	l.UpdateViewportInfo()
 
 	l.viewport.Style = l.theme.BaseColumnLayout(
 		l.Size,

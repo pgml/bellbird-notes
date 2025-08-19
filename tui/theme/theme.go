@@ -82,7 +82,8 @@ func (t *Theme) Header(title string, colWidth int, focused bool) string {
 		Border(b, false, false, false, true).
 		BorderForeground(borderColour).
 		Foreground(titleColour).
-		Padding(0, 1)
+		Padding(0, 1).
+		Bold(true)
 
 	ls := lipgloss.NewStyle().Foreground(borderColour)
 	title = ts.Render(title)

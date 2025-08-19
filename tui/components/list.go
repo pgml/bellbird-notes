@@ -129,9 +129,7 @@ func (p *PinnedItems[T]) toggle(item T) {
 	}
 }
 
-type statusMsg string
-
-const reservedLines = 0
+const reservedLines = 1
 
 // List represents a bubbletea model and holds items that implement ListItem.
 // Important: T must be a pointer type, otherwise methods like SetIsCut() won't work.
