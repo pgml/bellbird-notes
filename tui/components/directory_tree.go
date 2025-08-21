@@ -274,6 +274,7 @@ func (t *DirectoryTree) View() string {
 
 	t.viewport.SetContent(t.render())
 	t.UpdateViewportInfo()
+	t.viewport.EnsureVisible(t.selectedIndex, 0, 0)
 
 	t.viewport.Style = t.theme.BaseColumnLayout(
 		t.Size,
