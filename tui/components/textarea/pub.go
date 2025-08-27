@@ -190,18 +190,13 @@ func (m *Model) WordRightEnd() {
 		curRune := m.value[m.row][m.col]
 		nextRune := m.value[m.row][m.col+1]
 
-		if unicode.IsPunct(curRune) && unicode.IsLetter(nextRune) {
-			return
-		}
-
-		// move to the last occurence of a punctuation
+		// @todo: don't skip over sequential symbols like ://
+		// It should stop at the last /
 		if unicode.IsPunct(curRune) {
-			if m.col+1 >= len(m.value[m.row])-1 {
+			if unicode.IsLetter(nextRune) {
 				break
 			}
-			for !unicode.IsSpace(m.value[m.row][m.col+1]) {
-				m.CharacterRight(false)
-			}
+			m.skipPunct()
 		}
 
 		// check bounds
