@@ -163,6 +163,23 @@ func (s Search) sortedRows(reverse bool) []int {
 	return rows
 }
 
+func (m *Model) isAnyMatchInViewport() bool {
+	if len(m.Search.Matches) == 0 {
+		return false
+	}
+
+	minimum := m.viewport.YOffset
+	maximum := minimum + m.viewport.Height()
+
+	for row := range m.Search.Matches {
+		if row >= minimum && row <= maximum {
+			return true
+		}
+	}
+
+	return false
+}
+
 // MoveToFirstSearchMatch centres the viewport to the first
 // match of the current search
 func (m *Model) MoveToFirstSearchMatch() {

@@ -1298,7 +1298,9 @@ func (m Model) View() string {
 	}
 
 	// ---- NEEDS TO BE MERGED WHEN UPDATING BUBBLES!
-	if len(m.Search.Matches) != 0 {
+	if len(m.Search.Matches) != 0 && !m.isAnyMatchInViewport() {
+		// FIXME: if not in any viewport it bounces back and forth to
+		// original cursor position and first match
 		m.MoveToFirstSearchMatch()
 	} else {
 		m.RepositionView()
