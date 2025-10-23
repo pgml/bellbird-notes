@@ -1677,6 +1677,7 @@ func (e *Editor) LineNumbers() bool {
 	numbers, err := e.conf.Value(config.Editor, config.LineNumbers)
 
 	if err != nil {
+		debug.LogErr(err)
 		return false
 	}
 
