@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -135,15 +137,11 @@ func (c *Config) File() string { return c.filePath }
 func New() *Config {
 	config := &Config{}
 
+	// config file
+
 	filePath, err := app.ConfigFile(false)
 	if err != nil {
 		return config
-	}
-
-	metaFilePath, err := app.ConfigFile(true)
-	if err != nil {
-		debug.LogErr(err)
-		return nil
 	}
 
 	if _, err := os.Stat(filePath); err != nil {
@@ -168,8 +166,17 @@ func New() *Config {
 		return nil
 	}
 
-	if _, err := os.Stat(metaFilePath); err != nil {
-		utils.CreateFile(metaFilePath, false)
+	config.filePath = filePath
+	config.file = conf
+	config.userFile = userConf
+	config.flushDelay = 400 * time.Millisecond
+
+	// Meta info file
+
+	metaFilePath, err := config.MetaFile()
+	if err != nil {
+		debug.LogErr(err)
+		return nil
 	}
 
 	metaConf, err := ini.Load(metaFilePath)
@@ -178,16 +185,13 @@ func New() *Config {
 		return nil
 	}
 
-	config.filePath = filePath
 	config.metaFilePath = metaFilePath
-	config.file = conf
-	config.userFile = userConf
 	config.metaFile = metaConf
-	config.flushDelay = 400 * time.Millisecond
 
 	return config
 }
 
+// Reload refreshes the current configuration file in memory
 func (c *Config) Reload() {
 	conf, err := ini.Load(c.filePath)
 	if err != nil {
@@ -351,6 +355,51 @@ func (c *Config) NerdFonts() bool {
 	return nerdFonts
 }
 
+// NotesDir returns a valid path to the directory of the notes
+// set in the configuration file.
+// If the path starts with a ~ it is replaced with the home directory.
+func (c *Config) NotesDir() (string, error) {
+	notesDir, err := c.Value(General, NotesDirectory)
+	if err != nil {
+		return "", err
+	}
+
+	if strings.HasPrefix(notesDir.Value, "~/") {
+		homeDir, _ := os.UserHomeDir()
+		notesDir.Value = filepath.Join(homeDir, notesDir.Value[2:])
+	}
+
+	return notesDir.Value, nil
+}
+
+// MetaFile returns the path to the meta info file.
+// If the file does not exist it will be created.
+// If it's not in the notes directory it attempts to migrate it.
+func (c *Config) MetaFile() (string, error) {
+	filePath, err := app.ConfigFile(true)
+	if err != nil {
+		return "", nil
+	}
+
+	notesDir, err := c.NotesDir()
+	if err != nil {
+		return "", err
+	}
+
+	metaFileName := filepath.Base(filePath)
+	newFilePath := filepath.Join(notesDir, metaFileName)
+
+	if _, err := os.Stat(filePath); err == nil {
+		if err := c.migrateMetaFile(filePath, newFilePath); err != nil {
+			return "", err
+		}
+	} else {
+		utils.CreateFile(newFilePath, false)
+	}
+
+	return newFilePath, nil
+}
+
 // CleanMetaFile attempts to remove orphaned sections from the meta files.
 // E.g. notes that were deleted
 func (c *Config) CleanMetaFile() {
@@ -376,4 +425,23 @@ func (c *Config) CleanMetaFile() {
 		// write out changes
 		c.metaFile.SaveTo(c.metaFilePath)
 	}()
+}
+
+// migrateMetaFile attempts to move the meta info file from the
+// config dir to the the notes directory path set in the config file.
+// If no path is set nothing happens.
+func (c *Config) migrateMetaFile(oldFile string, newFile string) error {
+	if _, err := os.Stat(oldFile); err != nil {
+		return fmt.Errorf("%s - %s", err, oldFile)
+	}
+
+	if _, err := os.Stat(newFile); err == nil {
+		return fmt.Errorf("file already exists: %s", newFile)
+	}
+
+	if err := os.Rename(oldFile, newFile); err != nil {
+		return err
+	}
+
+	return nil
 }

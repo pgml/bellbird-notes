@@ -2,7 +2,6 @@ package components
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 	"slices"
 	"strconv"
@@ -331,21 +330,13 @@ func NewDirectoryTree(conf *config.Config) *DirectoryTree {
 func (t DirectoryTree) Name() string { return "Folders" }
 func (t DirectoryTree) NotesDir() string {
 	// fetch notes directory
-	notesDir, err := t.conf.Value(
-		config.General,
-		config.NotesDirectory,
-	)
-
+	notesDir, err := t.conf.NotesDir()
 	if err != nil {
 		debug.LogErr(err)
+		return ""
 	}
 
-	if strings.HasPrefix(notesDir.Value, "~/") {
-		homeDir, _ := os.UserHomeDir()
-		notesDir.Value = filepath.Join(homeDir, notesDir.Value[2:])
-	}
-
-	return notesDir.Value
+	return notesDir
 }
 
 // Input returns and textinput model tailored to the directory tree
