@@ -51,15 +51,16 @@ func (v *Vim) FnRegistry() ki.MotionRegistry {
 		"CreateNote": v.createNote,
 
 		// General
-		"EnterCommand":    v.enterCmdMode,
-		"ShowBufferList":  v.showBufferList,
-		"CloseBufferList": v.closeBufferList,
-		"ConfirmAction":   v.confirmAction,
-		"CancelAction":    v.cancelAction,
-		"CloseNote":       bind(v.app.Editor.DeleteCurrentBuffer),
-		"NewScratch":      v.newScratchBuffer,
-		"ToggleFolders":   bind(v.app.DirTree.Toggle),
-		"ToggleNotes":     bind(v.app.NotesList.Toggle),
+		"EnterCommand":      v.enterCmdMode,
+		"ShowBufferList":    v.showBufferList,
+		"CloseBufferList":   v.closeBufferList,
+		"ConfirmAction":     v.confirmAction,
+		"CancelAction":      v.cancelAction,
+		"CloseNote":         bind(v.app.Editor.DeleteCurrentBuffer),
+		"CloseSelectedNote": v.deleteSelectedBuffer,
+		"NewScratch":        v.newScratchBuffer,
+		"ToggleFolders":     bind(v.app.DirTree.Toggle),
+		"ToggleNotes":       bind(v.app.NotesList.Toggle),
 
 		// Text editing
 		"SaveCurrentBuffer": bind(v.app.Editor.SaveBuffer),
@@ -493,6 +494,25 @@ func (v *Vim) cancelAction(opts ki.Options) func() StatusBarMsg {
 			Content: "",
 			Column:  sbc.General,
 		}
+	}
+}
+
+func (v *Vim) deleteSelectedBuffer(_ ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		var (
+			bl           = v.app.BufferList
+			items        = bl.Items()
+			selectedItem = bl.SelectedItem(items)
+			lastBuffer   = items[len(items)-1].Index() - 1
+		)
+
+		v.app.Editor.DeleteBuffer(selectedItem.Path())
+
+		if bl.SelectedIndex() > lastBuffer {
+			bl.SetSelectedIndex(lastBuffer)
+		}
+
+		return StatusBarMsg{}
 	}
 }
 

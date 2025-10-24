@@ -64,7 +64,8 @@
 			"j": "LineDown",
 			"k": "LineUp",
 			"enter": "ConfirmAction",
-			"esc": "CloseBufferList"
+			"esc": "CloseBufferList",
+			"dd": "CloseSelectedNote"
 		}
 	},
 	{
