@@ -386,7 +386,7 @@ func (c *Config) MetaFile() (string, error) {
 		return "", err
 	}
 
-	metaFileName := filepath.Base(filePath)
+	metaFileName := "." + filepath.Base(filePath)
 	newFilePath := filepath.Join(notesDir, metaFileName)
 
 	if _, err := os.Stat(filePath); err == nil {
