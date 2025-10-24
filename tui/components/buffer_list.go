@@ -220,6 +220,10 @@ func (l *BufferList) View() string {
 	view.WriteString(l.BuildHeader(l.width, false))
 	view.WriteString(l.viewport.View())
 
+	if len(l.items) > 0 {
+		l.lastIndex = l.items[len(l.items)-1].index
+	}
+
 	return view.String()
 }
 

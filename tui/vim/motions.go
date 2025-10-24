@@ -193,7 +193,7 @@ func (v *Vim) goToTop(_ ki.Options) func() StatusBarMsg {
 	}
 }
 
-// goToTop moves the current item of the focused list to its last item
+// goToBottom moves the current item of the focused list to its last item
 func (v *Vim) goToBottom(_ ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
 		if f := v.focusedComponent(); f != nil {
