@@ -140,3 +140,13 @@
 | `yiw`      | Normal         | Yank word     	                                       |        |
 | `yaw`      | Normal         | Yank word and space after                              |        |
 | `p`        | Normal         | Paste from clipboard                                   |        |
+
+### Buffer List
+
+| Key        | Mode           | Action                                                 | Info   |
+| ---------- | -------------- | ------------------------------------------------------ | ------ |
+| `k`        | Normal         | Move cursor up                                         |        |
+| `j`        | Normal         | Move cursor down                                       |        |
+| `gg`       | Normal         | Move cursor to top                                     |        |
+| `G`        | Normal         | Move cursor to bottom                                  |        |
+| `dd`       | Normal         | Delete selected buffer                                 |        |
