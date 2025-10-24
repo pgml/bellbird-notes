@@ -1,7 +1,7 @@
 [
 	// components: Folders, Notes, Editor, BufferList
 	// mode: normal, visual, visual_line, visual_block, replace, command
-	// see `:keymap` for all bindings
+	// see `:open keymap` for all bindings
 	{
 		"components": ["Folders", "Notes", "Editor"],
 		"mode": "normal",
