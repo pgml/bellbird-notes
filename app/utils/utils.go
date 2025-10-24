@@ -3,6 +3,7 @@ package utils
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"io"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -120,6 +121,54 @@ func CreateFile(path string, keepOpen bool) (*os.File, error) {
 	}
 
 	return f, nil
+}
+
+func MoveFile(src string, dst string) error {
+	// Try simple rename first (works if same filesystem)
+	if err := os.Rename(src, dst); err == nil {
+		return nil
+	}
+
+	// Ensure destination directory exists
+	if err := os.MkdirAll(filepath.Dir(dst), 0755); err != nil {
+		return err
+	}
+
+	// Open source file
+	in, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer in.Close()
+
+	// Create destination file
+	out, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+
+	// Copy contents
+	if _, err := io.Copy(out, in); err != nil {
+		out.Close()
+		return err
+	}
+
+	// Sync and close destination
+	if err := out.Sync(); err != nil {
+		out.Close()
+		return err
+	}
+	if err := out.Close(); err != nil {
+		return err
+	}
+
+	// Preserve file permissions (optional)
+	if info, err := os.Stat(src); err == nil {
+		os.Chmod(dst, info.Mode())
+	}
+
+	// Remove the source file
+	return os.Remove(src)
 }
 
 func Clamp(v, lower, upper int) int {

@@ -288,7 +288,6 @@ func (t *DirectoryTree) View() string {
 
 // NewDirectoryTree creates a new model with default settings.
 func NewDirectoryTree(conf *config.Config) *DirectoryTree {
-
 	tree := &DirectoryTree{
 		List: List[*TreeItem]{
 			title:         "FOLDERS",

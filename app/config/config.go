@@ -439,7 +439,7 @@ func (c *Config) migrateMetaFile(oldFile string, newFile string) error {
 		return fmt.Errorf("file already exists: %s", newFile)
 	}
 
-	if err := os.Rename(oldFile, newFile); err != nil {
+	if err := utils.MoveFile(oldFile, newFile); err != nil {
 		return err
 	}
 
