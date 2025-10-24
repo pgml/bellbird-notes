@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
+	"path/filepath"
 	"slices"
 
 	"bellbird-notes/app"
@@ -67,7 +68,7 @@ func keyMapPath() (string, error) {
 		return "", err
 	}
 
-	return confDir + "/" + keyMapFileName, nil
+	return filepath.Join(confDir, keyMapFileName), nil
 }
 
 // Exists checks whether a file exists at the given path.
