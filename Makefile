@@ -22,11 +22,9 @@ dev:
 
 install-local:
 	rsync -azP ${BIN_CLI} ~/.local/bin/
-	go clean
 
 install:
 	rsync -azP ${BIN_CLI} /usr/bin/
-	go clean
 
 clean:
 	go clean
