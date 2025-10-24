@@ -275,6 +275,26 @@ func (l *BufferList) createListItem(buf *Buffer, index int) BufferListItem {
 	return item
 }
 
+func (l *BufferList) SelectedBuffer() *BufferListItem {
+	var (
+		items        = l.Items()
+		selectedItem = l.SelectedItem(items)
+		lastBuffer   = 0
+	)
+
+	if len(items) <= 0 {
+		return nil
+	}
+
+	lastBuffer = items[len(items)-1].Index() - 1
+
+	if l.SelectedIndex() > lastBuffer {
+		l.SetSelectedIndex(lastBuffer)
+	}
+
+	return selectedItem
+}
+
 func (l *BufferList) Items() []*BufferListItem {
 	return l.items
 }

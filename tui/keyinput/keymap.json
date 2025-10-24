@@ -65,7 +65,7 @@
 			"k": "LineUp",
 			"enter": "ConfirmAction",
 			"esc": "CloseBufferList",
-			"dd": "CloseSelectedNote",
+			"D": "CloseSelectedNote",
 			"gg": "GoToTop",
 			"G": "GoToBottom"
 		}

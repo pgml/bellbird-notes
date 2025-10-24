@@ -499,17 +499,12 @@ func (v *Vim) cancelAction(opts ki.Options) func() StatusBarMsg {
 
 func (v *Vim) deleteSelectedBuffer(_ ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
-		var (
-			bl           = v.app.BufferList
-			items        = bl.Items()
-			selectedItem = bl.SelectedItem(items)
-			lastBuffer   = items[len(items)-1].Index() - 1
-		)
+		if !v.app.BufferList.Focused() {
+			return StatusBarMsg{}
+		}
 
-		v.app.Editor.DeleteBuffer(selectedItem.Path())
-
-		if bl.SelectedIndex() > lastBuffer {
-			bl.SetSelectedIndex(lastBuffer)
+		if buffer := v.app.BufferList.SelectedBuffer(); buffer != nil {
+			v.app.Editor.DeleteBuffer(buffer.Path())
 		}
 
 		return StatusBarMsg{}
