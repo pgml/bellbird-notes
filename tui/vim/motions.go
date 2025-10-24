@@ -62,6 +62,7 @@ func (v *Vim) FnRegistry() ki.MotionRegistry {
 		"ToggleNotes":     bind(v.app.NotesList.Toggle),
 
 		// Text editing
+		"SaveCurrentBuffer": bind(v.app.Editor.SaveBuffer),
 		"EnterNormalMode":   v.enterNormalMode,
 		"Replace":           bind(v.app.Editor.EnterReplaceMode),
 		"ToggleVisual":      v.toggleVisual,
