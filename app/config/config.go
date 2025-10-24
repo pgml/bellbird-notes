@@ -63,7 +63,7 @@ const (
 	NerdFonts
 	Border
 	SearchIgnoreCase
-	OpenNewNote
+	AutoOpenNewNote
 )
 
 // Map of Option enum values to their string names as used in the ini file
@@ -82,7 +82,7 @@ var options = map[Option]string{
 	NerdFonts:        "NerdFonts",
 	Border:           "Border",
 	SearchIgnoreCase: "SearchIgnoreCase",
-	OpenNewNote:      "OpenNewNote",
+	AutoOpenNewNote:  "AutoOpenNewNote",
 }
 
 // String returns the string representation of an Option

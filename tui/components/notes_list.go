@@ -510,8 +510,8 @@ func (l *NotesList) ConfirmAction() message.StatusBarMsg {
 					debug.LogErr(ok)
 				}
 
-				openNewNote, _ := l.conf.Value(config.General, config.OpenNewNote)
-				if openNewNote.GetBool() {
+				autoOpenNewNote, _ := l.conf.Value(config.General, config.AutoOpenNewNote)
+				if autoOpenNewNote.GetBool() {
 					cmd = SendSwitchBufferMsg(note.Path, true)
 				}
 
