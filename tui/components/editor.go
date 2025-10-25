@@ -1605,6 +1605,35 @@ func (e *Editor) Paste() message.StatusBarMsg {
 	return message.StatusBarMsg{}
 }
 
+// ChangeCaseOfSelection changes the case of the selected text to
+// either lower- or uppercase depending on `toUpper`
+func (e *Editor) ChangeCaseOfSelection(toUpper bool) message.StatusBarMsg {
+	e.newHistoryEntry()
+
+	selection := e.Textarea.SelectionStr()
+	start, end := e.Textarea.SelectionRange()
+
+	// If we're in visual line mode set the start column to the first
+	// of the first line and the end column to the last column of the
+	// last selected line
+	if e.Mode.Current == mode.VisualLine {
+		start.ColumnOffset = 0
+		end.ColumnOffset = e.Textarea.LineLength(end.Row) - 1
+	}
+	e.Textarea.DeleteRunesInRange(start, end)
+
+	if toUpper {
+		e.Textarea.InsertString(strings.ToUpper(selection))
+	} else {
+		e.Textarea.InsertString(strings.ToLower(selection))
+	}
+
+	e.Textarea.MoveCursor(start.Row, start.RowOffset, start.ColumnOffset)
+	e.EnterNormalMode(true)
+
+	return message.StatusBarMsg{}
+}
+
 // cursorPosFromConf retrieves the cursor position of the given note
 // from the meta config file.
 // If the meta config value is invalid it returns the empty CursorPos which

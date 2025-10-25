@@ -104,11 +104,13 @@ func (v *Vim) FnRegistry() ki.MotionRegistry {
 		"ChangeLine":        v.changeLine,
 		"ChangeWord":        v.changeWord,
 
-		"YankAfterCursor": bind(v.app.Editor.YankAfterCursor),
-		"YankSelection":   v.yankSelection,
-		"YankLine":        bind(v.app.Editor.YankLine),
-		"YankWord":        v.yankWord,
-		"Paste":           v.paste,
+		"YankAfterCursor":   bind(v.app.Editor.YankAfterCursor),
+		"YankSelection":     v.yankSelection,
+		"YankLine":          bind(v.app.Editor.YankLine),
+		"YankWord":          v.yankWord,
+		"Paste":             v.paste,
+		"ChangeToLowerCase": v.changeToLowerCase,
+		"ChangeToUpperCase": v.changeToUpperCase,
 
 		// Command
 		"CmdHistoryBack":    bind(v.app.StatusBar.PromptHistoryBack),
@@ -817,6 +819,18 @@ func (v *Vim) paste(opts ki.Options) func() StatusBarMsg {
 
 		v.selectWord(opts)
 		return msg
+	}
+}
+
+func (v *Vim) changeToLowerCase(_ ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		return v.app.Editor.ChangeCaseOfSelection(false)
+	}
+}
+
+func (v *Vim) changeToUpperCase(_ ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		return v.app.Editor.ChangeCaseOfSelection(true)
 	}
 }
 

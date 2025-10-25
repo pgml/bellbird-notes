@@ -907,9 +907,11 @@ func (m *Model) DeleteRunesInRange(minRange CursorPos, maxRange CursorPos) {
 		if minCol <= len(val[minRow]) {
 			// handles backward selection (if the selection starts at a lower
 			// line and ends on a higher line)
-			if m.row < maxRow {
-				minCol -= 1
-			}
+			// Edit:  What am I trying to say here? Leaving this commented until
+			// encounter this case
+			//if m.row < maxRow {
+			//	minCol -= 1
+			//}
 			val[minRow] = val[minRow][:minCol]
 		}
 
@@ -1259,6 +1261,10 @@ func (m *Model) CursorAfterSelection() string {
 	}
 
 	return ""
+}
+
+func (m *Model) CapitalizeRight() {
+	m.capitalizeRight()
 }
 
 func (m *Model) Val() [][]rune {

@@ -211,7 +211,9 @@
 			"d": "DeleteSelection",
 			"D": "DeleteLine",
 			"c": "SubstituteText",
-			"y": "YankSelection"
+			"y": "YankSelection",
+			"u": "ChangeToLowerCase",
+			"U": "ChangeToUpperCase"
 		}
 	},
 	{
@@ -221,7 +223,9 @@
 			"d": "DeleteSelection",
 			"D": "DeleteLine",
 			"c": ["SubstituteText", { "new_line": true }],
-			"y": "YankSelection"
+			"y": "YankSelection",
+			"u": "ChangeToLowerCase",
+			"U": "ChangeToUpperCase"
 		}
 	}
 ]
