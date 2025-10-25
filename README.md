@@ -45,7 +45,6 @@ A list of the default keybinds can be displayed with `:open defaultkeymap`.
 #### General
 
 * more config options
-* move meta infos to notes directory so that it can be synced
 
 #### Notes/Folders
 
@@ -53,7 +52,6 @@ A list of the default keybinds can be displayed with `:open defaultkeymap`.
 
 #### Editor
 
-* `U` and `u` for lower- & uppercase in visual mode
 * visual block mode
 * improve performance on large notes
 * automatically create lists if line starts with a dash
