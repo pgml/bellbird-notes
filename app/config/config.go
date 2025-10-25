@@ -166,6 +166,10 @@ func New() *Config {
 		return nil
 	}
 
+	// dirty hack to get the notes directory created
+	// @todo: make not hacky
+	app.NotesRootDir()
+
 	config.filePath = filePath
 	config.file = conf
 	config.userFile = userConf
