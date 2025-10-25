@@ -471,7 +471,7 @@ func (v *Vim) cancelAction(opts ki.Options) func() StatusBarMsg {
 
 		if v.app.StatusBar.Prompt.Focused() {
 			v.app.StatusBar.CancelAction(func() {})
-			v.enterNormalMode(opts)
+			return v.enterNormalMode(opts)()
 		} else {
 			if f := v.focusedComponent(); f != nil {
 				resetIndex := false

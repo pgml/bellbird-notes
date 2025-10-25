@@ -90,6 +90,8 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			)
 		}
 
+		// @todo: don't show this message when we're cancelling command
+		// or search mode
 		if msg.String() == "ctrl+c" {
 			statusMsg = []message.StatusBarMsg{{
 				Content: message.StatusBar.CtrlCExitNote,

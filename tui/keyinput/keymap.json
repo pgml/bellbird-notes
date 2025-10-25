@@ -25,6 +25,7 @@
 			"esc": "CancelAction",
 			"up": "CmdHistoryBack",
 			"down": "CmdHistoryForward",
+			"ctrl+c": "CancelAction"
 		}
 	},
 	{
@@ -35,6 +36,7 @@
 			"esc": "CancelAction",
 			"up": "CmdSearchHistoryBack",
 			"down": "CmdSearchHistoryForward",
+			"ctrl+c": "CancelAction"
 		}
 	},
 	{
