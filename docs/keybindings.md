@@ -2,12 +2,10 @@
 
 | Key                   | Action                      | Cmd                |
 | --------------------- | --------------------------- | ------------------ |
-| `ctrl+w l` or `alt+e` | Focus next column           |                    |
-| `ctrl+w h` or `alt+q` | Focus previous column       |                    |
+| `ctrl+w l`            | Focus next column           |                    |
+| `ctrl+w h`            | Focus previous column       |                    |
 | `:`                   | Enter command mode          |                    |
-| `1`                   | Focus folders               |                    |
-| `2`                   | Focus notes                 |                    |
-| `3`                   | Focus editor                |                    |
+| `/`                   | Search in current note      |                    |
 | `space e`             | Show open notes             | `:b`, `:buffers`   |
 | `space q`             | Close currently open note   | `:bd`              |
 | `space n`             | Create a new scratch buffer | `:new`             |
