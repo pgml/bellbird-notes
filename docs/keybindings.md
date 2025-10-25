@@ -149,4 +149,4 @@
 | `j`        | Normal         | Move cursor down                                       |        |
 | `gg`       | Normal         | Move cursor to top                                     |        |
 | `G`        | Normal         | Move cursor to bottom                                  |        |
-| `dd`       | Normal         | Delete selected buffer                                 |        |
+| `D`        | Normal         | Delete selected buffer                                 |        |
