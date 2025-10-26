@@ -1,7 +1,6 @@
 package clipboard
 
 import (
-	"bytes"
 	"errors"
 	"io"
 	"os"
@@ -102,7 +101,7 @@ func Read() (string, error) {
 			return "", err
 		}
 
-		return string(bytes.TrimSpace(out)), nil
+		return string(out), nil
 	}
 
 	return "", errors.New("no clipboard backend available for Read")

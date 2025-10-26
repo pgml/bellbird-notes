@@ -1486,6 +1486,9 @@ func (e *Editor) YankSelection(keepCursor bool) message.StatusBarMsg {
 
 	if e.Mode.Current == mode.VisualLine {
 		startCol = 0
+		// append a new line as a hacky indicator that we are supposed
+		// to paste visual line selections on a new line
+		sel += "\n"
 	}
 
 	cursor := textarea.CursorPos{
@@ -1554,28 +1557,28 @@ func (e *Editor) Paste() message.StatusBarMsg {
 		return message.StatusBarMsg{}
 	}
 
-	cp, err := clipboard.Read()
+	cnt, err := clipboard.Read()
 
 	if err != nil {
 		debug.LogDebug(err)
 	}
 
-	if len(cp) > 0 {
-		cnt := string(cp)
+	if len(cnt) > 0 {
 		// save the curren cursor position to adjust the correct position
 		// after the clipboard content is pasted
-		cursorPos := e.CurrentBuffer.CursorPos
-		col := cursorPos.ColumnOffset
-		row := cursorPos.Row
-		rowOffset := cursorPos.RowOffset
-
-		lineLen := e.CurrentBuffer.CurrentLineLength
+		var (
+			cursorPos = e.CurrentBuffer.CursorPos
+			col       = cursorPos.ColumnOffset
+			row       = cursorPos.Row
+			rowOffset = cursorPos.RowOffset
+		)
 
 		e.newHistoryEntry()
 
-		// insert clipboard content on a newline below if it's larger than
-		// than the current line
-		if len(cp) >= lineLen {
+		r := []rune(cnt)
+		pasteOnNewLine := r[len(r)-1] == '\n'
+
+		if pasteOnNewLine {
 			e.Textarea.EmptyLineBelow()
 
 			// strip the last new line since we've already inserted
@@ -1588,10 +1591,11 @@ func (e *Editor) Paste() message.StatusBarMsg {
 			col = 0
 			row++
 		} else {
+			cnt = strings.TrimSpace(cnt)
 			// if the clipboard content is not a full line set the
 			// add the length of the selection to the current column offset
 			// to set the cursor to the end of the selection
-			col += len(cp)
+			col += len(cnt)
 			e.Textarea.CharacterRight(false)
 		}
 
