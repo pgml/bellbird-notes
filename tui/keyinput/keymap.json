@@ -48,7 +48,8 @@
 			"P": "TogglePinListItem",
 			"yy": "YankListItem",
 			"dd": "CutListItem",
-			"p": "PasteListItem"
+			"p": "PasteListItem",
+			"r": "RefreshList"
 		}
 	},
 	{

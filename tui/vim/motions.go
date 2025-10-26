@@ -41,6 +41,7 @@ func (v *Vim) FnRegistry() ki.MotionRegistry {
 		"CutListItem":       v.cutListItem,
 		"PasteListItem":     v.pasteListItem,
 		"TogglePinListItem": v.togglePin,
+		"RefreshList":       v.refreshList,
 
 		// directory tree specific
 		"TreeExpand":   bind(v.app.DirTree.Expand),
@@ -355,6 +356,15 @@ func (v *Vim) togglePin(_ ki.Options) func() StatusBarMsg {
 		if f := v.focusedComponent(); f != nil {
 			return f.TogglePinned()
 		}
+		return StatusBarMsg{}
+	}
+}
+
+func (v *Vim) refreshList(_ ki.Options) func() StatusBarMsg {
+	return func() StatusBarMsg {
+		v.app.DirTree.RefreshBranch(0, v.app.DirTree.SelectedIndex())
+		v.app.DirTree.Refresh(false, false)
+		v.app.NotesList.Refresh(false, false)
 		return StatusBarMsg{}
 	}
 }
