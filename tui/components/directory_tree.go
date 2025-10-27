@@ -301,6 +301,10 @@ func NewDirectoryTree(conf *config.Config) *DirectoryTree {
 		expandedDirs: make(map[string]bool),
 	}
 
+	if conf == nil {
+		conf = config.New()
+	}
+
 	tree.theme = theme.New(conf)
 	vis, _ := conf.Value(config.Folders, config.Visible)
 	tree.Visible = vis.GetBool()
@@ -414,7 +418,7 @@ func (t *DirectoryTree) render() string {
 // getChildren reads a directory and returns a slice of a directory Dir
 func (t *DirectoryTree) getChildren(path string, level int) []*TreeItem {
 	var dirs []*TreeItem
-	childDir, _ := directories.List(path)
+	childDir, _ := directories.List(path, t.conf)
 
 	// pinned stuff
 	if !t.PinnedItems.loaded {
@@ -683,6 +687,7 @@ func (t *DirectoryTree) dirExists(dirPath string) bool {
 	if _, contains := directories.ContainsDir(
 		parentPath,
 		dirName,
+		t.conf,
 	); contains {
 		//statusMsg = message.StatusBarMsg{
 		//	Content: "Directory already exists, please choose another name.",

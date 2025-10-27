@@ -2,6 +2,7 @@ package theme
 
 import (
 	"bellbird-notes/app/config"
+	"bellbird-notes/app/debug"
 	"image/color"
 	"os"
 	"strings"
@@ -11,8 +12,7 @@ import (
 	"golang.org/x/term"
 )
 
-// @todo make this a theme.conf or whatever
-// colors
+// fallback/default colors
 var (
 	ColourBorder        = lipgloss.Color("#606d87")
 	ColourBorderFocused = lipgloss.Color("#69c8dc")
@@ -49,14 +49,6 @@ func Icon(icon icon, nerdFont bool) string {
 	return icn
 }
 
-func BorderColour(focused bool) color.Color {
-	borderColour := ColourBorder
-	if focused {
-		borderColour = ColourBorderFocused
-	}
-	return borderColour
-}
-
 type Theme struct {
 	Conf *config.Config
 }
@@ -68,11 +60,12 @@ func New(conf *config.Config) Theme {
 }
 
 func (t *Theme) Header(title string, colWidth int, focused bool) string {
-	borderColour := BorderColour(focused)
-	titleColour := ColourTitle
+	borderColour := t.Colour(config.Border, ColourBorder)
+	titleColour := t.Colour(config.ColumnTitle, ColourTitle)
 
 	if focused {
-		titleColour = ColourBorderFocused
+		borderColour = t.Colour(config.BorderFocused, ColourBorderFocused)
+		titleColour = t.Colour(config.ColumnTitleFocused, ColourBorderFocused)
 	}
 
 	// @todo clean this shit up
@@ -104,7 +97,12 @@ func (t *Theme) Header(title string, colWidth int, focused bool) string {
 
 // BaseColumnLayout provides thae basic layout style for a column
 func (t *Theme) BaseColumnLayout(size bl.Size, focused bool) lipgloss.Style {
-	borderColour := BorderColour(focused)
+	borderColour := t.Colour(config.Border, ColourBorder)
+	if focused {
+		borderColour = t.Colour(config.BorderFocused, ColourBorderFocused)
+	}
+
+	//debug.LogDebug("border-colour", borderColour)
 	_, termHeight := TerminalSize()
 
 	return lipgloss.NewStyle().
@@ -128,8 +126,25 @@ func TerminalSize() (int, int) {
 	return width, height
 }
 
+func (t *Theme) Colour(
+	opt config.Option,
+	fallback color.Color,
+) color.Color {
+	color, err := t.Conf.Value(config.Theme, opt)
+
+	debug.LogDebug(color.Value)
+	if err != nil || color.Value == "" {
+		debug.LogErr(err)
+		return fallback
+	}
+
+	debug.LogDebug("colour", color.Value)
+
+	return lipgloss.Color(color.Value)
+}
+
 func (t *Theme) BorderStyle() lipgloss.Border {
-	border, err := t.Conf.Value(config.Theme, config.Border)
+	border, err := t.Conf.Value(config.Theme, config.BorderStyle)
 	style := lipgloss.NormalBorder()
 
 	if err != nil {

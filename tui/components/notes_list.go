@@ -240,7 +240,7 @@ func (l *NotesList) Refresh(
 	resetSelectedIndex bool,
 	resetPinned bool,
 ) message.StatusBarMsg {
-	notesList, err := notes.List(l.CurrentPath)
+	notesList, err := notes.List(l.CurrentPath, l.conf)
 
 	if resetSelectedIndex {
 		l.selectedIndex = 0

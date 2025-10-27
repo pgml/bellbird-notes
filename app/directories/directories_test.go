@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"bellbird-notes/app/config"
 	"bellbird-notes/app/directories"
 )
 
@@ -37,7 +38,7 @@ func TestCreateDelete(t *testing.T) {
 		t.Fatalf("Expected directory at %s, but got error :%v", subDirPath, err)
 	}
 
-	err, _ = directories.ContainsDir(dirPath, filepath.Base(subDirPath))
+	err, _ = directories.ContainsDir(dirPath, filepath.Base(subDirPath), config.New())
 	if err != nil {
 		t.Fatalf("ContainsDir failed: %v", err)
 	}
@@ -63,12 +64,12 @@ func TestRename(t *testing.T) {
 		t.Fatalf("Rename failed: %v", err)
 	}
 
-	err, exists := directories.ContainsDir(dir, filepath.Base(newPath))
+	err, exists := directories.ContainsDir(dir, filepath.Base(newPath), nil)
 	if !exists {
 		t.Errorf("Renamed directory does not exist: %v", err)
 	}
 
-	_, exists = directories.ContainsDir(dir, filepath.Base(oldPath))
+	_, exists = directories.ContainsDir(dir, filepath.Base(oldPath), nil)
 	if exists {
 		t.Error("Old directory still exists")
 	}
@@ -79,7 +80,7 @@ func TestList(t *testing.T) {
 	os.Mkdir(filepath.Join(dir, "test_dir"), 0755)
 	os.Mkdir(filepath.Join(dir, ".hidden_dir"), 0755)
 
-	dirList, err := directories.List(dir)
+	dirList, err := directories.List(dir, nil)
 	if err != nil {
 		t.Fatalf("List failed: %v", err)
 	}

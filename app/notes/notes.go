@@ -63,7 +63,7 @@ func NewNote(path string, isPinned bool) Note {
 // List returns a list of notes in the given directory path.
 // Only files with valid extensions (.txt or .note) are included.
 // Hidden files and directories are ignored.
-func List(notePath string) ([]Note, error) {
+func List(notePath string, conf *config.Config) ([]Note, error) {
 	var notes []Note
 
 	dirsList, err := os.ReadDir(notePath)
@@ -72,7 +72,9 @@ func List(notePath string) ([]Note, error) {
 		return nil, err
 	}
 
-	conf := config.New()
+	if conf == nil {
+		conf = config.New()
+	}
 
 	for _, child := range dirsList {
 		filePath := filepath.Join(notePath, child.Name())

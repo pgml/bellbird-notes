@@ -199,13 +199,13 @@ func defaultStyles(t theme.Theme) Styles {
 		Border(t.BorderStyle()).
 		BorderTop(false).
 		Padding(0, 1).
-		BorderForeground(theme.ColourBorderFocused)
+		BorderForeground(t.Colour(config.BorderFocused, theme.ColourBorderFocused))
 
 	s.blurred = lipgloss.NewStyle().
 		Border(t.BorderStyle()).
 		BorderTop(false).
 		Padding(0, 1).
-		BorderForeground(theme.ColourBorder)
+		BorderForeground(t.Colour(config.Border, theme.ColourBorder))
 
 	return s
 }
@@ -259,6 +259,8 @@ type Editor struct {
 	KeyInput keyinput.Input
 
 	styles Styles
+
+	theme theme.Theme
 }
 
 func NewEditor(conf *config.Config) *Editor {
@@ -286,9 +288,9 @@ func NewEditor(conf *config.Config) *Editor {
 		err:                nil,
 		conf:               conf,
 		LastOpenNoteLoaded: false,
+		theme:              theme,
 	}
 
-	editor.theme = theme
 	editor.ShowLineNumbers = editor.LineNumbers()
 	editor.Textarea.ShowLineNumbers = editor.ShowLineNumbers
 	editor.Textarea.ResetSelection()

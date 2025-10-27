@@ -78,7 +78,7 @@ func TestListFiltersOnlyNotes(t *testing.T) {
 	os.WriteFile(filepath.Join(dir, ".hidden.txt"), []byte("nope"), 0644)
 	os.WriteFile(filepath.Join(dir, "image.png"), []byte("png"), 0644)
 
-	notesList, err := notes.List(dir)
+	notesList, err := notes.List(dir, nil)
 	if err != nil {
 		t.Fatalf("List failed: %v", err)
 	}

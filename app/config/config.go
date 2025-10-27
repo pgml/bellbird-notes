@@ -61,9 +61,15 @@ const (
 	Expanded
 	LineNumbers
 	NerdFonts
-	Border
 	SearchIgnoreCase
 	AutoOpenNewNote
+
+	// theme stuff
+	BorderStyle
+	Border
+	BorderFocused
+	ColumnTitle
+	ColumnTitleFocused
 )
 
 // Map of Option enum values to their string names as used in the ini file
@@ -80,9 +86,15 @@ var options = map[Option]string{
 	Expanded:         "Expanded",
 	LineNumbers:      "LineNumbers",
 	NerdFonts:        "NerdFonts",
-	Border:           "Border",
 	SearchIgnoreCase: "SearchIgnoreCase",
 	AutoOpenNewNote:  "AutoOpenNewNote",
+
+	// theme stuff
+	BorderStyle:        "BorderStyle",
+	Border:             "Border",
+	BorderFocused:      "BorderFocused",
+	ColumnTitle:        "ColumnTitle",
+	ColumnTitleFocused: "ColumnTitleFocused",
 }
 
 // String returns the string representation of an Option
@@ -131,17 +143,32 @@ type Config struct {
 	nerdFonts *bool
 }
 
+var fileLoadOpts = ini.LoadOptions{
+	UnescapeValueDoubleQuotes: true,
+	InsensitiveKeys:           true,
+}
+
 func (c *Config) File() string { return c.filePath }
 
 // New loads or create a config file with default settings
 func New() *Config {
 	config := &Config{}
 
-	// config file
+	ini.PrettyFormat = false
+	ini.PrettyEqual = true
 
+	// load default config file
+	if conf, err := ini.LoadSources(fileLoadOpts, defaultConf); err == nil {
+		config.file = conf
+	} else {
+		debug.LogErr("Failed to read config file:", err)
+		return nil
+	}
+
+	// user config file
 	filePath, err := app.ConfigFile(false)
 	if err != nil {
-		return config
+		return nil
 	}
 
 	if _, err := os.Stat(filePath); err != nil {
@@ -151,17 +178,11 @@ func New() *Config {
 		}
 	}
 
-	ini.PrettyFormat = false
-	ini.PrettyEqual = true
-
-	conf, err := ini.Load(defaultConf)
-	if err != nil {
-		debug.LogErr("Failed to read config file:", err)
-		return nil
-	}
-
-	userConf, err := ini.Load(filePath)
-	if err != nil {
+	// load user config file
+	debug.LogDebug(filePath)
+	if userConf, err := ini.LoadSources(fileLoadOpts, filePath); err == nil {
+		config.userFile = userConf
+	} else {
 		debug.LogErr("Failed to read user config file:", err)
 		return nil
 	}
@@ -171,12 +192,9 @@ func New() *Config {
 	app.NotesRootDir()
 
 	config.filePath = filePath
-	config.file = conf
-	config.userFile = userConf
 	config.flushDelay = 400 * time.Millisecond
 
 	// Meta info file
-
 	metaFilePath, err := config.MetaFile()
 	if err != nil {
 		debug.LogErr(err)
@@ -209,7 +227,12 @@ func (c *Config) Reload() {
 func (c *Config) Value(section Section, option Option) (Value, error) {
 	if sect := c.userFile.Section(section.String()); sect != nil {
 		if opt := sect.Key(option.String()); opt.String() != "" {
-			return Value{opt.String()}, nil
+			val := opt.String()
+			val = strings.Trim(val, `"`)
+			if option == Border {
+				//debug.LogDebug("user", val, "\n\n")
+			}
+			return Value{val}, nil
 		}
 	}
 
@@ -220,6 +243,9 @@ func (c *Config) Value(section Section, option Option) (Value, error) {
 	}
 
 	if opt := sect.Key(option.String()); opt.String() != "" {
+		if option == BorderFocused {
+			//debug.LogDebug("default", opt.String())
+		}
 		return Value{opt.String()}, nil
 	} else {
 		return Value{}, fmt.Errorf(
@@ -258,6 +284,7 @@ func (c *Config) MetaValue(section string, option Option) (string, error) {
 // SetValue sets a configuration option value in the specified section
 // and saves the config file immediately
 func (c *Config) SetValue(section Section, option Option, value string) {
+	debug.LogDebug(option.String(), value)
 	c.file.
 		Section(section.String()).
 		Key(option.String()).

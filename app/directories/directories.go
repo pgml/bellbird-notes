@@ -34,7 +34,7 @@ func (d Directory) Name() string {
 }
 
 // List returns a list of Directory objects in the given directory path.
-func List(dirPath string) ([]Directory, error) {
+func List(dirPath string, conf *config.Config) ([]Directory, error) {
 	var Directories []Directory
 
 	dirs, err := os.ReadDir(dirPath)
@@ -43,7 +43,9 @@ func List(dirPath string) ([]Directory, error) {
 		return nil, err
 	}
 
-	conf := config.New()
+	if conf == nil {
+		conf = config.New()
+	}
 
 	for _, child := range dirs {
 		filePath := filepath.Join(dirPath, child.Name())
@@ -60,7 +62,7 @@ func List(dirPath string) ([]Directory, error) {
 		}
 
 		// Get subdirectories to count folders
-		nbrDirs, _ := List(filePath)
+		nbrDirs, _ := List(filePath, conf)
 
 		// check if expanded
 		exp, _ := conf.MetaValue(filePath, config.Expanded)
@@ -108,8 +110,11 @@ func GetFileCount(dir string) (int, error) {
 
 // ContainsDir checks whether a directory with the specified
 // name exists in the given path.
-func ContainsDir(path string, dirName string) (error, bool) {
-	dirs, err := List(path)
+func ContainsDir(path string, dirName string, conf *config.Config) (error, bool) {
+	if conf == nil {
+		conf = config.New()
+	}
+	dirs, err := List(path, conf)
 	if err != nil {
 		return err, false
 	}
