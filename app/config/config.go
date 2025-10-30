@@ -179,7 +179,7 @@ func New() *Config {
 	// Meta info file
 	metaFilePath, err := config.MetaFile()
 	if err != nil {
-		fmt.Printf("Failed to get meta infos file path: %s\n", err)
+		fmt.Println(err)
 		os.Exit(2)
 	}
 
@@ -395,7 +395,12 @@ func (c *Config) MetaFile() (string, error) {
 
 	if _, err := os.Stat(filePath); err == nil {
 		if err := c.migrateMetaFile(filePath, newFilePath); err != nil {
-			return "", err
+			errMsg := "Error: Could not migrate meta infos file.\n"
+			errMsg += err.Error() + "\n\n"
+			errMsg += "Please delete one of the following files:\n"
+			errMsg += "  - `" + filePath + "`\n"
+			errMsg += "  - `" + newFilePath + "`\n"
+			return "", errors.New(errMsg)
 		}
 	} else {
 		_, err := utils.CreateFile(newFilePath, false)
