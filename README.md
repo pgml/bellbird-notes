@@ -67,6 +67,7 @@ A list of the default keybinds can be displayed with `:open defaultkeymap`.
 
 * visual mode goes crazy on multilines (wrapped lines)
 * General status bar column is cut off if window is too small
+* Meta infos files resets on some occasions
 
 ## Future Plans
 
