@@ -70,9 +70,10 @@ func NotesRootDir() (string, error) {
 func ConfigDir() (string, error) {
 	ConfigDir, err := os.UserConfigDir()
 	if err != nil {
-		msg := "Could not get config directory in config.go/ConfigDir()"
+		msg := "Could not open config directory in config.go/ConfigDir()"
 		debug.LogErr(msg, err)
-		return "", err
+		fmt.Println(msg, err)
+		os.Exit(2)
 	}
 
 	appName := ModuleName()

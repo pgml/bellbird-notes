@@ -137,8 +137,11 @@ func (c *Config) File() string { return c.filePath }
 func New() *Config {
 	config := &Config{}
 
-	// config file
+	// dirty hack to get the notes directory created
+	// @todo: make not hacky
+	app.NotesRootDir()
 
+	// config file
 	filePath, err := app.ConfigFile(false)
 	if err != nil {
 		return config
@@ -157,18 +160,16 @@ func New() *Config {
 	conf, err := ini.Load(defaultConf)
 	if err != nil {
 		debug.LogErr("Failed to read config file:", err)
-		return nil
+		fmt.Printf("Failed to read config file: %s\n", err)
+		os.Exit(2)
 	}
 
 	userConf, err := ini.Load(filePath)
 	if err != nil {
 		debug.LogErr("Failed to read user config file:", err)
-		return nil
+		fmt.Printf("Failed to read config file: %s\n", err)
+		os.Exit(2)
 	}
-
-	// dirty hack to get the notes directory created
-	// @todo: make not hacky
-	app.NotesRootDir()
 
 	config.filePath = filePath
 	config.file = conf
@@ -176,17 +177,16 @@ func New() *Config {
 	config.flushDelay = 400 * time.Millisecond
 
 	// Meta info file
-
 	metaFilePath, err := config.MetaFile()
 	if err != nil {
-		debug.LogErr(err)
-		return nil
+		fmt.Printf("Failed to get meta infos file path: %s\n", err)
+		os.Exit(2)
 	}
 
 	metaConf, err := ini.Load(metaFilePath)
 	if err != nil {
-		debug.LogErr("Failed to read meta infos file:", err)
-		return nil
+		fmt.Printf("Failed to read meta infos file: %s\n", err)
+		os.Exit(2)
 	}
 
 	config.metaFilePath = metaFilePath
@@ -398,7 +398,16 @@ func (c *Config) MetaFile() (string, error) {
 			return "", err
 		}
 	} else {
-		utils.CreateFile(newFilePath, false)
+		_, err := utils.CreateFile(newFilePath, false)
+		if err != nil {
+			_, err := utils.CreateFile(filePath, false)
+			if err != nil {
+				return "", err
+			}
+			// if the file couldn't be created in the user directory just
+			// return the default
+			return filePath, nil
+		}
 	}
 
 	return newFilePath, nil
