@@ -2,6 +2,7 @@ package app
 
 import (
 	"flag"
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -41,16 +42,27 @@ func NotesRootDir() (string, error) {
 	Home, err := os.UserHomeDir()
 	if err != nil {
 		debug.LogErr(err)
-		return "", err
+		fmt.Printf("%s\n", err)
+		os.Exit(2)
 	}
 
 	appName := ModuleName()
 	notesDir := filepath.Join(Home, "."+appName)
 
-	if _, err := os.Stat(notesDir); err != nil {
-		os.Mkdir(notesDir, 0755)
+	if f, err := os.Stat(notesDir); err != nil {
+		if err := os.Mkdir(notesDir, 0755); err != nil {
+			debug.LogErr(err)
+			fmt.Printf("%s\n", err)
+			os.Exit(2)
+		}
+	} else {
+		if !f.IsDir() {
+			err = fmt.Errorf("Could not open %s: not a directory", notesDir)
+			debug.LogErr(err)
+			fmt.Printf("%s\n", err)
+			os.Exit(2)
+		}
 	}
-
 	return notesDir, nil
 }
 
