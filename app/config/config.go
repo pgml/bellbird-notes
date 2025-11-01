@@ -26,7 +26,7 @@ const (
 	General Section = iota
 	Theme
 	Folders
-	NotesList
+	Notes
 	Editor
 	BreadCrumb
 )
@@ -36,7 +36,7 @@ var sections = map[Section]string{
 	General:    "General",
 	Theme:      "Theme",
 	Folders:    "Folders",
-	NotesList:  "NotesList",
+	Notes:      "Notes",
 	Editor:     "Editor",
 	BreadCrumb: "Breadcrumb",
 }
