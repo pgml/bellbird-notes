@@ -32,7 +32,7 @@ type Component struct {
 	// Ready indicates if the component has been initialized
 	Ready bool
 
-	Visible bool
+	visible bool
 
 	theme theme.Theme
 }

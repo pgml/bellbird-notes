@@ -30,6 +30,9 @@ func (v *Vim) CmdRegistry() components.Commands {
 		"ToggleFolders": func(_ ...string) StatusBarMsg {
 			return v.app.DirTree.Toggle()
 		},
+		"ToggleTreeIndentLines": func(_ ...string) StatusBarMsg {
+			return v.app.DirTree.ToggleIndentLines()
+		},
 		"ToggleNotes": func(_ ...string) StatusBarMsg {
 			return v.app.NotesList.Toggle()
 		},

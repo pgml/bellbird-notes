@@ -64,6 +64,7 @@ const (
 	Border
 	SearchIgnoreCase
 	AutoOpenNewNote
+	IndentLines
 )
 
 // Map of Option enum values to their string names as used in the ini file
@@ -83,6 +84,7 @@ var options = map[Option]string{
 	Border:           "Border",
 	SearchIgnoreCase: "SearchIgnoreCase",
 	AutoOpenNewNote:  "AutoOpenNewNote",
+	IndentLines:      "IndentLines",
 }
 
 // String returns the string representation of an Option

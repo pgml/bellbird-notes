@@ -81,11 +81,12 @@ func (d *TreeItem) SetIsCut(isCut bool) { d.isCut = isCut }
 func (d *TreeItem) setIndentation(indentLines bool) {
 	indentStr := "  "
 	if indentLines {
-		if d.isLastChild {
-			indentStr = "╰ "
-		} else {
-			indentStr = "│ "
-		}
+		//if d.isLastChild {
+		//	indentStr = "╰ "
+		//} else {
+		//	indentStr = "│ "
+		//}
+		indentStr = "│ "
 	}
 
 	// repeat indentation once per indentation level
@@ -164,8 +165,8 @@ func (d *TreeItem) setToggleArrow() {
 }
 
 // prepareRow initialises all visual elements (indent, icon, arrow) for the row.
-func (d *TreeItem) prepareRow() {
-	d.setIndentation(false)
+func (d *TreeItem) prepareRow(showIndentLines bool) {
+	d.setIndentation(showIndentLines)
 	d.setIcon()
 	d.setToggleArrow()
 }
@@ -208,6 +209,8 @@ type DirectoryTree struct {
 
 	// Stores currently expanded directories
 	expandedDirs map[string]bool
+
+	indentLines bool
 }
 
 // Init initialises the Model on program load.
@@ -246,7 +249,6 @@ func (t *DirectoryTree) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			t.viewport.SetWidth(t.Size.Width)
 			t.viewport.SetHeight(t.Size.Height)
 		}
-
 	}
 
 	t.viewport, cmd = t.viewport.Update(msg)
@@ -267,7 +269,7 @@ func (t *DirectoryTree) View() string {
 		return "\n  Initializing..."
 	}
 
-	if !t.Visible {
+	if !t.visible {
 		return ""
 	}
 
@@ -302,8 +304,8 @@ func NewDirectoryTree(conf *config.Config) *DirectoryTree {
 	}
 
 	tree.theme = theme.New(conf)
-	vis, _ := conf.Value(config.Folders, config.Visible)
-	tree.Visible = vis.GetBool()
+	tree.visible = tree.Visible()
+	tree.indentLines = tree.IndentLines()
 	tree.input = tree.Input()
 
 	// append root directory
@@ -393,7 +395,7 @@ func (t *DirectoryTree) render() string {
 
 		// Prepare all visual row elements and get the correct width.
 		// This has to be called before any actuall output
-		dir.prepareRow()
+		dir.prepareRow(t.indentLines)
 
 		// Set the correct input width so that in case the folder name is too
 		// long we're not breaking to the next line
@@ -547,6 +549,9 @@ func (t *DirectoryTree) Refresh(
 			t.Refresh(false, false)
 		}
 	}
+
+	t.indentLines = t.IndentLines()
+	t.visible = t.Visible()
 
 	return statusMsg
 }
@@ -1039,8 +1044,37 @@ func (t *DirectoryTree) ItemsContain(path string) (*TreeItem, bool) {
 	return nil, false
 }
 
+func (t *DirectoryTree) Visible() bool {
+	vis, err := t.conf.Value(config.Folders, config.Visible)
+
+	if err != nil {
+		debug.LogErr(err)
+		return false
+	}
+
+	return vis.GetBool()
+}
+
 func (t *DirectoryTree) Toggle() message.StatusBarMsg {
-	t.Visible = !t.Visible
+	t.visible = !t.visible
+	return message.StatusBarMsg{
+		Cmd: SendRefreshUiMsg(),
+	}
+}
+
+func (t *DirectoryTree) IndentLines() bool {
+	lines, err := t.conf.Value(config.Folders, config.IndentLines)
+
+	if err != nil {
+		debug.LogErr(err)
+		return false
+	}
+
+	return lines.GetBool()
+}
+
+func (t *DirectoryTree) ToggleIndentLines() message.StatusBarMsg {
+	t.indentLines = !t.indentLines
 	return message.StatusBarMsg{
 		Cmd: SendRefreshUiMsg(),
 	}

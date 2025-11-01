@@ -246,7 +246,11 @@ func (m *Model) RefreshUi() {
 	m.app.Conf.Reload()
 
 	m.app.DirTree.RefreshStyles()
+	m.app.DirTree.Refresh(false, false)
+
 	m.app.NotesList.RefreshStyles()
+	m.app.NotesList.Refresh(false, false)
+
 	m.app.Editor.RefreshTextAreaStyles()
 	m.app.BufferList.RefreshStyles()
 
@@ -257,11 +261,11 @@ func (m *Model) updateEditorWidth() {
 	termW, _ := theme.TerminalSize()
 	editorWidth := termW
 
-	if m.app.DirTree.Visible {
+	if m.app.DirTree.Visible() {
 		editorWidth -= m.app.DirTree.Size.Width
 	}
 
-	if m.app.NotesList.Visible {
+	if m.app.NotesList.Visible() {
 		editorWidth -= m.app.NotesList.Size.Width
 	}
 

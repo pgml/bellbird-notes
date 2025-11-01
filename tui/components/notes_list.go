@@ -135,7 +135,7 @@ func (l *NotesList) View() string {
 		return "\n  Initializing..."
 	}
 
-	if !l.Visible {
+	if !l.visible {
 		return ""
 	}
 
@@ -182,11 +182,9 @@ func NewNotesList(conf *config.Config) *NotesList {
 	}
 
 	list.theme = theme.New(conf)
-
-	vis, _ := conf.Value(config.NotesList, config.Visible)
-	list.Visible = vis.GetBool()
-
+	list.visible = list.Visible()
 	list.Refresh(false, true)
+
 	return list
 }
 
@@ -308,6 +306,8 @@ func (l *NotesList) Refresh(
 	if l.length > 0 {
 		l.lastIndex = l.items[len(l.items)-1].index
 	}
+
+	l.visible = l.Visible()
 
 	return message.StatusBarMsg{}
 }
@@ -600,8 +600,19 @@ func (l *NotesList) PasteSelection() message.StatusBarMsg {
 	return statusMsg
 }
 
+func (l *NotesList) Visible() bool {
+	vis, err := l.conf.Value(config.Notes, config.Visible)
+
+	if err != nil {
+		debug.LogErr(err)
+		return false
+	}
+
+	return vis.GetBool()
+}
+
 func (l *NotesList) Toggle() message.StatusBarMsg {
-	l.Visible = !l.Visible
+	l.visible = !l.visible
 	return message.StatusBarMsg{
 		Cmd: SendRefreshUiMsg(),
 	}
