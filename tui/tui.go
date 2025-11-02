@@ -185,12 +185,14 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 // View renders the TUI layout as a string
-func (m Model) View() string {
-	view := lipgloss.JoinVertical(lipgloss.Left,
+func (m Model) View() tea.View {
+	var view tea.View
+
+	content := lipgloss.JoinVertical(lipgloss.Left,
 		lipgloss.JoinHorizontal(lipgloss.Top,
-			m.app.DirTree.View(),
-			m.app.NotesList.View(),
-			m.app.Editor.View(),
+			m.app.DirTree.Content(),
+			m.app.NotesList.Content(),
+			m.app.Editor.Content(),
 		),
 		m.app.StatusBar.View(),
 	)
@@ -210,8 +212,11 @@ func (m Model) View() string {
 
 	if overlay != "" {
 		// place overlay above the application
-		return components.PlaceOverlay(x, y, overlay, view)
+		content = components.PlaceOverlay(x, y, overlay, content)
 	}
+
+	view.AltScreen = true
+	view.SetContent(content)
 
 	return view
 }

@@ -1,3 +1,13 @@
+// Copyright (c) 2020-2025 Charmbracelet, Inc
+// Modified by pgml 2025
+// This file is part of a modified version of the `textarea` package from `bubbles`.
+//
+// The original package is licensed under the MIT License.
+// You can find the full MIT License in the project root.
+//
+// Changes:
+// - Added vim-like selections and search (most of it is in pub.go)
+
 package textarea
 
 import (

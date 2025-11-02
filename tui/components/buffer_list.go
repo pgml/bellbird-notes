@@ -203,7 +203,13 @@ func (l *BufferList) buildItems() {
 	}
 }
 
-func (l *BufferList) View() string {
+func (l *BufferList) View() tea.View {
+	var view tea.View
+	view.SetContent(l.Content())
+	return view
+}
+
+func (l *BufferList) Content() string {
 	if !l.Ready {
 		return "\n  Initializing..."
 	}

@@ -32,13 +32,13 @@ func (i NoteItem) Path() string { return i.path }
 
 // String is string representation of a Note
 func (n NoteItem) String() string {
-	baseStyle := n.styles.base
-	iconStyle := n.styles.icon
+	baseStyle := n.styles.Base
+	iconStyle := n.styles.Icon
 	name := utils.TruncateText(n.Name(), 24)
 
 	if n.selected {
-		baseStyle = n.styles.selected
-		iconStyle = n.styles.iconSelected
+		baseStyle = n.styles.Selected
+		iconStyle = n.styles.IconSelected
 	}
 
 	var icon strings.Builder
@@ -106,7 +106,7 @@ func (l *NotesList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		if !l.Ready {
 			l.viewport = viewport.New()
-			l.viewport.SetContent(l.build())
+			l.viewport.SetContent(l.viewportContent())
 			l.viewport.KeyMap = viewport.KeyMap{}
 			l.lastVisibleLine = l.viewport.VisibleLineCount() - reservedLines
 			l.Ready = true
@@ -130,27 +130,10 @@ func (l *NotesList) RefreshSize() {
 	}
 }
 
-func (l *NotesList) View() string {
-	if !l.Ready {
-		return "\n  Initializing..."
-	}
-
-	if !l.visible {
-		return ""
-	}
-
-	l.viewport.SetContent(l.build())
-	l.UpdateViewportInfo()
-
-	l.viewport.Style = l.theme.BaseColumnLayout(
-		l.Size,
-		l.Focused(),
-	)
-
-	var view strings.Builder
-	view.WriteString(l.BuildHeader(l.Size.Width, false))
-	view.WriteString(l.viewport.View())
-	return view.String()
+func (l *NotesList) View() tea.View {
+	var view tea.View
+	view.SetContent(l.Content())
+	return view
 }
 
 // NewNotesList creates a new model with default settings.
@@ -190,8 +173,31 @@ func NewNotesList(conf *config.Config) *NotesList {
 
 func (l NotesList) Name() string { return "Notes" }
 
+func (l *NotesList) Content() string {
+	if !l.Ready {
+		return "\n  Initializing..."
+	}
+
+	if !l.visible {
+		return ""
+	}
+
+	l.viewport.SetContent(l.viewportContent())
+	l.UpdateViewportInfo()
+
+	l.viewport.Style = l.theme.BaseColumnLayout(
+		l.Size,
+		l.Focused(),
+	)
+
+	var view strings.Builder
+	view.WriteString(l.BuildHeader(l.Size.Width, false))
+	view.WriteString(l.viewport.View())
+	return view.String()
+}
+
 // build prepares the notes list as a string
-func (l NotesList) build() string {
+func (l NotesList) viewportContent() string {
 	var list strings.Builder
 
 	dirtyMap := make(map[string]struct{}, len(l.DirtyBuffers))
@@ -316,7 +322,7 @@ func (l *NotesList) Refresh(
 // If the note is pinned and not yet loaded, it is added to the pinned notes list.
 func (l *NotesList) createNoteItem(note notes.Note, index int, isPinned bool) NoteItem {
 	style := NotesListStyle()
-	iconWidth := style.iconWidth
+	iconWidth := style.IconWidth
 
 	noteItem := NoteItem{
 		Item: Item{
@@ -329,8 +335,8 @@ func (l *NotesList) createNoteItem(note notes.Note, index int, isPinned bool) No
 		},
 	}
 
-	noteItem.styles.icon = style.icon.Width(iconWidth)
-	noteItem.styles.iconSelected = style.selected.Width(iconWidth)
+	noteItem.styles.Icon = style.Icon.Width(iconWidth)
+	noteItem.styles.IconSelected = style.Selected.Width(iconWidth)
 
 	return noteItem
 }

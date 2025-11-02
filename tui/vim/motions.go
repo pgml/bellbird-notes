@@ -364,7 +364,7 @@ func (v *Vim) refreshList(_ ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
 		v.app.DirTree.RefreshBranch(0, v.app.DirTree.SelectedIndex())
 		v.app.DirTree.Refresh(false, false)
-		v.app.NotesList.Refresh(false, false)
+		v.app.DirTree.Refresh(false, false)
 		return StatusBarMsg{}
 	}
 }
@@ -849,7 +849,7 @@ func (v *Vim) OverlayOpenBuffers() (string, int, int) {
 	v.app.BufferList.SetFocus(true)
 
 	x, y := v.app.OverlayPosition(v.app.BufferList.Width())
-	overlay := v.app.BufferList.View()
+	overlay := v.app.BufferList.Content()
 
 	v.app.UpdateComponents(false)
 	return overlay, x, y

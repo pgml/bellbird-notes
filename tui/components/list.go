@@ -57,7 +57,7 @@ type Item struct {
 	name     string
 	path     string
 	selected bool
-	input    *textinput.Model
+	Input    *textinput.Model
 
 	styles styles
 	width  int
@@ -77,11 +77,35 @@ func (i Item) Path() string { return i.path }
 // Name returns the name of a Note-Item
 func (i Item) Name() string { return i.name }
 
+// NerdFonts returns the name of a Note-Item
+func (i Item) NerdFonts() bool { return i.nerdFonts }
+
+// Name returns the name of a Note-Item
+func (i Item) Styles() styles { return i.styles }
+
+// Width returns the index of a Note-Item
+func (i Item) Width() int { return i.width }
+
+// SetWidth returns the index of a Note-Item
+func (i *Item) SetWidth(width int) { i.width = width }
+
 // IsCut returns whether the note item is cut
 func (i Item) IsCut() bool { return i.isCut }
 
 // SetIsCut returns whether the note item is cut
 func (i *Item) SetIsCut(isCut bool) { i.isCut = isCut }
+
+// IsSelected returns whether the note item is cut
+func (i Item) IsSelected() bool { return i.selected }
+
+// SetIsSelected returns whether the note item is cut
+func (i *Item) SetIsSelected(isSelected bool) { i.selected = isSelected }
+
+// IsPinned returns whether the note item is cut
+func (i Item) IsPinned() bool { return i.selected }
+
+// SetIsPinned returns whether the note item is cut
+func (i *Item) SetIsPinned(isPinned bool) { i.selected = isPinned }
 
 type PinnedItem interface {
 	Path() string
@@ -173,6 +197,8 @@ type List[T ListItem] struct {
 
 	conf *config.Config
 }
+
+func (l List[T]) EditIndex() *int { return l.editIndex }
 
 //func (l List[T]) Title() string { return "" }
 

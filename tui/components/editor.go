@@ -389,15 +389,21 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return e, tea.Batch(cmds...)
 }
 
-func (e *Editor) View() string {
+func (e *Editor) View() tea.View {
+	var view tea.View
+	view.SetContent(e.Content())
+	return view
+}
+
+func (e *Editor) Content() string {
 	if !e.Focused() {
 		e.Textarea.Blur()
 	}
 
-	return e.build()
+	return e.viewportContent()
 }
 
-func (e *Editor) build() string {
+func (e *Editor) viewportContent() string {
 	var view strings.Builder
 	view.WriteString(e.BuildHeader(e.Size.Width, false))
 	view.WriteString(e.Textarea.View())
@@ -949,12 +955,12 @@ func (e *Editor) StatusBarInfo() message.StatusBarMsg {
 
 func (e *Editor) SetNumbers() {
 	e.Textarea.ShowLineNumbers = true
-	e.build()
+	e.viewportContent()
 }
 
 func (e *Editor) SetNoNumbers() {
 	e.Textarea.ShowLineNumbers = false
-	e.build()
+	e.viewportContent()
 }
 
 // OpenConfig opens the config file as a buffer
@@ -1733,5 +1739,5 @@ func (e *Editor) RefreshTextAreaStyles() {
 	e.Textarea.Styles.Focused.Base = s.focused
 	e.Textarea.ShowLineNumbers = e.LineNumbers()
 	e.BuildHeader(e.Size.Width, true)
-	e.build()
+	e.viewportContent()
 }

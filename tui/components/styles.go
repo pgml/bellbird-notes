@@ -7,32 +7,32 @@ import (
 )
 
 type styles struct {
-	base,
-	indent,
-	icon,
-	selected,
-	iconSelected,
-	toggle lipgloss.Style
+	Base,
+	Indent,
+	Icon,
+	Selected,
+	IconSelected,
+	Toggle lipgloss.Style
 
-	iconWidth,
-	toggleWidth int
+	IconWidth,
+	ToggleWidth int
 }
 
 func NotesListStyle() styles {
 	var s styles
-	s.iconWidth = 3
+	s.IconWidth = 3
 
-	s.base = lipgloss.NewStyle().
+	s.Base = lipgloss.NewStyle().
 		Foreground(lipgloss.NoColor{}).
 		Width(25)
 		//MarginLeft(0)
 		//PaddingLeft(1)
 
-	s.icon = s.base.
-		Width(s.iconWidth)
+	s.Icon = s.Base.
+		Width(s.IconWidth)
 		//Foreground(theme.ColourBorder)
 
-	s.selected = s.base.
+	s.Selected = s.Base.
 		Background(theme.ColourBgSelected).
 		Bold(true)
 	return s
@@ -40,22 +40,22 @@ func NotesListStyle() styles {
 
 func DirTreeStyle() styles {
 	var s styles
-	s.iconWidth = 2
-	s.toggleWidth = 2
+	s.IconWidth = 2
+	s.ToggleWidth = 2
 
-	s.base = lipgloss.NewStyle().
+	s.Base = lipgloss.NewStyle().
 		Foreground(lipgloss.NoColor{})
 
-	s.indent = s.base.Foreground(theme.ColourBorder)
+	s.Indent = s.Base.Foreground(theme.ColourBorder)
 
-	s.icon = lipgloss.NewStyle().
-		Width(s.iconWidth)
+	s.Icon = lipgloss.NewStyle().
+		Width(s.IconWidth)
 	//Foreground(theme.ColourBorder)
-	s.toggle = s.icon.
-		Width(s.toggleWidth).
+	s.Toggle = s.Icon.
+		Width(s.ToggleWidth).
 		Foreground(theme.ColourBorder)
 
-	s.selected = s.base.
+	s.Selected = s.Base.
 		Background(theme.ColourBgSelected).
 		Bold(true)
 	return s

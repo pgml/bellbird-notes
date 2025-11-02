@@ -260,12 +260,12 @@ func (c *Config) MetaValue(section string, option Option) (string, error) {
 // SetValue sets a configuration option value in the specified section
 // and saves the config file immediately
 func (c *Config) SetValue(section Section, option Option, value string) {
-	c.file.
+	c.userFile.
 		Section(section.String()).
 		Key(option.String()).
 		SetValue(value)
 
-	c.file.SaveTo(c.filePath)
+	c.userFile.SaveTo(c.filePath)
 }
 
 // SetMetaValue sets a metadata option value and schedules
