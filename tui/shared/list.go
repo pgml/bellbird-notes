@@ -1,4 +1,4 @@
-package components
+package shared
 
 import (
 	"slices"
@@ -41,10 +41,12 @@ type ListActions interface {
 type ListItem interface {
 	Index() int
 	Name() string
+	//SetName()
 	Path() string
-	//Title() string
+	//SetPath()
 	IsCut() bool
 	SetIsCut(isCut bool)
+	//Title() string
 	//RefreshStyles()
 	//BuildHeader(width int, rebuild bool) string
 }
@@ -54,34 +56,49 @@ type Item struct {
 	// of a directory.
 	index int
 
-	name     string
-	path     string
-	selected bool
-	Input    *textinput.Model
+	name       string
+	path       string
+	inputModel *textinput.Model
 
-	styles styles
+	Styles Styles
 	width  int
 
-	nerdFonts bool
+	NerdFonts bool
 
-	isPinned bool
-	isCut    bool
+	IsPinned   bool
+	isCut      bool
+	IsSelected bool
 }
 
 // Index returns the index of a Note-Item
 func (i Item) Index() int { return i.index }
 
+// SetIndex returns the index of a Note-Item
+func (i *Item) SetIndex(index int) { i.index = index }
+
 // Path returns the index of a Note-Item
 func (i Item) Path() string { return i.path }
+
+// Path returns the index of a Note-Item
+func (i *Item) SetPath(path string) { i.path = path }
+
+// IsCut returns the index of a Note-Item
+func (i Item) IsCut() bool { return i.isCut }
+
+// SetIsCut returns the index of a Note-Item
+func (i *Item) SetIsCut(isCut bool) { i.isCut = isCut }
 
 // Name returns the name of a Note-Item
 func (i Item) Name() string { return i.name }
 
-// NerdFonts returns the name of a Note-Item
-func (i Item) NerdFonts() bool { return i.nerdFonts }
-
 // Name returns the name of a Note-Item
-func (i Item) Styles() styles { return i.styles }
+func (i *Item) SetName(name string) { i.name = name }
+
+// InputModel returns the name of a Note-Item
+func (i Item) InputModel() *textinput.Model { return i.inputModel }
+
+// SetInputModel returns the name of a Note-Item
+func (i *Item) SetInputModel(model textinput.Model) { i.inputModel = &model }
 
 // Width returns the index of a Note-Item
 func (i Item) Width() int { return i.width }
@@ -89,44 +106,26 @@ func (i Item) Width() int { return i.width }
 // SetWidth returns the index of a Note-Item
 func (i *Item) SetWidth(width int) { i.width = width }
 
-// IsCut returns whether the note item is cut
-func (i Item) IsCut() bool { return i.isCut }
-
-// SetIsCut returns whether the note item is cut
-func (i *Item) SetIsCut(isCut bool) { i.isCut = isCut }
-
-// IsSelected returns whether the note item is cut
-func (i Item) IsSelected() bool { return i.selected }
-
-// SetIsSelected returns whether the note item is cut
-func (i *Item) SetIsSelected(isSelected bool) { i.selected = isSelected }
-
-// IsPinned returns whether the note item is cut
-func (i Item) IsPinned() bool { return i.selected }
-
-// SetIsPinned returns whether the note item is cut
-func (i *Item) SetIsPinned(isPinned bool) { i.selected = isPinned }
-
 type PinnedItem interface {
 	Path() string
 }
 
 type PinnedItems[T PinnedItem] struct {
-	items []T
+	Items []T
 
 	// indicates whether notes has been fully populated with the pinned notes
 	// of the current directory.
-	// This should only be true after the directory is loaded
-	loaded bool
+	// This should only be true after the directory is IsLoaded
+	IsLoaded bool
 }
 
-func (p *PinnedItems[T]) add(item T) {
-	p.items = append(p.items, item)
+func (p *PinnedItems[T]) Add(item T) {
+	p.Items = append(p.Items, item)
 }
 
-// contains returns whether a NoteItem is in `notes`
-func (p PinnedItems[T]) contains(item T) bool {
-	for _, n := range p.items {
+// Contains returns whether a NoteItem is in `notes`
+func (p PinnedItems[T]) Contains(item T) bool {
+	for _, n := range p.Items {
 		if n.Path() == item.Path() {
 			return true
 		}
@@ -134,26 +133,26 @@ func (p PinnedItems[T]) contains(item T) bool {
 	return false
 }
 
-func (p *PinnedItems[T]) remove(item T) {
-	for i, n := range p.items {
+func (p *PinnedItems[T]) Remove(item T) {
+	for i, n := range p.Items {
 		if n.Path() == item.Path() {
-			p.items = slices.Delete(p.items, i, i+1)
+			p.Items = slices.Delete(p.Items, i, i+1)
 			return
 		}
 	}
 }
 
-// toggle adds or removes the given note to the pinned notes
+// Toggle adds or removes the given note to the pinned notes
 // depending on whether it's already in the slice
-func (p *PinnedItems[T]) toggle(item T) {
-	if !p.contains(item) {
-		p.add(item)
+func (p *PinnedItems[T]) Toggle(item T) {
+	if !p.Contains(item) {
+		p.Add(item)
 	} else {
-		p.remove(item)
+		p.Remove(item)
 	}
 }
 
-const reservedLines = 1
+const ReservedLines = 1
 
 // List represents a bubbletea model and holds items that implement ListItem.
 // Important: T must be a pointer type, otherwise methods like SetIsCut() won't work.
@@ -161,46 +160,56 @@ const reservedLines = 1
 type List[T ListItem] struct {
 	Component
 
-	title string
+	Title string
 
 	// The currently selector directory row
-	selectedIndex int
+	SelectedIndex int
 
 	// The text input that is used for renaming or creating directories
-	input textinput.Model
+	InputModel textinput.Model
 
 	// The index of the currently edited directory row
-	editIndex *int
+	EditIndex *int
 
 	// States if directory is being created or renamed
 	EditState EditState
 
 	// Stores the list items
-	items []T
+	Items []T
 
-	yankedItems []T
+	YankedItems []T
 
 	// Contains all pinned notes of the current directory
 	PinnedItems PinnedItems[T]
 
-	// We set the length manually because len(items) won't be possible
+	// We set the Length manually because len(items) won't be possible
 	// for the directories since the multidimensial []items
 	// doesn't reflect the actual displayed list items when T is Dir
-	// In this case the real length would come from `
+	// In this case the real Length would come from `
 	// DirectoryTree.dirsListFlat`
-	length    int
-	lastIndex int
+	Length    int
+	LastIndex int
 
-	firstVisibleLine int
-	lastVisibleLine  int
-	visibleLines     int
+	FirstVisibleLine int
+	LastVisibleLine  int
+	VisibleLines     int
 
-	conf *config.Config
+	Conf *config.Config
 }
 
-func (l List[T]) EditIndex() *int { return l.editIndex }
+func (l List[T]) MakeEmpty() List[T] {
+	list := List[T]{
+		SelectedIndex:    0,
+		EditIndex:        nil,
+		EditState:        EditStates.None,
+		Items:            make([]T, 0),
+		PinnedItems:      PinnedItems[T]{},
+		FirstVisibleLine: 0,
+		LastVisibleLine:  0,
+	}
 
-//func (l List[T]) Title() string { return "" }
+	return list
+}
 
 // UpdateViewportInfo synchronises the list's internal visible line count
 // with the actual height of the viewport, subtracting `reservedLines`
@@ -210,25 +219,25 @@ func (l List[T]) EditIndex() *int { return l.editIndex }
 // This ensures scrolling and item selection logic remain accurate after
 // layout changes or terminal resizes.
 func (l *List[T]) UpdateViewportInfo() {
-	if l.visibleLines != l.viewport.VisibleLineCount() {
-		l.visibleLines = l.viewport.VisibleLineCount() - reservedLines
-		l.lastVisibleLine = l.visibleLines
+	if l.VisibleLines != l.Viewport.VisibleLineCount() {
+		l.VisibleLines = l.Viewport.VisibleLineCount() - ReservedLines
+		l.LastVisibleLine = l.VisibleLines
 	}
 }
 
 // SelectedItem returns the currently selected item of the list
 func (l *List[T]) SelectedItem(items []T) T {
 	var none T
-	if l.length == 0 {
+	if l.Length == 0 {
 		return none
 	}
 
 	if items == nil {
-		items = l.items
+		items = l.Items
 	}
 
-	if l.selectedIndex >= 0 && l.selectedIndex <= l.length {
-		return items[l.selectedIndex]
+	if l.SelectedIndex >= 0 && l.SelectedIndex <= l.Length {
+		return items[l.SelectedIndex]
 	}
 
 	return none
@@ -237,9 +246,9 @@ func (l *List[T]) SelectedItem(items []T) T {
 // ItemsContain returns the ListItem with the given path from the List.
 // If no such item exists, it returns a nil and an error.
 func (l List[T]) ItemsContain(path string) (T, bool) {
-	for i := range l.items {
-		if l.items[i].Path() == path {
-			return l.items[i], true
+	for i := range l.Items {
+		if l.Items[i].Path() == path {
+			return l.Items[i], true
 		}
 	}
 
@@ -248,8 +257,8 @@ func (l List[T]) ItemsContain(path string) (T, bool) {
 }
 
 func (l List[T]) YankedItemsContain(path string) (T, bool) {
-	for i := range l.yankedItems {
-		item := l.yankedItems[i]
+	for i := range l.YankedItems {
+		item := l.YankedItems[i]
 		if item.Path() == path {
 			return item, true
 		}
@@ -261,9 +270,9 @@ func (l List[T]) YankedItemsContain(path string) (T, bool) {
 
 // indexByPath returns the interal list index by the given path
 // if no items are provided it takes the cached items
-func (l List[T]) indexByPath(path string, items *[]T) int {
+func (l List[T]) IndexByPath(path string, items *[]T) int {
 	if items == nil {
-		items = &l.items
+		items = &l.Items
 	}
 	for _, item := range *items {
 		if item.Path() == path {
@@ -279,14 +288,14 @@ func (l List[T]) indexByPath(path string, items *[]T) int {
 
 // LineUp decrements `m.selectedIndex`
 func (l *List[T]) LineUp() message.StatusBarMsg {
-	if l.selectedIndex > 0 {
-		l.selectedIndex--
+	if l.SelectedIndex > 0 {
+		l.SelectedIndex--
 	}
 
 	// scroll up
-	if l.selectedIndex < l.firstVisibleLine {
-		l.firstVisibleLine = l.selectedIndex
-		l.viewport.LineUp(1)
+	if l.SelectedIndex < l.FirstVisibleLine {
+		l.FirstVisibleLine = l.SelectedIndex
+		l.Viewport.LineUp(1)
 	}
 
 	return message.StatusBarMsg{}
@@ -294,16 +303,14 @@ func (l *List[T]) LineUp() message.StatusBarMsg {
 
 // LineDown increments `m.selectedIndex`
 func (l *List[T]) LineDown() message.StatusBarMsg {
-	if l.selectedIndex < l.length-1 {
-		l.selectedIndex++
+	if l.SelectedIndex < l.Length-1 {
+		l.SelectedIndex++
 	}
 
-	l.lastVisibleLine = l.visibleLines + l.firstVisibleLine
-
 	// scroll down
-	if l.selectedIndex > l.lastVisibleLine {
-		l.firstVisibleLine = l.selectedIndex - l.visibleLines
-		l.viewport.LineDown(1)
+	if l.SelectedIndex > l.LastVisibleLine {
+		l.FirstVisibleLine = l.SelectedIndex - l.VisibleLines
+		l.Viewport.LineDown(1)
 	}
 
 	return message.StatusBarMsg{}
@@ -311,17 +318,17 @@ func (l *List[T]) LineDown() message.StatusBarMsg {
 
 // GoToTop moves the selection and viewport to the top of the tree
 func (l *List[T]) GoToTop() message.StatusBarMsg {
-	l.selectedIndex = 0
-	l.firstVisibleLine = 0
-	l.viewport.GotoTop()
+	l.SelectedIndex = 0
+	l.FirstVisibleLine = 0
+	l.Viewport.GotoTop()
 	return message.StatusBarMsg{}
 }
 
 // GoToBottom moves the selection and viewport to the bottom of the tree
 func (l *List[T]) GoToBottom() message.StatusBarMsg {
-	l.selectedIndex = l.lastIndex
-	l.firstVisibleLine = l.length - l.visibleLines
-	l.viewport.GotoBottom()
+	l.SelectedIndex = l.LastIndex
+	l.FirstVisibleLine = l.Length - l.VisibleLines
+	l.Viewport.GotoBottom()
 	return message.StatusBarMsg{}
 }
 
@@ -332,41 +339,37 @@ func RefreshList[T interface{ Refresh() }](a T) {
 // Rename renames the currently selected directory and
 // returns a message that is displayed in the status bar
 func (l *List[T]) Rename(origName string) message.StatusBarMsg {
-	if l.editIndex == nil {
+	if l.EditIndex == nil {
 		l.EditState = EditStates.Rename
-		l.editIndex = &l.selectedIndex
-		l.input.SetValue(origName)
+		l.EditIndex = &l.SelectedIndex
+		l.InputModel.SetValue(origName)
 		// set cursor to last position
-		l.input.CursorEnd()
+		l.InputModel.CursorEnd()
 	}
 	return message.StatusBarMsg{}
 }
 
 // TogglePinned pins or unpins the current selection
-func (l *List[T]) togglePinned(item T) {
+func (l *List[T]) TogglePinned(item T) {
 	path := item.Path()
 
 	// check if the selection already has a state
-	p, err := l.conf.MetaValue(path, config.Pinned)
+	p, err := l.Conf.MetaValue(path, config.Pinned)
 
 	// set default state if not
 	if err != nil {
-		l.conf.SetMetaValue(path, config.Pinned, "false")
+		l.Conf.SetMetaValue(path, config.Pinned, "false")
 		debug.LogErr(err)
 	}
 
 	// write to metadata file
 	if p == "true" {
-		l.conf.SetMetaValue(path, config.Pinned, "false")
+		l.Conf.SetMetaValue(path, config.Pinned, "false")
 	} else {
-		l.conf.SetMetaValue(path, config.Pinned, "true")
+		l.Conf.SetMetaValue(path, config.Pinned, "true")
 	}
 
-	l.PinnedItems.toggle(item)
-}
-
-func (l *BufferList) ConfirmAction() message.StatusBarMsg {
-	return message.StatusBarMsg{}
+	l.PinnedItems.Toggle(item)
 }
 
 // CancelAction cancels the current action and blurs the editor
@@ -378,20 +381,20 @@ func (l *List[T]) CancelAction(cb func()) message.StatusBarMsg {
 
 func (l *List[T]) resetEditor() {
 	if l.EditState != EditStates.None {
-		l.editIndex = nil
+		l.EditIndex = nil
 		l.EditState = EditStates.None
-		l.input.Blur()
+		l.InputModel.Blur()
 	}
 }
 
 func (l *List[T]) YankSelection(markCut bool) {}
 
-func (l *List[T]) pasteSelection(item T, dirPath string, cb func(string)) {
+func (l *List[T]) PasteSelection(item T, dirPath string, cb func(string)) {
 	name := item.Name()
 
 	if item.IsCut() {
 		if item, ok := l.ItemsContain(item.Path()); ok {
-			l.selectedIndex = item.Index()
+			l.SelectedIndex = item.Index()
 			item.SetIsCut(false)
 			return
 		}
@@ -407,10 +410,6 @@ func (l *List[T]) pasteSelection(item T, dirPath string, cb func(string)) {
 	}
 
 	cb(newPath)
-}
-
-func (l *List[T]) PasteSelection() message.StatusBarMsg {
-	return message.StatusBarMsg{}
 }
 
 // checkName ensures that the note name does not conflict with existing notes
@@ -439,18 +438,6 @@ func (l *List[T]) isNote(name string) bool {
 		strings.HasSuffix(name, notes.ConfExt)
 }
 
-func (l *List[T]) SelectedIndex() int {
-	return l.selectedIndex
-}
-
-func (l *List[T]) SetSelectedIndex(index int) {
-	l.selectedIndex = index
-}
-
-func (l *List[T]) TogglePinned() message.StatusBarMsg {
-	return message.StatusBarMsg{}
-}
-
 func (l *List[T]) ConfirmRemove() message.StatusBarMsg {
 	return message.StatusBarMsg{}
 }
@@ -475,13 +462,13 @@ func (l *List[T]) BuildHeader(width int, rebuild bool) string {
 		}
 	}
 
-	header := l.theme.Header(l.title, width, l.Focused()) + "\n"
+	header := l.theme.Header(l.Title, width, l.Focused()) + "\n"
 	l.header = &header
 	return header
 }
 
 func (l *List[T]) RefreshStyles() {
-	l.viewport.Style = l.theme.BaseColumnLayout(
+	l.Viewport.Style = l.theme.BaseColumnLayout(
 		l.Size,
 		l.Focused(),
 	)

@@ -3,10 +3,12 @@ package tui
 import (
 	"bellbird-notes/app/debug"
 	"bellbird-notes/internal/interfaces"
-	"bellbird-notes/tui/components"
+	"bellbird-notes/tui/components/application"
+	"bellbird-notes/tui/components/editor"
 	"bellbird-notes/tui/keyinput"
 	"bellbird-notes/tui/message"
 	"bellbird-notes/tui/mode"
+	"bellbird-notes/tui/shared"
 	"bellbird-notes/tui/theme"
 	sbc "bellbird-notes/tui/types/statusbar_column"
 	"bellbird-notes/tui/vim"
@@ -28,7 +30,7 @@ type Model struct {
 	keyInput *keyinput.Input
 
 	// app holds the state and behaviour of all core components
-	app *components.App
+	app *application.App
 
 	// vim provides Vim-style motions, commands, and focus logic.
 	vim *vim.Vim
@@ -37,7 +39,7 @@ type Model struct {
 func InitialModel() *Model {
 	layout := bl.New()
 	vim := vim.New()
-	app := components.NewApp(vim)
+	app := application.New(vim)
 	vim.SetApp(app)
 
 	m := Model{
@@ -143,7 +145,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.app.StatusBar = sb
 		cmds = append(cmds, cmd)
 
-	case components.BufferSavedMsg:
+	case editor.BufferSavedMsg:
 		// reload keymap if there's any updates
 		if msg.Buffer.Path(false) == m.keyInput.KeyMap.Path() {
 			m.keyInput.ReloadKeyMap()
@@ -153,16 +155,16 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.RefreshUi()
 		}
 
-	case components.SearchConfirmedMsg:
+	case editor.SearchConfirmedMsg:
 		m.app.StatusBar.Update(nil, msg)
 		m.app.Editor.Mode.Current = mode.Normal
 
-	case components.SearchCancelMsg:
+	case editor.SearchCancelMsg:
 		m.app.Editor.CancelSearch()
 		m.app.StatusBar.Mode = mode.Normal
 		m.app.StatusBar.Update(nil, msg)
 
-	case components.RefreshUiMsg:
+	case shared.RefreshUiMsg:
 		m.RefreshUi()
 	}
 
@@ -197,22 +199,9 @@ func (m Model) View() tea.View {
 		m.app.StatusBar.View(),
 	)
 
-	var (
-		overlay = ""
-		x       = 0
-		y       = 0
-	)
-
-	// check if any overlays should be displayed
-	if m.app.Editor.ListBuffers {
-		overlay, x, y = m.vim.OverlayOpenBuffers()
-	} else {
-		m.app.BufferList.SetFocus(false)
-	}
-
-	if overlay != "" {
-		// place overlay above the application
-		content = components.PlaceOverlay(x, y, overlay, content)
+	if m.app.CurrentOverlay != nil {
+		m.app.CurrentOverlay.SetBg(content)
+		content = m.app.CurrentOverlay.String()
 	}
 
 	view.AltScreen = true

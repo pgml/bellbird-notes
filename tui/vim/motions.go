@@ -7,11 +7,12 @@ import (
 	"bellbird-notes/app/config"
 	"bellbird-notes/app/utils"
 	"bellbird-notes/internal/interfaces"
-	"bellbird-notes/tui/components"
+	"bellbird-notes/tui/components/editor"
 	"bellbird-notes/tui/components/textarea"
 	ki "bellbird-notes/tui/keyinput"
 	"bellbird-notes/tui/message"
 	"bellbird-notes/tui/mode"
+	"bellbird-notes/tui/shared"
 	"bellbird-notes/tui/theme"
 	sbc "bellbird-notes/tui/types/statusbar_column"
 )
@@ -281,7 +282,7 @@ func (v *Vim) rename(_ ki.Options) func() StatusBarMsg {
 		}
 
 		if v.app.DirTree.Focused() {
-			if v.app.DirTree.SelectedIndex() > 0 {
+			if v.app.DirTree.SelectedIndex > 0 {
 				return v.app.DirTree.Rename(
 					v.app.DirTree.SelectedDir().Name(),
 				)
@@ -343,7 +344,7 @@ func (v *Vim) cutListItem(_ ki.Options) func() StatusBarMsg {
 func (v *Vim) pasteListItem(_ ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
 		if f := v.focusedComponent(); f != nil {
-			return f.PasteSelection()
+			return f.PasteSelectedItems()
 		}
 
 		return StatusBarMsg{}
@@ -354,7 +355,7 @@ func (v *Vim) pasteListItem(_ ki.Options) func() StatusBarMsg {
 func (v *Vim) togglePin(_ ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
 		if f := v.focusedComponent(); f != nil {
-			return f.TogglePinned()
+			return f.TogglePinnedItems()
 		}
 		return StatusBarMsg{}
 	}
@@ -362,7 +363,7 @@ func (v *Vim) togglePin(_ ki.Options) func() StatusBarMsg {
 
 func (v *Vim) refreshList(_ ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
-		v.app.DirTree.RefreshBranch(0, v.app.DirTree.SelectedIndex())
+		v.app.DirTree.RefreshBranch(0, v.app.DirTree.SelectedIndex)
 		v.app.DirTree.Refresh(false, false)
 		v.app.DirTree.Refresh(false, false)
 		return StatusBarMsg{}
@@ -415,6 +416,8 @@ func (v *Vim) closeBufferList(_ ki.Options) func() StatusBarMsg {
 		if v.app.BufferList.Focused() {
 			v.app.Editor.ListBuffers = false
 			v.FocusColumn(v.app.CurrColFocus)
+			v.app.CurrentOverlay = nil
+			v.app.BufferList.Blur()
 		}
 		return StatusBarMsg{}
 	}
@@ -458,12 +461,16 @@ func (v *Vim) confirmAction(opts ki.Options) func() StatusBarMsg {
 				}
 
 			case v.app.BufferList:
-				items := v.app.BufferList.Items()
-				sel := items[v.app.BufferList.SelectedIndex()]
-				statusMsg.Cmd = components.SendSwitchBufferMsg(
+				items := v.app.BufferList.Items
+				sel := items[v.app.BufferList.SelectedIndex]
+
+				statusMsg.Cmd = editor.SendSwitchBufferMsg(
 					sel.Path(),
 					true,
 				)
+
+				v.app.BufferList.Blur()
+				v.app.CurrentOverlay = nil
 			}
 		}
 
@@ -487,7 +494,7 @@ func (v *Vim) cancelAction(opts ki.Options) func() StatusBarMsg {
 		} else {
 			if f := v.focusedComponent(); f != nil {
 				resetIndex := false
-				stateCreate := components.EditStates.Create
+				stateCreate := shared.EditStates.Create
 
 				if v.app.DirTree.EditState == stateCreate ||
 					v.app.NotesList.EditState == stateCreate {
@@ -844,15 +851,13 @@ func (v *Vim) changeToUpperCase(_ ki.Options) func() StatusBarMsg {
 	}
 }
 
-func (v *Vim) OverlayOpenBuffers() (string, int, int) {
+func (v *Vim) OverlayOpenBuffers() {
+	ov := v.app.BufferList.Overlay
+
 	v.app.Editor.ListBuffers = true
-	v.app.BufferList.SetFocus(true)
-
-	x, y := v.app.OverlayPosition(v.app.BufferList.Width())
-	overlay := v.app.BufferList.Content()
-
+	v.app.BufferList.Focus()
+	v.app.CurrentOverlay = ov
 	v.app.UpdateComponents(false)
-	return overlay, x, y
 }
 
 // FocusColumn selects and higlights a column with index `index`
@@ -902,13 +907,13 @@ func (v *Vim) focusedComponent() interfaces.Focusable {
 }
 
 func (v *Vim) UnfocusAllColumns() StatusBarMsg {
-	v.app.DirTree.SetFocus(false)
+	v.app.DirTree.Blur()
 	v.app.DirTree.BuildHeader(v.app.DirTree.Size.Width, true)
 
-	v.app.NotesList.SetFocus(false)
+	v.app.NotesList.Blur()
 	v.app.NotesList.BuildHeader(v.app.NotesList.Size.Width, true)
 
-	v.app.Editor.SetFocus(false)
+	v.app.Editor.Blur()
 	v.app.Editor.BuildHeader(v.app.Editor.Size.Width, true)
 
 	v.KeyMap.FetchKeyMap(true)

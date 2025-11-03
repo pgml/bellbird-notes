@@ -1,14 +1,15 @@
 package vim
 
 import (
-	"bellbird-notes/tui/components"
+	"bellbird-notes/tui/components/statusbar"
 	"bellbird-notes/tui/message"
+	"bellbird-notes/tui/shared"
 )
 
-type Commands = components.Commands
+type Commands = statusbar.Commands
 
-func (v *Vim) CmdRegistry() components.Commands {
-	return components.Commands{
+func (v *Vim) CmdRegistry() Commands {
+	return Commands{
 		message.CmdPrompt.Yes:       v.statusBarConfirm,
 		message.CmdPrompt.No:        v.statusBarCancel,
 		message.CmdPrompt.Quit:      v.shouldQuit,
@@ -39,23 +40,23 @@ func (v *Vim) CmdRegistry() components.Commands {
 	}
 }
 
-func (v *Vim) cmdSetRegistry() components.Commands {
-	return components.Commands{
+func (v *Vim) cmdSetRegistry() Commands {
+	return Commands{
 		"number":   v.setNumber,
 		"nonumber": v.setNoNumber,
 	}
 }
 
-func (v *Vim) cmdOpenRegistry() components.Commands {
-	return components.Commands{
+func (v *Vim) cmdOpenRegistry() Commands {
+	return Commands{
 		"config":        v.openConfig,
 		"keymap":        v.openKeyMap,
 		"defaultkeymap": v.openDefaultKeyMap,
 	}
 }
 
-func (v *Vim) cmdReloadRegistry() components.Commands {
-	return components.Commands{
+func (v *Vim) cmdReloadRegistry() Commands {
+	return Commands{
 		"config": v.reloadConfig,
 		"keymap": v.reloadKeyMap,
 	}
@@ -93,8 +94,8 @@ func (v *Vim) cmdCheckTime(_ ...string) StatusBarMsg {
 func (v *Vim) statusBarConfirm(_ ...string) StatusBarMsg {
 	msg := StatusBarMsg{}
 	if f := v.focusedComponent(); f != nil {
-		if v.app.DirTree.EditState == components.EditStates.Delete ||
-			v.app.NotesList.EditState == components.EditStates.Delete {
+		if v.app.DirTree.EditState == shared.EditStates.Delete ||
+			v.app.NotesList.EditState == shared.EditStates.Delete {
 
 			msg = f.Remove()
 		}
@@ -131,7 +132,7 @@ func (v *Vim) openKeyMap(_ ...string) StatusBarMsg {
 
 func (v *Vim) reloadConfig(_ ...string) StatusBarMsg {
 	return StatusBarMsg{
-		Cmd: components.SendRefreshUiMsg(),
+		Cmd: shared.SendRefreshUiMsg(),
 	}
 }
 

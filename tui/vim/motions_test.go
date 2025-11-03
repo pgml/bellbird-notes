@@ -1,7 +1,7 @@
 package vim
 
 import (
-	"bellbird-notes/tui/components"
+	"bellbird-notes/tui/components/application"
 	"bellbird-notes/tui/keyinput"
 	"bellbird-notes/tui/mode"
 	"os"
@@ -10,7 +10,7 @@ import (
 	"testing"
 )
 
-func createTestApp(t *testing.T) (*Vim, *components.App) {
+func createTestApp(t *testing.T) (*Vim, *application.App) {
 	// create a file to test editor line down
 	tmp := t.TempDir()
 	path := filepath.Join(tmp, "test_note.txt")
@@ -22,7 +22,7 @@ func createTestApp(t *testing.T) (*Vim, *components.App) {
 
 	// Simulate starting the application
 	vim := &Vim{}
-	app := components.NewApp(vim)
+	app := application.New(vim)
 	vim.SetApp(app)
 
 	app.KeyInput = keyinput.New(vim)
@@ -42,7 +42,7 @@ func createTestApp(t *testing.T) (*Vim, *components.App) {
 
 	// Create a buffer
 	editor.NewBuffer(path)
-	editor.Buffers = &components.Buffers{}
+	editor.Buffers = app.Editor.Buffers
 
 	return vim, app
 }
@@ -317,20 +317,20 @@ func TestInsertAbove(t *testing.T) {
 	}
 }
 
-// func TestSelectWord(t *testing.T) {}
-// func TestNextWord(t *testing.T) {}
-// func TestPrevWord(t *testing.T) {}
-// func TestFindCharachter(t *testing.T) {}
-// func TestFind(t *testing.T) {}
-// func TestMoveToMatch(t *testing.T) {}
-// func TestDeleteWord(t *testing.T) {}
-// func TestDeleteAfterCursor(t *testing.T) {}
-// func TestDeleteSelection(t *testing.T) {}
-// func TestDeleteCharacter(t *testing.T) {}
-// func TestDeleteFromCursorToChar(t *testing.T) {}
-// func TestSubstituteText(t *testing.T) {}
-// func TestChangeAfterCursor(t *testing.T) {}
-// func TestChangeLine(t *testing.T) {}
-// func TestChangeWord(t *testing.T) {}
-// func TestYankSelection(t *testing.T) {}
-// func TestPaste(t *testing.T) {}
+func TestSelectWord(t *testing.T)             {}
+func TestNextWord(t *testing.T)               {}
+func TestPrevWord(t *testing.T)               {}
+func TestFindCharachter(t *testing.T)         {}
+func TestFind(t *testing.T)                   {}
+func TestMoveToMatch(t *testing.T)            {}
+func TestDeleteWord(t *testing.T)             {}
+func TestDeleteAfterCursor(t *testing.T)      {}
+func TestDeleteSelection(t *testing.T)        {}
+func TestDeleteCharacter(t *testing.T)        {}
+func TestDeleteFromCursorToChar(t *testing.T) {}
+func TestSubstituteText(t *testing.T)         {}
+func TestChangeAfterCursor(t *testing.T)      {}
+func TestChangeLine(t *testing.T)             {}
+func TestChangeWord(t *testing.T)             {}
+func TestYankSelection(t *testing.T)          {}
+func TestPaste(t *testing.T)                  {}

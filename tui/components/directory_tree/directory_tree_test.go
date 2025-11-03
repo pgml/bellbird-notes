@@ -1,75 +1,76 @@
-package components_test
+package directorytree_test
 
 import (
 	"testing"
 
 	"bellbird-notes/app/config"
-	"bellbird-notes/tui/components"
+	directorytree "bellbird-notes/tui/components/directory_tree"
+	"bellbird-notes/tui/shared"
 )
 
 func TestDirTreeMoveLines(t *testing.T) {
 	conf := config.New()
-	dirTree := components.NewDirectoryTree(conf)
+	dirTree := directorytree.New(conf)
 
 	// Move to the top if we're not already to don't screw up test results
 	// with the latest dir index from the config
-	if dirTree.SelectedIndex() > 0 {
+	if dirTree.SelectedIndex > 0 {
 		dirTree.GoToTop()
 	}
 
 	// --- TEST LINE DOWN
 
 	// Save current line index
-	currentRowIndex := dirTree.SelectedIndex()
+	currentRowIndex := dirTree.SelectedIndex
 	// attempt to move one line down
 	dirTree.LineDown()
 
-	if dirTree.SelectedIndex() == currentRowIndex {
+	if dirTree.SelectedIndex == currentRowIndex {
 		t.Fatalf(
 			"Expected line to move down to index %d, but is %d",
-			currentRowIndex+1, dirTree.SelectedIndex(),
+			currentRowIndex+1, dirTree.SelectedIndex,
 		)
 	}
 
 	// -- TEST LINE UP
 
 	// Save current line index
-	currentRowIndex = dirTree.SelectedIndex()
+	currentRowIndex = dirTree.SelectedIndex
 	// attempt to move one line down
 	dirTree.LineUp()
 
-	if dirTree.SelectedIndex() == currentRowIndex {
+	if dirTree.SelectedIndex == currentRowIndex {
 		t.Fatalf(
 			"Expected line to move up to index %d, but is %d",
-			currentRowIndex-1, dirTree.SelectedIndex(),
+			currentRowIndex-1, dirTree.SelectedIndex,
 		)
 	}
 
 	// -- TEST GO TO BOTTOM
 
 	// Save current line index
-	currentRowIndex = dirTree.SelectedIndex()
+	currentRowIndex = dirTree.SelectedIndex
 	// Attempt to go to bottom
 	dirTree.GoToBottom()
 
-	if dirTree.SelectedIndex() == currentRowIndex {
+	if dirTree.SelectedIndex == currentRowIndex {
 		t.Fatalf(
 			"Expected line to move to the bottom but is still at index %d",
-			dirTree.SelectedIndex(),
+			dirTree.SelectedIndex,
 		)
 	}
 
 	// -- TEST GO TO TOP
 
 	// Save current line index
-	currentRowIndex = dirTree.SelectedIndex()
+	currentRowIndex = dirTree.SelectedIndex
 	// Attempt to go to bottom
 	dirTree.GoToTop()
 
-	if dirTree.SelectedIndex() == currentRowIndex {
+	if dirTree.SelectedIndex == currentRowIndex {
 		t.Fatalf(
 			"Expected line to move to the top but is still at index %d",
-			dirTree.SelectedIndex(),
+			dirTree.SelectedIndex,
 		)
 	}
 }
@@ -78,9 +79,9 @@ func TestDirTreeMoveLines(t *testing.T) {
 // not an actual renaming process on file level
 func TestDirTreeRenameAndConfirm(t *testing.T) {
 	conf := config.New()
-	dirTree := components.NewDirectoryTree(conf)
+	dirTree := directorytree.New(conf)
 
-	if dirTree.SelectedIndex() != 1 {
+	if dirTree.SelectedIndex != 1 {
 		dirTree.GoToTop()
 		dirTree.LineDown()
 	}
@@ -88,20 +89,20 @@ func TestDirTreeRenameAndConfirm(t *testing.T) {
 	curName := dirTree.SelectedDir().Name()
 	dirTree.Rename(curName)
 
-	if dirTree.EditState != components.EditStateRename {
+	if dirTree.EditState != shared.EditStateRename {
 		t.Fatalf(
 			"Expected EditState to be %d, but is: %d",
-			components.EditStates.Rename,
+			shared.EditStates.Rename,
 			dirTree.EditState,
 		)
 	}
 
 	dirTree.ConfirmAction()
 
-	if dirTree.EditState != components.EditStateNone {
+	if dirTree.EditState != shared.EditStateNone {
 		t.Fatalf(
 			"Expected EditState to be %d, but is: %d",
-			components.EditStates.Rename,
+			shared.EditStates.Rename,
 			dirTree.EditState,
 		)
 	}
@@ -109,10 +110,10 @@ func TestDirTreeRenameAndConfirm(t *testing.T) {
 
 func TestDirTreeExpandCollapse(t *testing.T) {
 	conf := config.New()
-	dirTree := components.NewDirectoryTree(conf)
+	dirTree := directorytree.New(conf)
 
 	// Move to top since top directory is always expandable
-	if dirTree.SelectedIndex() > 0 {
+	if dirTree.SelectedIndex > 0 {
 		dirTree.GoToTop()
 	}
 

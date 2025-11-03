@@ -1,4 +1,4 @@
-package components
+package application
 
 import (
 	"strconv"
@@ -7,10 +7,16 @@ import (
 
 	"bellbird-notes/app/config"
 	"bellbird-notes/app/state"
+	bufferlist "bellbird-notes/tui/components/buffer_list"
+	directorytree "bellbird-notes/tui/components/directory_tree"
+	"bellbird-notes/tui/components/editor"
+	noteslist "bellbird-notes/tui/components/notes_list"
+	"bellbird-notes/tui/components/overlay"
+	"bellbird-notes/tui/components/statusbar"
 	"bellbird-notes/tui/keyinput"
 	"bellbird-notes/tui/message"
 	"bellbird-notes/tui/mode"
-	"bellbird-notes/tui/theme"
+	"bellbird-notes/tui/shared"
 )
 
 type FocusController interface {
@@ -28,22 +34,22 @@ type App struct {
 	Mode *mode.ModeInstance
 
 	// DirTree manages the display and state of the directory sidebar.
-	DirTree *DirectoryTree
+	DirTree *directorytree.DirectoryTree
 
 	// NotesList displays the list of notes in the current context.
-	NotesList *NotesList
+	NotesList *noteslist.NotesList
 
 	// Editor handles editing of the current note buffer.
-	Editor *Editor
+	Editor *editor.Editor
 
 	// BufferList holds and manages all open buffers.
-	BufferList *BufferList
+	BufferList *bufferlist.BufferList
 
 	// StatusBar displays current status information at the bottom of the screen.
-	StatusBar *StatusBar
+	StatusBar *statusbar.StatusBar
 
 	// Buffers holds the loaded content of all open files.
-	Buffers Buffers
+	Buffers editor.Buffers
 
 	KeyInput *keyinput.Input
 
@@ -55,17 +61,11 @@ type App struct {
 
 	// focus controls which UI component currently has focus.
 	focus FocusController
+
+	CurrentOverlay *overlay.Overlay
 }
 
-type RefreshUiMsg struct{}
-
-func SendRefreshUiMsg() tea.Cmd {
-	return func() tea.Msg {
-		return RefreshUiMsg{}
-	}
-}
-
-func NewApp(fc FocusController) *App {
+func New(fc FocusController) *App {
 	conf := config.New()
 	state := state.New()
 
@@ -75,12 +75,12 @@ func NewApp(fc FocusController) *App {
 		Conf:         conf,
 		State:        state,
 		Mode:         &mode.ModeInstance{Current: mode.Normal},
-		DirTree:      NewDirectoryTree(conf),
-		NotesList:    NewNotesList(conf),
-		Editor:       NewEditor(conf),
-		BufferList:   NewBufferList(conf),
-		StatusBar:    NewStatusBar(),
-		Buffers:      make(Buffers, 0),
+		DirTree:      directorytree.New(conf),
+		NotesList:    noteslist.New(conf),
+		Editor:       editor.New(conf),
+		BufferList:   bufferlist.New(conf),
+		StatusBar:    statusbar.New(),
+		Buffers:      make(editor.Buffers, 0),
 		CurrColFocus: 1,
 		focus:        fc,
 	}
@@ -112,7 +112,7 @@ func (a *App) RestoreState() {
 }
 
 func (a *App) componentsReady() bool {
-	return a.DirTree.Ready && a.NotesList.Ready && a.Editor.Ready
+	return a.DirTree.IsReady && a.NotesList.IsReady && a.Editor.IsReady
 }
 
 // updateComponents dispatches updates to the focused components
@@ -129,11 +129,11 @@ func (a *App) UpdateComponents(msg tea.Msg) []tea.Cmd {
 		a.Editor.OpenLastNotes()
 		a.Editor.LastOpenNoteLoaded = true
 
-		cmds = append(cmds, SendRefreshUiMsg())
+		cmds = append(cmds, shared.SendRefreshUiMsg())
 	}
 
 	// focus notes list if not buffer is open
-	if a.Editor.Ready && len(*a.Editor.Buffers) == 0 {
+	if a.Editor.IsReady && len(*a.Editor.Buffers) == 0 {
 		//a.focusColumn(2)
 	}
 
@@ -182,12 +182,12 @@ func (a *App) UpdateComponents(msg tea.Msg) []tea.Cmd {
 	}
 
 	switch msg := msg.(type) {
-	case RefreshBufferMsg:
+	case editor.RefreshBufferMsg:
 		a.Editor.Update(msg)
 
-	case SwitchBufferMsg:
+	case editor.SwitchBufferMsg:
 		a.KeyInput.FetchKeyMap(true)
-		a.BufferList.SetSelectedIndex(0)
+		a.BufferList.SelectedIndex = 0
 		// send the switch request to the editor
 		a.Editor.Update(msg)
 
@@ -213,14 +213,4 @@ func (a *App) UpdateComponents(msg tea.Msg) []tea.Cmd {
 	}
 
 	return cmds
-}
-
-// overlayPosition returns the top center position of the application screen
-func (a *App) OverlayPosition(overlayWidth int) (int, int) {
-	termW, _ := theme.TerminalSize()
-
-	x := (termW / 2) - (overlayWidth / 2)
-	y := 2
-
-	return x, y
 }

@@ -9,12 +9,12 @@ type Focusable interface {
 	LineDown() message.StatusBarMsg
 	GoToTop() message.StatusBarMsg
 	GoToBottom() message.StatusBarMsg
-	TogglePinned() message.StatusBarMsg
+	TogglePinnedItems() message.StatusBarMsg
 	ConfirmRemove() message.StatusBarMsg
 	ConfirmAction() message.StatusBarMsg
 	CancelAction(cb func()) message.StatusBarMsg
 	Refresh(resetSelectedIndex bool, resetPinned bool) message.StatusBarMsg
 	Remove() message.StatusBarMsg
 	YankSelection(markCut bool)
-	PasteSelection() message.StatusBarMsg
+	PasteSelectedItems() message.StatusBarMsg
 }

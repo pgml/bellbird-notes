@@ -2,6 +2,7 @@ package theme
 
 import (
 	"bellbird-notes/app/config"
+	"bellbird-notes/app/debug"
 	"image/color"
 	"os"
 	"strings"
@@ -103,7 +104,7 @@ func (t *Theme) Header(title string, colWidth int, focused bool) string {
 }
 
 // BaseColumnLayout provides thae basic layout style for a column
-func (t *Theme) BaseColumnLayout(size bl.Size, focused bool) lipgloss.Style {
+func (t Theme) BaseColumnLayout(size bl.Size, focused bool) lipgloss.Style {
 	borderColour := BorderColour(focused)
 	_, termHeight := TerminalSize()
 
@@ -133,6 +134,7 @@ func (t *Theme) BorderStyle() lipgloss.Border {
 	style := lipgloss.NormalBorder()
 
 	if err != nil {
+		debug.LogErr(err)
 		return style
 	}
 

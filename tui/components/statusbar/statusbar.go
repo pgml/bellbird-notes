@@ -1,4 +1,4 @@
-package components
+package statusbar
 
 import (
 	"fmt"
@@ -9,8 +9,10 @@ import (
 	"bellbird-notes/app/state"
 	"bellbird-notes/app/utils"
 	"bellbird-notes/internal/interfaces"
+	"bellbird-notes/tui/components/editor"
 	"bellbird-notes/tui/message"
 	"bellbird-notes/tui/mode"
+	"bellbird-notes/tui/shared"
 	"bellbird-notes/tui/theme"
 	sbc "bellbird-notes/tui/types/statusbar_column"
 
@@ -71,7 +73,7 @@ var StatusBarColumn = struct {
 }
 
 // NewStatusBar creates and returns a new StatusBar with default settings.
-func NewStatusBar() *StatusBar {
+func New() *StatusBar {
 	ti := textinput.New()
 	ti.Prompt = ":"
 	ti.CharLimit = 100
@@ -129,7 +131,7 @@ func (s *StatusBar) Update(
 	switch s.Mode {
 	case mode.SearchPrompt:
 		s.TeaCmd = func() tea.Msg {
-			return SearchMsg{
+			return editor.SearchMsg{
 				SearchTerm: s.Prompt.Value(),
 			}
 		}
@@ -150,13 +152,13 @@ func (s *StatusBar) Update(
 		s.Size.Width = termWidth
 		s.Size.Height = s.Height
 
-	case SearchConfirmedMsg:
+	case editor.SearchConfirmedMsg:
 		s.Mode = mode.Search
 		s.Focused = false
 		s.State.Append(state.NewEntry(state.Search, s.Prompt.Value()))
 		s.BlurPrompt(msg.ResetPrompt)
 
-	case SearchCancelMsg:
+	case editor.SearchCancelMsg:
 		s.Focused = false
 		s.State.Append(state.NewEntry(state.Search, s.Prompt.Value()))
 		s.BlurPrompt(true)
@@ -272,7 +274,7 @@ func (s *StatusBar) SendDeferredActionMsg() tea.Cmd {
 	return func() tea.Msg {
 		time.Sleep(100 * time.Millisecond)
 		s.Focused = false
-		return DeferredActionMsg{}
+		return shared.DeferredActionMsg{}
 	}
 }
 

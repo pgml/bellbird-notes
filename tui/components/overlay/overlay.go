@@ -1,4 +1,4 @@
-package components
+package overlay
 
 // Most code taken from
 // https://github.com/charmbracelet/lipgloss/pull/102
@@ -6,6 +6,7 @@ package components
 
 import (
 	"bellbird-notes/app/utils"
+	"bellbird-notes/tui/theme"
 	"strings"
 
 	"github.com/charmbracelet/lipgloss/v2"
@@ -13,20 +14,40 @@ import (
 	"github.com/muesli/reflow/truncate"
 )
 
-// PlaceOverlay places fg on top of bg.
-func PlaceOverlay(x, y int, fg, bg string, opts ...WhitespaceOption) string {
-	fgLines, fgWidth := getLines(fg)
-	bgLines, bgWidth := getLines(bg)
+type Overlay struct {
+	x  int
+	y  int
+	fg string
+	bg string
+}
+
+func (o *Overlay) SetContent(content string) {
+	o.fg = content
+}
+
+func (o *Overlay) SetBg(bg string) {
+	o.bg = bg
+}
+
+func (o *Overlay) SetPosition(x int, y int) {
+	o.x = x
+	o.y = y
+}
+
+// String places fg on top of bg.
+func (o *Overlay) String(opts ...WhitespaceOption) string {
+	fgLines, fgWidth := getLines(o.fg)
+	bgLines, bgWidth := getLines(o.bg)
 	bgHeight := len(bgLines)
 	fgHeight := len(fgLines)
 
 	if fgWidth >= bgWidth && fgHeight >= bgHeight {
 		// FIXME: return fg or bg?
-		return fg
+		return o.fg
 	}
 	// TODO: allow placement outside of the bg box?
-	x = utils.Clamp(x, 0, bgWidth-fgWidth)
-	y = utils.Clamp(y, 0, bgHeight-fgHeight)
+	x := utils.Clamp(o.x, 0, bgWidth-fgWidth)
+	y := utils.Clamp(o.y, 0, bgHeight-fgHeight)
 
 	ws := &whitespace{}
 	for _, opt := range opts {
@@ -105,6 +126,16 @@ func (w whitespace) render(width int) string {
 	}
 
 	return w.style.Render(b.String())
+}
+
+// overlayPosition returns the top center position of the application screen
+func (o *Overlay) CalculatePosition(overlayWidth int) (int, int) {
+	termW, _ := theme.TerminalSize()
+
+	x := (termW / 2) - (overlayWidth / 2)
+	y := 2
+
+	return x, y
 }
 
 // WhitespaceOption sets a styling rule for rendering whitespace.

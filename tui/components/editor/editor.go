@@ -1,4 +1,4 @@
-package components
+package editor
 
 import (
 	"fmt"
@@ -20,6 +20,7 @@ import (
 	"bellbird-notes/tui/keyinput"
 	"bellbird-notes/tui/message"
 	"bellbird-notes/tui/mode"
+	"bellbird-notes/tui/shared"
 	"bellbird-notes/tui/theme"
 	sbc "bellbird-notes/tui/types/statusbar_column"
 
@@ -95,6 +96,10 @@ func (b *Buffer) Path(encoded bool) string {
 	}
 
 	return b.path
+}
+
+func (b *Buffer) SetPath(path string) {
+	b.path = path
 }
 
 // undo applies the last undo patch, returning the restored content
@@ -217,7 +222,7 @@ type Input struct {
 }
 
 type Editor struct {
-	Component
+	shared.Component
 
 	// Buffers holds all the open buffers
 	Buffers *Buffers
@@ -261,7 +266,7 @@ type Editor struct {
 	styles Styles
 }
 
-func NewEditor(conf *config.Config) *Editor {
+func New(conf *config.Config) *Editor {
 	theme := theme.New(conf)
 	styles := defaultStyles(theme)
 
@@ -279,7 +284,7 @@ func NewEditor(conf *config.Config) *Editor {
 	editor := &Editor{
 		CanInsert:          false,
 		Textarea:           ta,
-		Component:          Component{},
+		Component:          shared.Component{},
 		CurrentBuffer:      &Buffer{},
 		isAtLineEnd:        false,
 		isAtLineStart:      false,
@@ -288,11 +293,13 @@ func NewEditor(conf *config.Config) *Editor {
 		LastOpenNoteLoaded: false,
 	}
 
-	editor.theme = theme
+	editor.SetTheme(theme)
 	editor.ShowLineNumbers = editor.LineNumbers()
 	editor.Textarea.ShowLineNumbers = editor.ShowLineNumbers
 	editor.Textarea.ResetSelection()
 	editor.Textarea.Search.IgnoreCase = editor.SearchIgnoreCase()
+	editor.OnFocus = editor.onFocus
+	editor.OnBlur = editor.onBlur
 
 	if err := clipboard.Init(); err != nil {
 		debug.LogErr(err)
@@ -301,7 +308,9 @@ func NewEditor(conf *config.Config) *Editor {
 	return editor
 }
 
-func (e Editor) Name() string { return "Editor" }
+func (e Editor) Name() string {
+	return "Editor"
+}
 
 // Init initialises the Model on program load.
 // It partially implements the tea.Model interface.
@@ -345,8 +354,8 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		e.Size.Width = msg.Width
 		e.Size.Height = msg.Height
 
-		if !e.Ready {
-			e.Ready = true
+		if !e.IsReady {
+			e.IsReady = true
 		}
 
 	case errMsg:
@@ -396,10 +405,6 @@ func (e *Editor) View() tea.View {
 }
 
 func (e *Editor) Content() string {
-	if !e.Focused() {
-		e.Textarea.Blur()
-	}
-
 	return e.viewportContent()
 }
 
@@ -416,7 +421,7 @@ func (e *Editor) RefreshSize() {
 }
 
 func (e *Editor) SetWidth(w int) {
-	e.viewport.SetWidth(w)
+	e.Viewport.SetWidth(w)
 	e.Textarea.SetWidth(w)
 	e.Size.Width = w
 }
@@ -523,8 +528,8 @@ func (e *Editor) SwitchBuffer(buf *Buffer) message.StatusBarMsg {
 	e.saveLineLength()
 	e.UpdateMetaInfo()
 
-	if !e.focused {
-		e.focused = true
+	if !e.Focused() {
+		e.Focus()
 	}
 
 	return message.StatusBarMsg{}
@@ -651,7 +656,8 @@ func (e *Editor) BuildHeader(width int, rebuild bool) string {
 		title = e.breadcrumb()
 	}
 
-	header := e.theme.Header(title, width, e.Focused()) + "\n"
+	theme := e.Theme()
+	header := theme.Header(title, width, e.Focused()) + "\n"
 	e.CurrentBuffer.header = &header
 	return header
 }
@@ -688,14 +694,15 @@ func (e *Editor) scratchPath(path string) string {
 	return path
 }
 
-func (e *Editor) Focused() bool {
-	return e.focused
-}
-
-func (e *Editor) SetFocus(focus bool) {
-	e.focused = focus
+func (e *Editor) onFocus() {
 	if !e.Textarea.Focused() {
 		e.Textarea.Focus()
+	}
+}
+
+func (e *Editor) onBlur() {
+	if !e.Focused() {
+		e.Textarea.Blur()
 	}
 }
 
@@ -782,7 +789,7 @@ func (e *Editor) SendEnterNormalModeDeferredMsg() tea.Cmd {
 	return func() tea.Msg {
 		time.Sleep(150 * time.Millisecond)
 		e.EnterNormalMode(true)
-		return DeferredActionMsg{}
+		return shared.DeferredActionMsg{}
 	}
 }
 
@@ -1514,7 +1521,7 @@ func (e *Editor) YankSelection(keepCursor bool) message.StatusBarMsg {
 		e.Textarea.MoveCursor(cursor.Row, cursor.RowOffset, cursor.ColumnOffset)
 		e.isAtLineEnd = e.Textarea.IsAtLineEnd()
 
-		return DeferredActionMsg{}
+		return shared.DeferredActionMsg{}
 	}
 
 	return message.StatusBarMsg{
@@ -1734,7 +1741,7 @@ func (e *Editor) SearchIgnoreCase() bool {
 }
 
 func (e *Editor) RefreshTextAreaStyles() {
-	s := defaultStyles(e.theme)
+	s := defaultStyles(e.Theme())
 	e.Textarea.Styles.Blurred.Base = s.blurred
 	e.Textarea.Styles.Focused.Base = s.focused
 	e.Textarea.ShowLineNumbers = e.LineNumbers()

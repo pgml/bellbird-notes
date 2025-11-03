@@ -1,4 +1,4 @@
-package components
+package bufferlist
 
 import (
 	"path"
@@ -12,25 +12,19 @@ import (
 	"bellbird-notes/app"
 	"bellbird-notes/app/config"
 	"bellbird-notes/app/utils"
+	"bellbird-notes/tui/components/editor"
+	"bellbird-notes/tui/components/overlay"
 	"bellbird-notes/tui/message"
 	"bellbird-notes/tui/mode"
+	"bellbird-notes/tui/shared"
 	"bellbird-notes/tui/theme"
 )
 
 type BufferListItem struct {
-	Item
+	shared.Item
 
-	buffer *Buffer
+	buffer *editor.Buffer
 }
-
-// Index returns the index of a BufferListItem
-func (b BufferListItem) Index() int { return b.index }
-
-// Name returns the path of a BufferListItem
-func (b BufferListItem) Name() string { return b.name }
-
-// Path returns the path of a BufferListItem
-func (b BufferListItem) Path() string { return b.path }
 
 // PathOnly returns the relative path of a BufferListItem wihout the filename
 func (b BufferListItem) PathOnly() string {
@@ -44,12 +38,6 @@ func (b BufferListItem) PathOnly() string {
 
 	return p
 }
-
-// IsCut returns whether a bufferlist item is cut
-func (b BufferListItem) IsCut() bool { return b.isCut }
-
-// SetIsCut returns whether the buffer list item is cut
-func (b *BufferListItem) SetIsCut(isCut bool) { b.isCut = isCut }
 
 func (b BufferListItem) render(
 	content string,
@@ -69,7 +57,7 @@ func (b BufferListItem) render(
 		style = style.Foreground(theme.ColourDirty)
 	}
 
-	if b.selected {
+	if b.IsSelected {
 		style = style.Background(theme.ColourBgSelected)
 	}
 
@@ -78,16 +66,16 @@ func (b BufferListItem) render(
 
 // String is string representation of a Note
 func (b BufferListItem) String() string {
-	index := b.render(strconv.Itoa(b.index+1), false, false, 0, 2, 2)
-	name := b.render(b.name, false, false, 0, 0, 2)
+	index := b.render(strconv.Itoa(b.Index()+1), false, false, 0, 2, 2)
+	name := b.render(b.Name(), false, false, 0, 0, 2)
 
-	icon := theme.Icon(theme.IconNote, b.nerdFonts)
+	icon := theme.Icon(theme.IconNote, b.NerdFonts)
 	if b.buffer.Dirty {
-		icon = theme.Icon(theme.IconDot, b.nerdFonts)
+		icon = theme.Icon(theme.IconDot, b.NerdFonts)
 	}
 	iconRender := b.render(icon, false, b.buffer.Dirty, 3, 0, 0)
 
-	pathWidth := b.width - lipgloss.Width(index) - lipgloss.Width(iconRender) - lipgloss.Width(name)
+	pathWidth := b.Width() - lipgloss.Width(index) - lipgloss.Width(iconRender) - lipgloss.Width(name)
 	ellipsisWidth := 4
 	path := utils.TruncateText(
 		utils.RelativePath(b.PathOnly(), true),
@@ -102,28 +90,33 @@ func (b BufferListItem) String() string {
 }
 
 type BufferList struct {
-	List[*BufferListItem]
+	shared.List[*BufferListItem]
 
 	width  int
 	height int
 
 	// Buffers holds all the open buffers
-	Buffers *Buffers
+	Buffers *editor.Buffers
+
+	Overlay *overlay.Overlay
 }
 
-func NewBufferList(conf *config.Config) *BufferList {
+func New(conf *config.Config) *BufferList {
 	termW, _ := theme.TerminalSize()
 
+	var list shared.List[*BufferListItem]
+	list.MakeEmpty()
+	list.Title = "OPEN NOTES"
+	list.Conf = conf
+
 	panel := &BufferList{
-		List: List[*BufferListItem]{
-			title: "Open Notes",
-			conf:  conf,
-		},
-		height: 10,
-		width:  termW / 3,
+		List:    list,
+		height:  10,
+		width:   termW / 3,
+		Overlay: &overlay.Overlay{},
 	}
-	panel.theme = theme.New(conf)
-	panel.focused = false
+	panel.SetTheme(theme.New(conf))
+	panel.Blur()
 	panel.Mode = mode.Normal
 
 	return panel
@@ -132,7 +125,7 @@ func NewBufferList(conf *config.Config) *BufferList {
 func (l BufferList) Name() string { return "BufferList" }
 
 func (l BufferList) Width() int {
-	return l.viewport.Width()
+	return l.Viewport.Width()
 }
 
 func (l BufferList) ListSize() (int, int) {
@@ -142,8 +135,8 @@ func (l BufferList) ListSize() (int, int) {
 
 func (l *BufferList) UpdateSize() {
 	w, h := l.ListSize()
-	l.viewport.SetWidth(w)
-	l.viewport.SetHeight(h)
+	l.Viewport.SetWidth(w)
+	l.Viewport.SetHeight(h)
 	l.width = w
 	l.height = h
 }
@@ -164,29 +157,31 @@ func (l *BufferList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			num, err := strconv.Atoi(msg.String())
 
 			// switch to buffer if existent
-			if err == nil && num-1 < len(l.items) {
-				path := l.items[num-1].path
-				cmds = append(cmds, SendSwitchBufferMsg(path, true))
+			if err == nil && num-1 < len(l.Items) {
+				path := l.Items[num-1].Path()
+				cmds = append(cmds, editor.SendSwitchBufferMsg(path, true))
 			}
 		}
 
 	case tea.WindowSizeMsg:
 		l.UpdateSize()
 
-	case BuffersChangedMsg:
+	case editor.BuffersChangedMsg:
 		l.buildItems()
 	}
 
-	if l.focused {
-		if !l.Ready {
-			l.viewport = viewport.New()
-			l.viewport.SetContent(l.render())
-			l.viewport.KeyMap = viewport.KeyMap{}
-			l.Ready = true
+	if l.Focused() {
+		if !l.IsReady {
+			l.Viewport = viewport.New()
+			l.Viewport.SetContent(l.render())
+			l.Viewport.KeyMap = viewport.KeyMap{}
+			l.IsReady = true
 		}
 
+		l.updateOverlay()
+
 		var cmd tea.Cmd
-		l.viewport, cmd = l.viewport.Update(msg)
+		l.Viewport, cmd = l.Viewport.Update(msg)
 		cmds = append(cmds, cmd)
 	}
 
@@ -195,11 +190,11 @@ func (l *BufferList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (l *BufferList) buildItems() {
 	buffers := *l.Buffers
-	l.items = make([]*BufferListItem, 0, len(buffers))
+	l.Items = make([]*BufferListItem, 0, len(buffers))
 
 	for i := range buffers {
 		item := l.createListItem(&buffers[i], i)
-		l.items = append(l.items, &item)
+		l.Items = append(l.Items, &item)
 	}
 }
 
@@ -210,80 +205,81 @@ func (l *BufferList) View() tea.View {
 }
 
 func (l *BufferList) Content() string {
-	if !l.Ready {
+	if !l.IsReady {
 		return "\n  Initializing..."
 	}
 
-	l.viewport.SetContent(l.render())
+	l.Viewport.SetContent(l.render())
 	l.UpdateViewportInfo()
 
-	l.viewport.Style = l.theme.BaseColumnLayout(
+	l.Viewport.Style = l.Theme().BaseColumnLayout(
 		l.Size,
-		l.Focused(),
+		l.IsReady,
 	)
 
 	var view strings.Builder
 	view.WriteString(l.BuildHeader(l.width, false))
-	view.WriteString(l.viewport.View())
+	view.WriteString(l.Viewport.View())
 
-	if len(l.items) > 0 {
-		l.lastIndex = l.items[len(l.items)-1].index
+	if len(l.Items) > 0 {
+		l.LastIndex = l.Items[len(l.Items)-1].Index()
 	}
 
 	return view.String()
 }
 
-func (l *BufferList) SetBuffers(b *Buffers) {
+func (l *BufferList) SetBuffers(b *editor.Buffers) {
 	l.Buffers = b
 }
 
 func (l *BufferList) RefreshSize() {
-	vp := l.viewport
+	vp := l.Viewport
 	if vp.Width() != l.width && vp.Height() != l.height {
-		l.viewport.SetWidth(l.width)
-		l.viewport.SetHeight(l.height)
+		l.Viewport.SetWidth(l.width)
+		l.Viewport.SetHeight(l.height)
 	}
 }
 
 func (l *BufferList) render() string {
 	var list strings.Builder
 
-	if l.items == nil {
-		l.selectedIndex = 0
+	if l.Items == nil {
+		l.SelectedIndex = 0
 	}
 
-	for i, item := range l.items {
-		item.selected = (l.selectedIndex == i)
-		item.index = i
+	for i, item := range l.Items {
+		item.IsSelected = l.SelectedIndex == i
+		item.SetIndex(i)
 
 		list.WriteString(item.String())
 		list.WriteByte('\n')
 	}
 
-	l.length = len(l.items)
+	l.Length = len(l.Items)
 
 	return list.String()
 }
 
-func (l *BufferList) createListItem(buf *Buffer, index int) BufferListItem {
-	item := BufferListItem{
-		Item: Item{
-			index:     index,
-			name:      buf.Name(),
-			path:      buf.Path(false),
-			selected:  index == l.selectedIndex,
-			nerdFonts: l.conf.NerdFonts(),
-			width:     l.width,
-		},
+func (l *BufferList) createListItem(buf *editor.Buffer, index int) BufferListItem {
+	var item shared.Item
+	item.SetIndex(index)
+	item.SetName(buf.Name())
+	item.SetPath(buf.Path(false))
+	item.SetWidth(l.width)
+	item.IsSelected = index == l.SelectedIndex
+	item.NerdFonts = l.Conf.NerdFonts()
+
+	listItem := BufferListItem{
+		Item:   item,
 		buffer: buf,
 	}
 
-	return item
+	return listItem
 }
 
 func (l *BufferList) SelectedBuffer() *BufferListItem {
 	var (
-		items        = l.Items()
+		items        = l.Items
 		selectedItem = l.SelectedItem(items)
 		lastBuffer   = 0
 	)
@@ -294,26 +290,22 @@ func (l *BufferList) SelectedBuffer() *BufferListItem {
 
 	lastBuffer = items[len(items)-1].Index() - 1
 
-	if l.SelectedIndex() > lastBuffer {
-		l.SetSelectedIndex(lastBuffer)
+	if l.SelectedIndex > lastBuffer {
+		l.SelectedIndex = lastBuffer
 	}
 
 	return selectedItem
 }
 
-func (l *BufferList) Items() []*BufferListItem {
-	return l.items
-}
-
 func (l *BufferList) CancelAction(cb func()) message.StatusBarMsg {
-	l.SetFocus(false)
-	l.SetSelectedIndex(0)
+	l.Blur()
+	l.SelectedIndex = 0
 
 	return message.StatusBarMsg{}
 }
 
 func (l *BufferList) NeedsUpdate() bool {
-	if len(l.items) != len(*l.Buffers) {
+	if len(l.Items) != len(*l.Buffers) {
 		l.buildItems()
 		return true
 	}
@@ -321,14 +313,14 @@ func (l *BufferList) NeedsUpdate() bool {
 	found := 0
 
 	for _, buf := range *l.Buffers {
-		for _, item := range l.items {
-			if buf.path == item.path {
+		for _, item := range l.Items {
+			if buf.Path(false) == item.Path() {
 				found++
 			}
 		}
 	}
 
-	if found != len(l.items) {
+	if found != len(l.Items) {
 		l.buildItems()
 		return true
 	}
@@ -337,9 +329,40 @@ func (l *BufferList) NeedsUpdate() bool {
 }
 
 func (l *BufferList) RefreshStyles() {
-	l.viewport.Style = l.theme.BaseColumnLayout(
+	l.Viewport.Style = l.Theme().BaseColumnLayout(
 		l.Size,
 		l.Focused(),
 	)
 	l.BuildHeader(l.Size.Width, true)
+}
+
+func (l BufferList) updateOverlay() {
+	x, y := l.overlayPosition()
+
+	l.IsReady = true
+	l.Focus()
+
+	l.Overlay.SetPosition(x, y)
+	l.Overlay.SetContent(l.Content())
+}
+
+func (l *BufferList) overlayPosition() (int, int) {
+	termW, _ := theme.TerminalSize()
+
+	x := (termW / 2) - (l.Width() / 2)
+	y := 2
+
+	return x, y
+}
+
+func (l *BufferList) ConfirmAction() message.StatusBarMsg {
+	return message.StatusBarMsg{}
+}
+
+func (l *BufferList) PasteSelectedItems() message.StatusBarMsg {
+	return message.StatusBarMsg{}
+}
+
+func (l *BufferList) TogglePinnedItems() message.StatusBarMsg {
+	return message.StatusBarMsg{}
 }

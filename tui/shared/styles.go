@@ -1,4 +1,4 @@
-package components
+package shared
 
 import (
 	"github.com/charmbracelet/lipgloss/v2"
@@ -6,7 +6,7 @@ import (
 	"bellbird-notes/tui/theme"
 )
 
-type styles struct {
+type Styles struct {
 	Base,
 	Indent,
 	Icon,
@@ -18,8 +18,8 @@ type styles struct {
 	ToggleWidth int
 }
 
-func NotesListStyle() styles {
-	var s styles
+func NotesListStyle() Styles {
+	var s Styles
 	s.IconWidth = 3
 
 	s.Base = lipgloss.NewStyle().
@@ -38,8 +38,8 @@ func NotesListStyle() styles {
 	return s
 }
 
-func DirTreeStyle() styles {
-	var s styles
+func DirTreeStyle() Styles {
+	var s Styles
 	s.IconWidth = 2
 	s.ToggleWidth = 2
 

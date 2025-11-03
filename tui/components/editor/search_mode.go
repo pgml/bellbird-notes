@@ -1,4 +1,4 @@
-package components
+package editor
 
 import (
 	tea "github.com/charmbracelet/bubbletea/v2"
