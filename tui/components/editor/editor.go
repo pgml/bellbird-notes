@@ -182,14 +182,21 @@ func (e *Editor) SendBuffersChangedMsg() tea.Cmd {
 
 type Buffers []Buffer
 
-// Contain returns whether a buffer is in memory
-func (b Buffers) Contain(path string) (*Buffer, bool, int) {
+// Find returns the buffer, true, and its index if a buffer
+// with the given path exists.
+func (b Buffers) Find(path string) *Buffer {
 	for i := range b {
 		if b[i].path == path {
-			return &b[i], true, i
+			return &b[i]
 		}
 	}
-	return nil, false, 0
+	return nil
+}
+
+// Contain returns whether the buffer with the given path exists.
+func (b Buffers) Contain(path string) bool {
+	buf := b.Find(path)
+	return buf != nil
 }
 
 type Styles struct {
@@ -383,7 +390,7 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		e.UpdateMetaInfo()
 
 	case SwitchBufferMsg:
-		if buf, exists, _ := e.Buffers.Contain(msg.Path); exists {
+		if buf := e.Buffers.Find(msg.Path); buf != nil {
 			e.ListBuffers = false
 			e.SwitchBuffer(buf)
 			e.BuildHeader(e.Size.Width, true)
@@ -499,10 +506,10 @@ func (e *Editor) OpenBuffer(path string) message.StatusBarMsg {
 		Column:  sbc.FileInfo,
 	}
 
-	buf, exists, _ := e.Buffers.Contain(path)
+	buf := e.Buffers.Find(path)
 
 	// create new buffer if we can't find anything
-	if len(*e.Buffers) <= 0 || !exists {
+	if len(*e.Buffers) <= 0 || buf == nil {
 		e.NewBuffer(path)
 		return statusMsg
 	}
@@ -517,7 +524,7 @@ func (e *Editor) OpenBuffer(path string) message.StatusBarMsg {
 }
 
 func (e *Editor) SwitchBuffer(buf *Buffer) message.StatusBarMsg {
-	if _, exists, _ := e.Buffers.Contain(buf.path); !exists {
+	if e.Buffers.Contain(buf.path) {
 		return message.StatusBarMsg{}
 	}
 
@@ -596,7 +603,7 @@ func (e *Editor) SaveBuffer() message.StatusBarMsg {
 	buf.LastSavedContentHash = buf.hash()
 
 	statusMsg.Content = resultMsg
-	statusMsg.Cmd = e.SendBufferSavedMsg()
+	statusMsg.Cmd = SendBufferSavedMsg(e.CurrentBuffer)
 
 	return statusMsg
 }
@@ -608,7 +615,8 @@ func (e *Editor) DeleteCurrentBuffer() message.StatusBarMsg {
 // DeleteBuffer closes the currently active buffer or resets the editor if
 // none is available
 func (e *Editor) DeleteBuffer(path string) message.StatusBarMsg {
-	if _, ok, index := e.Buffers.Contain(path); ok {
+	if buf := e.Buffers.Find(path); buf != nil {
+		index := buf.Index - 1
 		*e.Buffers = slices.Delete(*e.Buffers, index, index+1)
 	}
 
@@ -683,11 +691,11 @@ func (e *Editor) OpenLastNotes() {
 func (e *Editor) scratchPath(path string) string {
 	path = notes.GetValidPath(path, true)
 
-	if buf, ok, _ := e.Buffers.Contain(path); ok {
+	if buf := e.Buffers.Find(path); buf != nil {
 		path = filepath.Dir(buf.Path(false)) + "/" + buf.Name() + " Copy" + notes.Ext
 	}
 
-	if _, ok, _ := e.Buffers.Contain(path); ok {
+	if e.Buffers.Contain(path) {
 		path = e.scratchPath(path)
 	}
 

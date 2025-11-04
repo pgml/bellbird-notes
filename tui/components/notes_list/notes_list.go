@@ -494,7 +494,7 @@ func (l *NotesList) ConfirmAction() message.StatusBarMsg {
 
 					// Update Buffers so that all other components know
 					// what's going on
-					if buf, ok, _ := l.Buffers.Contain(oldPath); ok {
+					if buf := l.Buffers.Find(oldPath); buf != nil {
 						buf.SetPath(newPath)
 						cmd = editor.SendRefreshBufferMsg(buf.Path(false))
 					}
