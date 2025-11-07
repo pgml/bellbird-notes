@@ -1377,7 +1377,7 @@ func (e *Editor) DeleteRune(
 	c := e.CurrentBuffer.CursorPos
 	char := ""
 
-	if minRange, maxRange := e.Textarea.SelectionRange(); minRange.Row > -1 {
+	if minRange, maxRange := e.Textarea.Selection.Range(); minRange.Row > -1 {
 		char = e.Textarea.SelectionStr()
 		if e.Textarea.Selection.Mode == textarea.SelectVisualLine {
 			e.Textarea.DeleteSelectedLines()
@@ -1636,7 +1636,7 @@ func (e *Editor) ChangeCaseOfSelection(toUpper bool) message.StatusBarMsg {
 	e.newHistoryEntry()
 
 	selection := e.Textarea.SelectionStr()
-	start, end := e.Textarea.SelectionRange()
+	start, end := e.Textarea.Selection.Range()
 
 	// If we're in visual line mode set the start column to the first
 	// of the first line and the end column to the last column of the

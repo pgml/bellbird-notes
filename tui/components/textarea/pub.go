@@ -35,8 +35,9 @@ func (c *CursorPos) String() string {
 }
 
 type Selection struct {
-	Cursor cursor.Model
-	Start  CursorPos
+	Cursor          cursor.Model
+	Start           CursorPos
+	CurretCursorPos CursorPos
 
 	// The row the selection has been started on
 	StartRow int
@@ -53,6 +54,29 @@ type Selection struct {
 	lineIndex    int
 
 	Content *string
+}
+
+// SelectionRange determines the range of the active selection
+func (s *Selection) Range() (CursorPos, CursorPos) {
+	selectionStart := CursorPos{
+		s.StartRow,
+		s.StartRowOffset,
+		s.StartCol,
+	}
+
+	// current cursor position which usually indicates the end of the selection
+	cursor := CursorPos{
+		s.CurretCursorPos.Row,
+		s.CurretCursorPos.RowOffset,
+		s.CurretCursorPos.ColumnOffset,
+	}
+
+	// if it's a backward selection ensure the first CursorPos is always lower
+	if selectionStart.GreaterThan(cursor) {
+		return cursor, selectionStart
+	}
+
+	return selectionStart, cursor
 }
 
 type SelectionMode int
@@ -705,7 +729,7 @@ func (m *Model) DeleteLines(l int, up bool) {
 }
 
 func (m *Model) DeleteSelectedLines() {
-	minRange, maxRange := m.SelectionRange()
+	minRange, maxRange := m.Selection.Range()
 	for i := minRange.Row; i <= maxRange.Row; i++ {
 		// If there's only one line left don't delete this line, instead
 		// we just empty it
@@ -801,7 +825,7 @@ func (p CursorPos) GreaterThan(other CursorPos) bool {
 }
 
 func (m *Model) SelectionStr() string {
-	minRange, maxRange := m.SelectionRange()
+	minRange, maxRange := m.Selection.Range()
 	minRow, maxRow := minRange.Row, maxRange.Row
 
 	if minRow < 0 {
@@ -1028,29 +1052,6 @@ func (m *Model) SelectOuterWord() string {
 	return word
 }
 
-// SelectionRange determines the range of the active selection
-func (m *Model) SelectionRange() (CursorPos, CursorPos) {
-	selectionStart := CursorPos{
-		m.Selection.StartRow,
-		m.Selection.StartRowOffset,
-		m.Selection.StartCol,
-	}
-
-	// current cursor position which usually indicates the end of the selection
-	cursor := CursorPos{
-		m.row,
-		m.LineInfo().RowOffset,
-		m.LineInfo().ColumnOffset,
-	}
-
-	// if it's a backward selection ensure the first CursorPos is always lower
-	if selectionStart.GreaterThan(cursor) {
-		return cursor, selectionStart
-	}
-
-	return selectionStart, cursor
-}
-
 // InRange checks whether the current row is between `minPos` and `maxPos`
 func (p CursorPos) InRange(minPos, maxPos CursorPos) bool {
 	if minPos.ColumnOffset == -1 || minPos.Row == -1 {
@@ -1101,7 +1102,7 @@ func (m *Model) SelectionContent() SelectionContent {
 
 	colOffset = m.LineInfo().ColumnOffset
 	rowOffset := m.LineInfo().RowOffset
-	minRange, maxRange = m.SelectionRange()
+	minRange, maxRange = m.Selection.Range()
 	cursor = CursorPos{m.row, rowOffset, colOffset}
 
 	isInRange := cursor.InRange(minRange, maxRange)
@@ -1224,7 +1225,7 @@ func (m *Model) CursorBeforeSelection() string {
 	wrappedLine := m.Selection.wrappedLline
 	lineIndex := m.Selection.lineIndex
 	cursorOffset := m.LineInfo().ColumnOffset
-	minRange, maxRange := m.SelectionRange()
+	minRange, maxRange := m.Selection.Range()
 
 	if lineIndex == minRange.Row &&
 		maxRange.Row <= m.Selection.StartRow &&
@@ -1249,7 +1250,7 @@ func (m *Model) CursorAfterSelection() string {
 	wrappedLine := m.Selection.wrappedLline
 	cursorOffset := m.LineInfo().ColumnOffset
 
-	minRange, maxRange := m.SelectionRange()
+	minRange, maxRange := m.Selection.Range()
 
 	if m.Selection.lineIndex == maxRange.Row &&
 		minRange.Row >= m.Selection.StartRow &&

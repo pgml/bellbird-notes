@@ -1271,6 +1271,7 @@ func (m Model) View() string {
 			// ---- NEEDS TO BE MERGED WHEN UPDATING BUBBLES!
 			m.Selection.wrappedLline = wrappedLine
 			m.Selection.lineIndex = l
+			m.Selection.CurretCursorPos = m.CursorPos()
 			selection := m.SelectionContent()
 
 			if selection.Content != "" {
