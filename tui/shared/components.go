@@ -12,6 +12,8 @@ type Component struct {
 	ID   bl.ID
 	Size bl.Size
 
+	title string
+
 	// The current mode the directory tree is in
 	// Possible modes are Normal, Insert, Command
 	Mode mode.Mode
@@ -36,6 +38,14 @@ type Component struct {
 	OnBlur  func()
 
 	theme theme.Theme
+}
+
+func (c Component) Title() string {
+	return c.title
+}
+
+func (c *Component) SetTitle(title string) {
+	c.title = title
 }
 
 func (c Component) Visible() bool {

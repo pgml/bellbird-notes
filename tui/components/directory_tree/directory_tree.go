@@ -267,17 +267,17 @@ func (t *DirectoryTree) View() tea.View {
 }
 
 // NewDirectoryTree creates a new model with default settings.
-func New(conf *config.Config) *DirectoryTree {
+func New(title string, conf *config.Config) *DirectoryTree {
 	var list shared.List[*TreeItem]
 	list.MakeEmpty()
 	list.Conf = conf
-	list.Title = "FOLDERS"
 
 	tree := &DirectoryTree{
 		List:         list,
 		expandedDirs: make(map[string]bool),
 	}
 
+	tree.SetTitle(title)
 	tree.SetTheme(theme.New(conf))
 	tree.checkVisibility()
 	tree.checkIndentLines()
@@ -298,13 +298,10 @@ func New(conf *config.Config) *DirectoryTree {
 		children: tree.getChildren(tree.NotesDir(), 0),
 	})
 
+	tree.SetTitle(title)
 	tree.build()
 	tree.SelectLastDir()
 	return tree
-}
-
-func (t DirectoryTree) Name() string {
-	return "Folders"
 }
 
 func (t DirectoryTree) NotesDir() string {

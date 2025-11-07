@@ -160,8 +160,6 @@ const ReservedLines = 1
 type List[T ListItem] struct {
 	Component
 
-	Title string
-
 	// The currently selector directory row
 	SelectedIndex int
 
@@ -462,7 +460,7 @@ func (l *List[T]) BuildHeader(width int, rebuild bool) string {
 		}
 	}
 
-	header := l.theme.Header(l.Title, width, l.Focused()) + "\n"
+	header := l.theme.Header(l.Title(), width, l.Focused()) + "\n"
 	l.header = &header
 	return header
 }

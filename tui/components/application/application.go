@@ -75,10 +75,10 @@ func New(fc FocusController) *App {
 		Conf:         conf,
 		State:        state,
 		Mode:         &mode.ModeInstance{Current: mode.Normal},
-		DirTree:      directorytree.New(conf),
-		NotesList:    noteslist.New(conf),
-		Editor:       editor.New(conf),
-		BufferList:   bufferlist.New(conf),
+		DirTree:      directorytree.New("Folders", conf),
+		NotesList:    noteslist.New("Notes", conf),
+		Editor:       editor.New("Editor", conf),
+		BufferList:   bufferlist.New("BufferList", conf),
 		StatusBar:    statusbar.New(),
 		Buffers:      make(editor.Buffers, 0),
 		CurrColFocus: 1,
@@ -198,7 +198,7 @@ func (a *App) UpdateComponents(msg tea.Msg) []tea.Cmd {
 
 	// let the buffer list know if anything changes
 	if a.BufferList.NeedsUpdate() {
-		cmds = append(cmds, a.Editor.SendBuffersChangedMsg())
+		cmds = append(cmds, editor.SendBuffersChangedMsg(a.Editor.Buffers))
 	}
 
 	if _, cmd := a.BufferList.Update(msg); cmd != nil {

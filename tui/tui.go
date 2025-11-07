@@ -164,6 +164,9 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.app.StatusBar.Mode = mode.Normal
 		m.app.StatusBar.Update(nil, msg)
 
+	case editor.SwitchBufferMsg:
+		m.app.BufferList.Hide()
+
 	case shared.RefreshUiMsg:
 		m.RefreshUi()
 	}
@@ -177,7 +180,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, tea.Quit
 	}
 
-	if m.app.Editor.ListBuffers {
+	if m.app.BufferList.Visible() {
 		m.vim.UnfocusAllColumns()
 	}
 

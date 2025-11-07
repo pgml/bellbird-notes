@@ -178,7 +178,7 @@ func (v *Vim) openDefaultKeyMap(_ ...string) StatusBarMsg {
 }
 
 func (v *Vim) listBuffers(_ ...string) StatusBarMsg {
-	v.app.Editor.ListBuffers = true
+	v.app.BufferList.Show()
 	return StatusBarMsg{}
 }
 

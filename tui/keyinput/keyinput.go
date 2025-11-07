@@ -27,7 +27,7 @@ type Handler interface {
 // it currently has focus.
 // Used to check if input should be directed to it.
 type FocusedComponent interface {
-	Name() string
+	Title() string
 	Focused() bool
 }
 

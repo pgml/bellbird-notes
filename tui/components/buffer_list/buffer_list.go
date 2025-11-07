@@ -101,12 +101,11 @@ type BufferList struct {
 	Overlay *overlay.Overlay
 }
 
-func New(conf *config.Config) *BufferList {
+func New(title string, conf *config.Config) *BufferList {
 	termW, _ := theme.TerminalSize()
 
 	var list shared.List[*BufferListItem]
 	list.MakeEmpty()
-	list.Title = "OPEN NOTES"
 	list.Conf = conf
 
 	panel := &BufferList{
@@ -115,14 +114,14 @@ func New(conf *config.Config) *BufferList {
 		width:   termW / 3,
 		Overlay: &overlay.Overlay{},
 	}
+
+	panel.SetTitle(title)
 	panel.SetTheme(theme.New(conf))
 	panel.Blur()
 	panel.Mode = mode.Normal
 
 	return panel
 }
-
-func (l BufferList) Name() string { return "BufferList" }
 
 func (l BufferList) Width() int {
 	return l.Viewport.Width()

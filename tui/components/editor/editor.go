@@ -84,8 +84,8 @@ func (b *Buffer) Name() string {
 	return name
 }
 
-// Path returns the path of the buffer.
-// If encoded is true it returns a url path save for writing to a config file.
+// Path returns the buffer's path.
+// If encoded is true it returns a file:// URL safe for writing to a config file.
 func (b *Buffer) Path(encoded bool) string {
 	if encoded {
 		p := &url.URL{
@@ -94,10 +94,10 @@ func (b *Buffer) Path(encoded bool) string {
 		}
 		return p.String()
 	}
-
 	return b.path
 }
 
+// SetPath sets the buffer's path.
 func (b *Buffer) SetPath(path string) {
 	b.path = path
 }
@@ -132,33 +132,45 @@ func (b Buffer) hash() string {
 	return utils.HashContent(b.Content)
 }
 
+// BufferSavedMsg is sent when a buffer has been saved
 type BufferSavedMsg struct {
 	Buffer *Buffer
 }
 
-func (e *Editor) SendBufferSavedMsg() tea.Cmd {
+// SendBufferSavedMsg returns a command that sends a BufferSavedMsg
+// containing the given buffer.
+func SendBufferSavedMsg(buffer *Buffer) tea.Cmd {
 	return func() tea.Msg {
 		return BufferSavedMsg{
-			Buffer: e.CurrentBuffer,
+			Buffer: buffer,
 		}
 	}
 }
 
+// RefreshBufferMsg is sent when a buffer should be refreshed.
 type RefreshBufferMsg struct {
 	Path string
 }
 
+// SendRefreshBufferMsg returns a command that sends a RefreshBufferMsg
+// for the specific path.
 func SendRefreshBufferMsg(path string) tea.Cmd {
 	return func() tea.Msg {
-		return RefreshBufferMsg{Path: path}
+		return RefreshBufferMsg{
+			Path: path,
+		}
 	}
 }
 
+// SwitchBufferMsg requests switching to a different buffer, optionally
+// focusing the editor afterward
 type SwitchBufferMsg struct {
 	Path        string
 	FocusEditor bool
 }
 
+// SendSwitchBufferMsg returns a command that sends a SwitchBufferMsg
+// for the given path and focus setting
 func SendSwitchBufferMsg(path string, focusEditor bool) tea.Cmd {
 	return func() tea.Msg {
 		return SwitchBufferMsg{
@@ -168,22 +180,25 @@ func SendSwitchBufferMsg(path string, focusEditor bool) tea.Cmd {
 	}
 }
 
+// BuffersChangedMsg is sent when the set of buffers has changed.
 type BuffersChangedMsg struct {
 	Buffers *Buffers
 }
 
-func (e *Editor) SendBuffersChangedMsg() tea.Cmd {
+// SendBuffersChangedMsg returns a commant that sends a BuffersChangedMsg
+// containing the updated buffer list.
+func SendBuffersChangedMsg(buffers *Buffers) tea.Cmd {
 	return func() tea.Msg {
 		return BuffersChangedMsg{
-			Buffers: e.Buffers,
+			Buffers: buffers,
 		}
 	}
 }
 
 type Buffers []Buffer
 
-// Find returns the buffer, true, and its index if a buffer
-// with the given path exists.
+// Find returns the buffer if a buffer with the given path exists.
+// It returns nil if no buffer could be found.
 func (b Buffers) Find(path string) *Buffer {
 	for i := range b {
 		if b[i].path == path {
@@ -202,30 +217,6 @@ func (b Buffers) Contain(path string) bool {
 type Styles struct {
 	focused lipgloss.Style
 	blurred lipgloss.Style
-}
-
-func defaultStyles(t theme.Theme) Styles {
-	var s Styles
-
-	s.focused = lipgloss.NewStyle().
-		Border(t.BorderStyle()).
-		BorderTop(false).
-		Padding(0, 1).
-		BorderForeground(theme.ColourBorderFocused)
-
-	s.blurred = lipgloss.NewStyle().
-		Border(t.BorderStyle()).
-		BorderTop(false).
-		Padding(0, 1).
-		BorderForeground(theme.ColourBorder)
-
-	return s
-}
-
-type Input struct {
-	keyinput.Input
-	key      string
-	operator string
 }
 
 type Editor struct {
@@ -259,8 +250,6 @@ type Editor struct {
 	// ShowLineNumbers indicates whether to show line numbers
 	ShowLineNumbers bool
 
-	ListBuffers bool
-
 	// conf indicates whether to show column numbers
 	conf *config.Config
 
@@ -273,24 +262,11 @@ type Editor struct {
 	styles Styles
 }
 
-func New(conf *config.Config) *Editor {
+func New(title string, conf *config.Config) *Editor {
 	theme := theme.New(conf)
-	styles := defaultStyles(theme)
-
-	ta := textarea.New()
-	ta.Prompt = ""
-	ta.Styles.Focused.CursorLine = cursorLine
-	ta.Styles.Focused.Base = styles.focused
-	ta.Styles.Blurred.Base = styles.blurred
-	ta.CharLimit = charLimit
-	ta.MaxHeight = maxHeight
-	ta.Selection.Cursor.SetMode(cursor.CursorStatic)
-	ta.Selection.Cursor.TextStyle = ta.SelectionStyle()
-	ta.Selection.Cursor.Style = ta.SelectionStyle()
 
 	editor := &Editor{
 		CanInsert:          false,
-		Textarea:           ta,
 		Component:          shared.Component{},
 		CurrentBuffer:      &Buffer{},
 		isAtLineEnd:        false,
@@ -300,11 +276,11 @@ func New(conf *config.Config) *Editor {
 		LastOpenNoteLoaded: false,
 	}
 
+	editor.SetTitle(title)
 	editor.SetTheme(theme)
+
 	editor.ShowLineNumbers = editor.LineNumbers()
-	editor.Textarea.ShowLineNumbers = editor.ShowLineNumbers
-	editor.Textarea.ResetSelection()
-	editor.Textarea.Search.IgnoreCase = editor.SearchIgnoreCase()
+	editor.Textarea = editor.NewTextarea()
 	editor.OnFocus = editor.onFocus
 	editor.OnBlur = editor.onBlur
 
@@ -315,8 +291,42 @@ func New(conf *config.Config) *Editor {
 	return editor
 }
 
-func (e Editor) Name() string {
-	return "Editor"
+// DefaultStyles returns the default styles for focused and blurred
+// states for the editor.
+func defaultStyles(t theme.Theme) Styles {
+	style := lipgloss.NewStyle().
+		Border(t.BorderStyle()).
+		BorderTop(false).
+		Padding(0, 1)
+
+	return Styles{
+		focused: style.BorderForeground(theme.ColourBorderFocused),
+		blurred: style.BorderForeground(theme.ColourBorder),
+	}
+}
+
+// NewTextarea returns a new textarea instance with default settings
+func (e Editor) NewTextarea() textarea.Model {
+	styles := defaultStyles(e.Theme())
+
+	ta := textarea.New()
+	ta.Prompt = ""
+	ta.Styles.Focused.CursorLine = cursorLine
+	ta.Styles.Focused.Base = styles.focused
+	ta.Styles.Blurred.Base = styles.blurred
+
+	ta.CharLimit = charLimit
+	ta.MaxHeight = maxHeight
+	ta.ShowLineNumbers = e.ShowLineNumbers
+
+	ta.Selection.Cursor.SetMode(cursor.CursorStatic)
+	ta.Selection.Cursor.TextStyle = ta.SelectionStyle()
+	ta.Selection.Cursor.Style = ta.SelectionStyle()
+
+	ta.Search.IgnoreCase = e.SearchIgnoreCase()
+	ta.ResetSelection()
+
+	return ta
 }
 
 // Init initialises the Model on program load.
@@ -325,6 +335,7 @@ func (e *Editor) Init() tea.Cmd {
 	return textarea.Blink
 }
 
+// Update is the Bubble Tea update loop.
 func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var (
 		cmds []tea.Cmd
@@ -391,7 +402,6 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case SwitchBufferMsg:
 		if buf := e.Buffers.Find(msg.Path); buf != nil {
-			e.ListBuffers = false
 			e.SwitchBuffer(buf)
 			e.BuildHeader(e.Size.Width, true)
 		} else {
@@ -399,12 +409,13 @@ func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
-	e.setTextareaSize()
+	e.RefreshSize()
 	cmds = append(cmds, cmd)
 
 	return e, tea.Batch(cmds...)
 }
 
+// View renders the editor in its current state.
 func (e *Editor) View() tea.View {
 	var view tea.View
 	view.SetContent(e.Content())
@@ -412,10 +423,6 @@ func (e *Editor) View() tea.View {
 }
 
 func (e *Editor) Content() string {
-	return e.viewportContent()
-}
-
-func (e *Editor) viewportContent() string {
 	var view strings.Builder
 	view.WriteString(e.BuildHeader(e.Size.Width, false))
 	view.WriteString(e.Textarea.View())
@@ -423,8 +430,27 @@ func (e *Editor) viewportContent() string {
 	return view.String()
 }
 
+// SetContent updates the textarea with the current buffer's content
+// and sets the cursor to the last known position
+func (e *Editor) SetContent() {
+	buf := e.CurrentBuffer
+	e.Textarea.SetValue(buf.Content)
+	e.Textarea.MoveCursor(
+		buf.CursorPos.Row,
+		buf.CursorPos.RowOffset,
+		buf.CursorPos.ColumnOffset,
+	)
+	e.Textarea.RepositionView()
+}
+
+// RefreshSize update the textarea height and width to match
+// the height and width of the editor
 func (e *Editor) RefreshSize() {
-	e.setTextareaSize()
+	if e.Textarea.Width() != e.Size.Width && e.Textarea.Height() != e.Size.Height {
+		const reserverdLines = 1
+		e.Textarea.SetWidth(e.Size.Width)
+		e.Textarea.SetHeight(e.Size.Height - reserverdLines)
+	}
 }
 
 func (e *Editor) SetWidth(w int) {
@@ -523,8 +549,10 @@ func (e *Editor) OpenBuffer(path string) message.StatusBarMsg {
 	return statusMsg
 }
 
+// SwitchBuffer replaces the current editor view with the content of
+// the given buffer
 func (e *Editor) SwitchBuffer(buf *Buffer) message.StatusBarMsg {
-	if e.Buffers.Contain(buf.path) {
+	if !e.Buffers.Contain(buf.path) {
 		return message.StatusBarMsg{}
 	}
 
@@ -542,6 +570,8 @@ func (e *Editor) SwitchBuffer(buf *Buffer) message.StatusBarMsg {
 	return message.StatusBarMsg{}
 }
 
+// CheckTime re-reads the current buffer's content from file and
+// updates the textarea
 func (e *Editor) CheckTime() {
 	buf := e.CurrentBuffer
 	note, err := os.ReadFile(buf.path)
@@ -557,17 +587,6 @@ func (e *Editor) CheckTime() {
 
 	e.SetContent()
 	e.updateHistoryEntry()
-}
-
-func (e *Editor) SetContent() {
-	buf := e.CurrentBuffer
-	e.Textarea.SetValue(buf.Content)
-	e.Textarea.MoveCursor(
-		buf.CursorPos.Row,
-		buf.CursorPos.RowOffset,
-		buf.CursorPos.ColumnOffset,
-	)
-	e.Textarea.RepositionView()
 }
 
 // SaveBuffer writes the current buffer's content to the corresponding
@@ -608,10 +627,6 @@ func (e *Editor) SaveBuffer() message.StatusBarMsg {
 	return statusMsg
 }
 
-func (e *Editor) DeleteCurrentBuffer() message.StatusBarMsg {
-	return e.DeleteBuffer(e.CurrentBuffer.path)
-}
-
 // DeleteBuffer closes the currently active buffer or resets the editor if
 // none is available
 func (e *Editor) DeleteBuffer(path string) message.StatusBarMsg {
@@ -629,6 +644,10 @@ func (e *Editor) DeleteBuffer(path string) message.StatusBarMsg {
 	}
 
 	return message.StatusBarMsg{}
+}
+
+func (e *Editor) DeleteCurrentBuffer() message.StatusBarMsg {
+	return e.DeleteBuffer(e.CurrentBuffer.path)
 }
 
 func (e *Editor) DeleteAllBuffers() message.StatusBarMsg {
@@ -659,7 +678,7 @@ func (e *Editor) BuildHeader(width int, rebuild bool) string {
 		}
 	}
 
-	title := "EDITOR"
+	title := e.Title()
 	if e.CurrentBuffer.path != "" {
 		title = e.breadcrumb()
 	}
@@ -878,7 +897,6 @@ func (e *Editor) updateHistoryEntry() {
 
 // checkDirty marks the current buffer as dirty if the current
 // buffer is unsaved and the content differs from the saved content's file
-// func (e *Editor) checkDirty(fn func()) bool {
 func (e *Editor) checkDirty() bool {
 	if saved := e.CurrentBuffer.LastSavedContentHash; saved != "" {
 		isDirty := utils.HashContent(e.Textarea.Value()) != saved
@@ -889,18 +907,22 @@ func (e *Editor) checkDirty() bool {
 	return false
 }
 
+// fileProgress returns the scroll progression of the file in percent
 func (e *Editor) fileProgress() int {
 	pc := float32(e.Textarea.Line()+1) / float32(e.Textarea.LineCount())
 	return int(pc * 100.0)
 }
 
-func (e *Editor) fileProgresStr() string {
+// fileProgressStr returns the scroll progression of the file as a string
+func (e *Editor) fileProgressStr() string {
 	var p strings.Builder
 	p.WriteString(strconv.Itoa(e.fileProgress()))
 	p.WriteByte('%')
 	return p.String()
 }
 
+// cursorInfo returns the string represenation of the
+// current line and cursor position
 func (e *Editor) cursorInfo() string {
 	var info strings.Builder
 	info.WriteString(strconv.Itoa(e.Textarea.Line() + 1))
@@ -920,16 +942,6 @@ func (e *Editor) cursorInfo() string {
 //	pos := strconv.Itoa(e.filePosition())
 //	return pos + "%"
 //}
-
-// setTextareaSize update the textarea height and width to match
-// the height and width of the editor
-func (e *Editor) setTextareaSize() {
-	if e.Textarea.Width() != e.Size.Width && e.Textarea.Height() != e.Size.Height {
-		const reserverdLines = 1
-		e.Textarea.SetWidth(e.Size.Width)
-		e.Textarea.SetHeight(e.Size.Height - reserverdLines)
-	}
-}
 
 // saveCursorPos saves the cursors current column offset and row
 func (e *Editor) saveCursorPos() {
@@ -960,7 +972,7 @@ func (e *Editor) StatusBarInfo() message.StatusBarMsg {
 	var info strings.Builder
 	info.WriteString(e.cursorInfo())
 	info.WriteRune('\t')
-	info.WriteString(e.fileProgresStr())
+	info.WriteString(e.fileProgressStr())
 
 	return message.StatusBarMsg{
 		Content: info.String(),
@@ -970,12 +982,12 @@ func (e *Editor) StatusBarInfo() message.StatusBarMsg {
 
 func (e *Editor) SetNumbers() {
 	e.Textarea.ShowLineNumbers = true
-	e.viewportContent()
+	e.Content()
 }
 
 func (e *Editor) SetNoNumbers() {
 	e.Textarea.ShowLineNumbers = false
-	e.viewportContent()
+	e.Content()
 }
 
 // OpenConfig opens the config file as a buffer
@@ -1738,6 +1750,8 @@ func (e *Editor) LineNumbers() bool {
 	return numbers.GetBool()
 }
 
+// SearchIgnoreCase returns true if the editor config enables
+// case-insensitive search.
 func (e *Editor) SearchIgnoreCase() bool {
 	ignoreCase, err := e.conf.Value(config.Editor, config.SearchIgnoreCase)
 
@@ -1754,5 +1768,5 @@ func (e *Editor) RefreshTextAreaStyles() {
 	e.Textarea.Styles.Focused.Base = s.focused
 	e.Textarea.ShowLineNumbers = e.LineNumbers()
 	e.BuildHeader(e.Size.Width, true)
-	e.viewportContent()
+	e.Content()
 }

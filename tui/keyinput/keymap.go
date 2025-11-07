@@ -116,7 +116,7 @@ type KeyMapEntry struct {
 func (e *KeyMapEntry) ResolveComponents(ki *Input) []FocusedComponent {
 	var components []FocusedComponent
 	for i := range ki.Components {
-		if slices.Contains(e.Components, ki.Components[i].Name()) {
+		if slices.Contains(e.Components, ki.Components[i].Title()) {
 			components = append(components, ki.Components[i])
 		}
 	}

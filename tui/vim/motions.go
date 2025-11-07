@@ -414,7 +414,7 @@ func (v *Vim) showBufferList(_ ki.Options) func() StatusBarMsg {
 func (v *Vim) closeBufferList(_ ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
 		if v.app.BufferList.Focused() {
-			v.app.Editor.ListBuffers = false
+			v.app.BufferList.Hide()
 			v.FocusColumn(v.app.CurrColFocus)
 			v.app.CurrentOverlay = nil
 			v.app.BufferList.Blur()
@@ -854,7 +854,7 @@ func (v *Vim) changeToUpperCase(_ ki.Options) func() StatusBarMsg {
 func (v *Vim) OverlayOpenBuffers() {
 	ov := v.app.BufferList.Overlay
 
-	v.app.Editor.ListBuffers = true
+	v.app.BufferList.Show()
 	v.app.BufferList.Focus()
 	v.app.CurrentOverlay = ov
 	v.app.UpdateComponents(false)

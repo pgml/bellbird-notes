@@ -10,7 +10,7 @@ import (
 
 func TestDirTreeMoveLines(t *testing.T) {
 	conf := config.New()
-	dirTree := directorytree.New(conf)
+	dirTree := directorytree.New("Folders", conf)
 
 	// Move to the top if we're not already to don't screw up test results
 	// with the latest dir index from the config
@@ -79,7 +79,7 @@ func TestDirTreeMoveLines(t *testing.T) {
 // not an actual renaming process on file level
 func TestDirTreeRenameAndConfirm(t *testing.T) {
 	conf := config.New()
-	dirTree := directorytree.New(conf)
+	dirTree := directorytree.New("Folders", conf)
 
 	if dirTree.SelectedIndex != 1 {
 		dirTree.GoToTop()
@@ -110,7 +110,7 @@ func TestDirTreeRenameAndConfirm(t *testing.T) {
 
 func TestDirTreeExpandCollapse(t *testing.T) {
 	conf := config.New()
-	dirTree := directorytree.New(conf)
+	dirTree := directorytree.New("Folders", conf)
 
 	// Move to top since top directory is always expandable
 	if dirTree.SelectedIndex > 0 {

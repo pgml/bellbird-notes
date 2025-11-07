@@ -137,7 +137,7 @@ func (l *NotesList) View() tea.View {
 }
 
 // NewNotesList creates a new model with default settings.
-func New(conf *config.Config) *NotesList {
+func New(title string, conf *config.Config) *NotesList {
 	ti := textinput.New()
 	ti.Prompt = " " + theme.Icon(theme.IconPen, conf.NerdFonts()) + " "
 	ti.VirtualCursor = true
@@ -150,7 +150,6 @@ func New(conf *config.Config) *NotesList {
 
 	var list shared.List[*NoteItem]
 	list.MakeEmpty()
-	list.Title = "NOTES"
 	list.SelectedIndex = 0
 	list.Conf = conf
 	list.InputModel = ti
@@ -160,15 +159,12 @@ func New(conf *config.Config) *NotesList {
 		CurrentPath: notesDir,
 	}
 
+	notesList.SetTitle(title)
 	notesList.SetTheme(theme.New(conf))
 	notesList.checkVisibility()
 	notesList.Refresh(false, true)
 
 	return notesList
-}
-
-func (l NotesList) Name() string {
-	return "Notes"
 }
 
 func (l *NotesList) Content() string {

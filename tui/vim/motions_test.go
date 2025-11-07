@@ -167,7 +167,7 @@ func TestOpenCloseBufferList(t *testing.T) {
 
 	vim.showBufferList(keyinput.Options{})()
 
-	if !app.BufferList.Focused() && !app.Editor.ListBuffers {
+	if !app.BufferList.Focused() && !app.BufferList.Visible() {
 		t.Fatal("Expected buffer list to be focused but isn't")
 	}
 
@@ -175,7 +175,7 @@ func TestOpenCloseBufferList(t *testing.T) {
 
 	vim.closeBufferList(keyinput.Options{})()
 
-	if app.BufferList.Focused() && app.Editor.ListBuffers {
+	if app.BufferList.Focused() && app.BufferList.Visible() {
 		t.Fatal("Expected buffer list to be closed but isn't")
 	}
 }
