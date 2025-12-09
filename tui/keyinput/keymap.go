@@ -46,7 +46,7 @@ type KeyMap struct {
 	entries []KeyMapEntry
 }
 
-func (m *KeyMap) Path() string { return m.path }
+func (keymap *KeyMap) Path() string { return keymap.path }
 
 func NewKeyMap() KeyMap {
 	path, err := keyMapPath()
@@ -72,15 +72,15 @@ func keyMapPath() (string, error) {
 }
 
 // Exists checks whether a file exists at the given path.
-func (km *KeyMap) Exists() bool {
-	if _, err := os.Stat(km.path); errors.Is(err, os.ErrNotExist) {
+func (keymap *KeyMap) Exists() bool {
+	if _, err := os.Stat(keymap.path); errors.Is(err, os.ErrNotExist) {
 		return false
 	}
 	return true
 }
 
-func (km *KeyMap) Create() error {
-	f, err := utils.CreateFile(km.path, true)
+func (keymap *KeyMap) Create() error {
+	f, err := utils.CreateFile(keymap.path, true)
 
 	if err != nil {
 		return err
@@ -97,8 +97,8 @@ func (km *KeyMap) Create() error {
 	return nil
 }
 
-func (km *KeyMap) Content() ([]byte, error) {
-	f, err := os.ReadFile(km.path)
+func (keymap *KeyMap) Content() ([]byte, error) {
+	f, err := os.ReadFile(keymap.path)
 
 	if err != nil {
 		return nil, err
@@ -113,18 +113,18 @@ type KeyMapEntry struct {
 	Bindings   map[string]MapBinding `json:"bindings"`
 }
 
-func (e *KeyMapEntry) ResolveComponents(ki *Input) []FocusedComponent {
+func (entry *KeyMapEntry) ResolveComponents(ki *Input) []FocusedComponent {
 	var components []FocusedComponent
 	for i := range ki.Components {
-		if slices.Contains(e.Components, ki.Components[i].Title()) {
+		if slices.Contains(entry.Components, ki.Components[i].Title()) {
 			components = append(components, ki.Components[i])
 		}
 	}
 	return components
 }
 
-func (e *KeyMapEntry) ResolveMode(ki *Input) mode.Mode {
-	switch e.Mode {
+func (entry *KeyMapEntry) ResolveMode(ki *Input) mode.Mode {
+	switch entry.Mode {
 	case "normal":
 		return mode.Normal
 	case "insert":
@@ -147,17 +147,17 @@ func (e *KeyMapEntry) ResolveMode(ki *Input) mode.Mode {
 
 type Options map[string]any
 
-func (o Options) GetBool(key string) bool {
+func (opts Options) GetBool(key string) bool {
 	bool := false
-	if val, ok := o[key]; ok && val == true {
+	if val, ok := opts[key]; ok && val == true {
 		bool = true
 	}
 	return bool
 }
 
-func (o Options) GetString(key string) string {
+func (opts Options) GetString(key string) string {
 	str := ""
-	val, ok := o[key]
+	val, ok := opts[key]
 
 	if !ok {
 		return str
@@ -176,13 +176,13 @@ type MapBinding struct {
 	HasOpts bool
 }
 
-func (b *MapBinding) UnmarshalJSON(data []byte) error {
+func (binding *MapBinding) UnmarshalJSON(data []byte) error {
 	var keyString string
 
 	if err := json.Unmarshal(data, &keyString); err == nil {
-		b.Action = keyString
-		b.Options = Options{}
-		b.HasOpts = false
+		binding.Action = keyString
+		binding.Options = Options{}
+		binding.HasOpts = false
 
 		return nil
 	}
@@ -193,15 +193,15 @@ func (b *MapBinding) UnmarshalJSON(data []byte) error {
 	}
 
 	if len(keyArr) > 0 {
-		if err := json.Unmarshal(keyArr[0], &b.Action); err != nil {
+		if err := json.Unmarshal(keyArr[0], &binding.Action); err != nil {
 			return err
 		}
 
 		if len(keyArr) > 1 {
-			if err := json.Unmarshal(keyArr[1], &b.Options); err != nil {
+			if err := json.Unmarshal(keyArr[1], &binding.Options); err != nil {
 				return err
 			}
-			b.HasOpts = true
+			binding.HasOpts = true
 		}
 	}
 

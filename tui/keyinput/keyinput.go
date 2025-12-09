@@ -118,7 +118,7 @@ func New(h Handler) *Input {
 
 // isModifier checks if the provided key string represents a modifier key
 // prefix ("ctrl+" or "alt+").
-func (ki *Input) isModifier(binding string) (string, bool) {
+func (input *Input) isModifier(binding string) (string, bool) {
 	if ok := strings.HasPrefix(binding, "ctrl+"); ok {
 		return "ctrl", true
 	}
@@ -133,16 +133,16 @@ func (ki *Input) isModifier(binding string) (string, bool) {
 // HandleSequences processes an incoming key string, updating the internal
 // key sequence and modifier states as needed, and executing any matching
 // actions.
-func (ki *Input) HandleSequences(key tea.Key) []message.StatusBarMsg {
-	if key.String() == "esc" && ki.KeySequence != "" {
-		return []message.StatusBarMsg{ki.ResetKeysDown()}
+func (input *Input) HandleSequences(key tea.Key) []message.StatusBarMsg {
+	if key.String() == "esc" && input.KeySequence != "" {
+		return []message.StatusBarMsg{input.ResetKeysDown()}
 	}
 
 	// special treatment for space to make it simulate a leader key
-	if ki.Mode.Current == mode.Normal && !ki.Space && ki.KeySequence == "" {
+	if input.Mode.Current == mode.Normal && !input.Space && input.KeySequence == "" {
 		if key.Code == 32 {
-			ki.KeySequence += key.Keystroke()
-			ki.Space = true
+			input.KeySequence += key.Keystroke()
+			input.Space = true
 
 			return []message.StatusBarMsg{{
 				Content: key.Keystroke(),
@@ -151,41 +151,44 @@ func (ki *Input) HandleSequences(key tea.Key) []message.StatusBarMsg {
 		}
 	}
 
-	if ki.Ctrl || ki.Alt || ki.Space {
-		ki.KeySequence += " " + key.String()
+	if input.Ctrl || input.Alt || input.Space {
+		input.KeySequence += " " + key.String()
 	} else {
-		ki.KeySequence += key.String()
+		input.KeySequence += key.String()
 	}
 
 	// If we need to wait for further input cache the original action
-	if action, ok := ki.componentActions[ki.Mode.Current][ki.KeySequence]; ok {
-		if ki.AwaitInputAction == nil && action.opts.GetBool("await_input") {
-			ki.AwaitInputAction = &action
+	if action, ok := input.componentActions[input.Mode.Current][input.KeySequence]; ok {
+		if input.AwaitInputAction == nil && action.opts.GetBool("await_input") {
+			input.AwaitInputAction = &action
 		}
 	}
 
 	// reset keybinds if we exceed the max length of sequences found in
 	// the keymap
-	if len(strings.Split(ki.KeySequence, " ")) > ki.sequenceLength {
-		ki.ResetKeysDown()
+	if len(strings.Split(input.KeySequence, " ")) > input.sequenceLength {
+		input.ResetKeysDown()
 	}
 
 	keyInfoMsg := message.StatusBarMsg{Content: "", Column: sbc.KeyInfo}
-	if ki.Mode.Current != mode.Command && !ki.isBinding(ki.KeySequence) && ki.AllowSequences {
-		mod, isModifier := ki.isModifier(key.String())
+	if input.Mode.Current != mode.Command &&
+		!input.isBinding(input.KeySequence) &&
+		input.AllowSequences {
 
-		if slices.Contains(ki.sequenceKeys, ki.KeySequence) || isModifier {
+		mod, isModifier := input.isModifier(key.String())
+
+		if slices.Contains(input.sequenceKeys, input.KeySequence) || isModifier {
 			switch mod {
 			case "ctrl":
-				ki.Ctrl = true
+				input.Ctrl = true
 			case "alt":
-				ki.Alt = true
+				input.Alt = true
 			}
 
 			keyInfo := keyInfoMsg.Content
-			if ki.Mode.Current != mode.Insert {
-				keyInfo = strings.ReplaceAll(ki.KeySequence, "ctrl", "^")
-				if ki.Ctrl {
+			if input.Mode.Current != mode.Insert {
+				keyInfo = strings.ReplaceAll(input.KeySequence, "ctrl", "^")
+				if input.Ctrl {
 					keyInfo = strings.ReplaceAll(keyInfo, "+", "")
 				}
 			}
@@ -198,20 +201,20 @@ func (ki *Input) HandleSequences(key tea.Key) []message.StatusBarMsg {
 	}
 
 	statusMsg := []message.StatusBarMsg{}
-	statusMsg = append(statusMsg, keyInfoMsg, ki.executeAction(ki.KeySequence))
-	ki.ResetKeysDown()
+	statusMsg = append(statusMsg, keyInfoMsg, input.executeAction(input.KeySequence))
+	input.ResetKeysDown()
 
 	return statusMsg
 }
 
 // executeAction attempts to find and execute an action matching the given
 // key binding string in the current mode and focused component.
-func (ki *Input) executeAction(binding string) message.StatusBarMsg {
-	if action := ki.AwaitInputAction; action != nil {
+func (input *Input) executeAction(binding string) message.StatusBarMsg {
+	if action := input.AwaitInputAction; action != nil {
 		return action.exec()
 	}
 
-	if action, ok := ki.componentActions[ki.Mode.Current][binding]; ok {
+	if action, ok := input.componentActions[input.Mode.Current][binding]; ok {
 		return action.exec()
 	}
 
@@ -220,12 +223,12 @@ func (ki *Input) executeAction(binding string) message.StatusBarMsg {
 
 // ReloadKeyMap reads the user's keymap.json and rewrites the cached map
 // of the key bindings
-func (ki *Input) ReloadKeyMap() {
-	if f, err := os.ReadFile(ki.KeyMap.Path()); err != nil {
+func (input *Input) ReloadKeyMap() {
+	if f, err := os.ReadFile(input.KeyMap.Path()); err != nil {
 		debug.LogErr("Could not reload keymap", err)
 	} else {
-		ki.UserKeyMap = f
-		ki.FetchKeyMap(true)
+		input.UserKeyMap = f
+		input.FetchKeyMap(true)
 	}
 }
 
@@ -235,14 +238,14 @@ func (ki *Input) ReloadKeyMap() {
 // It merges the user keymap with the default keymap and
 // overrides keybinds from the user map with the default keybinds
 // if necessary
-func (ki *Input) FetchKeyMap(resetSeq bool) {
-	defaultMap, err := ki.parseKeyMap(ki.DefaultKeyMap, resetSeq)
+func (input *Input) FetchKeyMap(resetSeq bool) {
+	defaultMap, err := input.parseKeyMap(input.DefaultKeyMap, resetSeq)
 	if err != nil {
 		debug.LogErr("error parsing default keynap", err)
 	}
 
 	// get the user keymap
-	userMap, err := ki.parseKeyMap(ki.UserKeyMap, false)
+	userMap, err := input.parseKeyMap(input.UserKeyMap, false)
 	if err != nil {
 		debug.LogErr("error parsing user keymap", err)
 	}
@@ -256,16 +259,16 @@ func (ki *Input) FetchKeyMap(resetSeq bool) {
 		maps.Copy(defaultMap[mode], bindings)
 	}
 
-	ki.componentActions = defaultMap
+	input.componentActions = defaultMap
 }
 
 // parseKeyMap converts a keymap json string into a executable map
-func (ki *Input) parseKeyMap(
+func (input *Input) parseKeyMap(
 	keymap []byte,
 	resetSeq bool,
 ) (map[mode.Mode]map[string]Action, error) {
 	if resetSeq {
-		ki.sequenceKeys = []string{}
+		input.sequenceKeys = []string{}
 	}
 
 	parsed := map[mode.Mode]map[string]Action{}
@@ -285,18 +288,18 @@ func (ki *Input) parseKeyMap(
 	modes := map[string][]mode.Mode{}
 
 	for _, set := range entries {
-		if _, ok := ki.anyComponentFocused(set.ResolveComponents(ki)); !ok {
+		if _, ok := input.anyComponentFocused(set.ResolveComponents(input)); !ok {
 			continue
 		}
 
-		resolvedMode := set.ResolveMode(ki)
+		resolvedMode := set.ResolveMode(input)
 		// skip binding is not registerd to this mode
 		if set.Mode != "" && resolvedMode.FullString(false) != set.Mode {
 			continue
 		}
 
 		for key, binding := range set.Bindings {
-			actionFn, ok := ki.Registry[binding.Action]
+			actionFn, ok := input.Registry[binding.Action]
 			if !ok {
 				continue
 			}
@@ -313,7 +316,7 @@ func (ki *Input) parseKeyMap(
 
 			// If "operator" is set manually make the key a sequence key
 			if binding.HasOpts && binding.Options.GetBool("operator") {
-				ki.addSequenceKey(key, true)
+				input.addSequenceKey(key, true)
 			}
 
 			for key, modeSlice := range modes {
@@ -337,14 +340,14 @@ func (ki *Input) parseKeyMap(
 				}
 			}
 
-			ki.addSequenceKey(key, false)
+			input.addSequenceKey(key, false)
 		}
 	}
 
 	return parsed, nil
 }
 
-func (ki *Input) addSequenceKey(binding string, force bool) {
+func (input *Input) addSequenceKey(binding string, force bool) {
 	if binding == "" {
 		return
 	}
@@ -352,13 +355,13 @@ func (ki *Input) addSequenceKey(binding string, force bool) {
 	runeCount := utf8.RuneCountInString(binding)
 
 	seqAmount := strings.Split(binding, " ")
-	if len(seqAmount) > ki.sequenceLength {
-		ki.sequenceLength = len(seqAmount)
+	if len(seqAmount) > input.sequenceLength {
+		input.sequenceLength = len(seqAmount)
 	}
 
 	if force {
-		if !slices.Contains(ki.sequenceKeys, binding) {
-			ki.sequenceKeys = append(ki.sequenceKeys, binding)
+		if !slices.Contains(input.sequenceKeys, binding) {
+			input.sequenceKeys = append(input.sequenceKeys, binding)
 			return
 		}
 	}
@@ -366,21 +369,21 @@ func (ki *Input) addSequenceKey(binding string, force bool) {
 	if runeCount == 3 && binding != "esc" {
 		runes := []rune(binding)
 		r := string(runes[0]) + string(runes[1])
-		if !slices.Contains(ki.sequenceKeys, r) {
-			ki.sequenceKeys = append(ki.sequenceKeys, r)
+		if !slices.Contains(input.sequenceKeys, r) {
+			input.sequenceKeys = append(input.sequenceKeys, r)
 		}
 	} else if runeCount == 2 {
 		r := string([]rune(binding)[0])
-		if !slices.Contains(ki.sequenceKeys, r) {
-			ki.sequenceKeys = append(ki.sequenceKeys, r)
+		if !slices.Contains(input.sequenceKeys, r) {
+			input.sequenceKeys = append(input.sequenceKeys, r)
 		}
 	}
 }
 
 // isBinding returns wether the given key string is a
 // known and valid key binding
-func (ki *Input) isBinding(key string) bool {
-	if action, ok := ki.componentActions[ki.Mode.Current][key]; ok {
+func (input *Input) isBinding(key string) bool {
+	if action, ok := input.componentActions[input.Mode.Current][key]; ok {
 		o := action.opts
 		if o.GetBool("operator") && o.GetBool("await_input") {
 			return false
@@ -392,7 +395,7 @@ func (ki *Input) isBinding(key string) bool {
 
 // anyComponentFocused returns whether any of the components
 // in the FocusedComponents slice is focused
-func (ki *Input) anyComponentFocused(components []FocusedComponent) (*FocusedComponent, bool) {
+func (input *Input) anyComponentFocused(components []FocusedComponent) (*FocusedComponent, bool) {
 	for i := range components {
 		if components[i].Focused() {
 			return &components[i], true
@@ -403,12 +406,12 @@ func (ki *Input) anyComponentFocused(components []FocusedComponent) (*FocusedCom
 
 // ResetKeysDown resets the modifier state flags and
 // clears the current key sequence.
-func (ki *Input) ResetKeysDown() message.StatusBarMsg {
-	ki.Space = false
-	ki.Ctrl = false
-	ki.Alt = false
-	ki.KeySequence = ""
-	ki.AwaitInputAction = nil
+func (input *Input) ResetKeysDown() message.StatusBarMsg {
+	input.Space = false
+	input.Ctrl = false
+	input.Alt = false
+	input.KeySequence = ""
+	input.AwaitInputAction = nil
 
 	return message.StatusBarMsg{
 		Content: "",
@@ -418,9 +421,9 @@ func (ki *Input) ResetKeysDown() message.StatusBarMsg {
 
 // ResetSequence resets the key sequence after the given delay.
 // Simulates Vim's `timeoutlen`
-func (ki *Input) ResetSequence() tea.Cmd {
+func (input *Input) ResetSequence() tea.Cmd {
 	return func() tea.Msg {
-		time.Sleep(ki.sequenceTimeOut * time.Millisecond)
+		time.Sleep(input.sequenceTimeOut * time.Millisecond)
 		return ResetSequenceMsg{}
 	}
 }

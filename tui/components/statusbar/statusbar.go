@@ -88,17 +88,17 @@ func New() *StatusBar {
 }
 
 // Name returns the unique name of the StatusBar
-func (s StatusBar) Name() string { return "StatusBar" }
+func (sb StatusBar) Name() string { return "StatusBar" }
 
 // Init initialises the Model on program load.
 // It partly implements the tea.Model interface.
-func (s *StatusBar) Init() tea.Cmd {
+func (sb *StatusBar) Init() tea.Cmd {
 	return nil
 }
 
 // Update processes incoming StatusBarMsgs and tea.Msgs,
 // updating the internal state of the StatusBar as needed.
-func (s *StatusBar) Update(
+func (sb *StatusBar) Update(
 	msgs []message.StatusBarMsg,
 	teaMsg tea.Msg,
 ) (*StatusBar, tea.Cmd) {
@@ -108,93 +108,93 @@ func (s *StatusBar) Update(
 		msg := msgs[i]
 
 		// Avoid unnecessary update unless the content has changed
-		if s.colContent(msg.Column) == msg.Content && msg.Column != sbc.General {
+		if sb.colContent(msg.Column) == msg.Content && msg.Column != sbc.General {
 			continue
 		}
 
 		// only update content if there is
 		// no kind of input focused since we don't want to overwrite
 		// the original message of the prompt
-		if s.Type != message.PromptError {
-			s.setColContent(msg.Column, &msg.Content)
+		if sb.Type != message.PromptError {
+			sb.setColContent(msg.Column, &msg.Content)
 		}
 
 		// we only really need the type for displaying messages in the
 		// general column
-		if s.Focused && s.Mode == mode.Normal && msg.Column == sbc.General {
-			s.Type = msg.Type
+		if sb.Focused && sb.Mode == mode.Normal && msg.Column == sbc.General {
+			sb.Type = msg.Type
 		}
 
 		//s.Sender = msg.Sender
 	}
 
-	switch s.Mode {
+	switch sb.Mode {
 	case mode.SearchPrompt:
-		s.TeaCmd = func() tea.Msg {
+		sb.TeaCmd = func() tea.Msg {
 			return editor.SearchMsg{
-				SearchTerm: s.Prompt.Value(),
+				SearchTerm: sb.Prompt.Value(),
 			}
 		}
 
 	default:
-		s.TeaCmd = nil
+		sb.TeaCmd = nil
 	}
 
 	switch msg := teaMsg.(type) {
 	case tea.KeyMsg:
-		if s.Focused && s.shouldShowMode() && s.Prompt.Focused() {
-			s.Prompt, _ = s.Prompt.Update(teaMsg)
-			return s, cmd
+		if sb.Focused && sb.shouldShowMode() && sb.Prompt.Focused() {
+			sb.Prompt, _ = sb.Prompt.Update(teaMsg)
+			return sb, cmd
 		}
 
 	case tea.WindowSizeMsg:
 		termWidth, _ := theme.TerminalSize()
-		s.Size.Width = termWidth
-		s.Size.Height = s.Height
+		sb.Size.Width = termWidth
+		sb.Size.Height = sb.Height
 
 	case editor.SearchConfirmedMsg:
-		s.Mode = mode.Search
-		s.Focused = false
-		s.State.Append(state.NewEntry(state.Search, s.Prompt.Value()))
-		s.BlurPrompt(msg.ResetPrompt)
+		sb.Mode = mode.Search
+		sb.Focused = false
+		sb.State.Append(state.NewEntry(state.Search, sb.Prompt.Value()))
+		sb.BlurPrompt(msg.ResetPrompt)
 
 	case editor.SearchCancelMsg:
-		s.Focused = false
-		s.State.Append(state.NewEntry(state.Search, s.Prompt.Value()))
-		s.BlurPrompt(true)
-		s.CancelAction(func() {})
+		sb.Focused = false
+		sb.State.Append(state.NewEntry(state.Search, sb.Prompt.Value()))
+		sb.BlurPrompt(true)
+		sb.CancelAction(func() {})
 	}
 
-	return s, cmd
+	return sb, cmd
 }
 
 // View renders the StatusBar as a string
-func (s *StatusBar) View() string {
+func (sb *StatusBar) View() string {
 	style := style()
 
 	// Get the content of each column
-	colGeneral := s.colContent(sbc.General)
-	colFileInfo := s.colContent(sbc.FileInfo)
-	colKeyInfo := s.colContent(sbc.KeyInfo)
-	colProgress := s.colContent(sbc.Progress)
+	colGeneral := sb.colContent(sbc.General)
+	colFileInfo := sb.colContent(sbc.FileInfo)
+	colKeyInfo := sb.colContent(sbc.KeyInfo)
+	colProgress := sb.colContent(sbc.Progress)
 
 	// Display current mode only if there's is no prompt focused
 	// and we are not in normal mode
-	if s.shouldShowMode() && !s.isPrompt() {
-		colGeneral = s.ModeView()
+	if sb.shouldShowMode() && !sb.isPrompt() {
+		colGeneral = sb.ModeView()
 	}
 
 	// Append the prompt to the prompt message
 	// and focus for allow quick input
-	if s.isPrompt() {
-		switch s.Mode {
+	if sb.isPrompt() {
+		switch sb.Mode {
 		case mode.Command:
-			s.Prompt.Prompt = ":"
+			sb.Prompt.Prompt = ":"
 		case mode.SearchPrompt, mode.Search:
-			s.Prompt.Prompt = "/"
+			sb.Prompt.Prompt = "/"
 		}
-		s.Prompt.Focus()
-		promptView := strings.TrimSpace(s.Prompt.View())
+		sb.Prompt.Focus()
+		promptView := strings.TrimSpace(sb.Prompt.View())
 		colGeneral = fmt.Sprint(colGeneral, promptView)
 	}
 
@@ -208,7 +208,7 @@ func (s *StatusBar) View() string {
 
 	colFileInfo = utils.TruncateText(colFileInfo, wColFileInfo)
 
-	promptColour := s.Type.Colour()
+	promptColour := sb.Type.Colour()
 
 	return lipgloss.JoinHorizontal(lipgloss.Right,
 		style.Width(wColGeneral).Foreground(promptColour).Render(colGeneral),
@@ -219,16 +219,16 @@ func (s *StatusBar) View() string {
 }
 
 // ModeView returns the rendered mode string
-func (s *StatusBar) ModeView() string {
+func (sb *StatusBar) ModeView() string {
 	style := lipgloss.NewStyle().
-		Foreground(s.Mode.Colour()).
+		Foreground(sb.Mode.Colour()).
 		PaddingLeft(1).
 		PaddingRight(1)
 
 	mode := ""
 
-	if !s.Prompt.Focused() {
-		mode = s.Mode.FullString(true)
+	if !sb.Prompt.Focused() {
+		mode = sb.Mode.FullString(true)
 	}
 
 	return style.Render(mode)
@@ -236,31 +236,31 @@ func (s *StatusBar) ModeView() string {
 
 // ConfirmAction finalises the current prompt input, executes the matched command,
 // and returns the result as a StatusBarMsg.
-func (s *StatusBar) ConfirmAction(
+func (sb *StatusBar) ConfirmAction(
 	sender message.Sender,
 	c Focusable,
 ) message.StatusBarMsg {
 	statusMsg := message.StatusBarMsg{}
 
-	if !s.Prompt.Focused() {
-		s.Focused = false
+	if !sb.Prompt.Focused() {
+		sb.Focused = false
 		return statusMsg
 	}
 
-	fnMsg := s.execPromptFn()
+	fnMsg := sb.execPromptFn()
 
 	stateType := state.Command
 
-	if s.Mode == mode.SearchPrompt {
+	if sb.Mode == mode.SearchPrompt {
 		stateType = state.Search
 	}
 
-	s.State.Append(state.NewEntry(stateType, s.Prompt.Value()))
-	s.setColContent(statusMsg.Column, &statusMsg.Content)
-	s.BlurPrompt(true)
+	sb.State.Append(state.NewEntry(stateType, sb.Prompt.Value()))
+	sb.setColContent(statusMsg.Column, &statusMsg.Content)
+	sb.BlurPrompt(true)
 
 	statusMsg.Cmd = tea.Batch(
-		s.SendDeferredActionMsg(),
+		sb.SendDeferredActionMsg(),
 		fnMsg.Cmd,
 	)
 
@@ -270,19 +270,19 @@ func (s *StatusBar) ConfirmAction(
 }
 
 // SendDeferredActionMsg returns a delayed tea.Msg for post-command behaviour
-func (s *StatusBar) SendDeferredActionMsg() tea.Cmd {
+func (sb *StatusBar) SendDeferredActionMsg() tea.Cmd {
 	return func() tea.Msg {
 		time.Sleep(100 * time.Millisecond)
-		s.Focused = false
+		sb.Focused = false
 		return shared.DeferredActionMsg{}
 	}
 }
 
 // execPromptFn parses the current prompt and executes the associated command function.
-func (s *StatusBar) execPromptFn() message.StatusBarMsg {
+func (sb *StatusBar) execPromptFn() message.StatusBarMsg {
 	var fnMsg message.StatusBarMsg
 
-	promptCmd := s.Prompt.Value()
+	promptCmd := sb.Prompt.Value()
 	args := ""
 
 	re := regexp.MustCompile(`^(open|set|reload)\s+(\S+)\s*(.*)`)
@@ -293,7 +293,7 @@ func (s *StatusBar) execPromptFn() message.StatusBarMsg {
 		args = matches[2]
 	}
 
-	for cmd, fn := range s.Commands {
+	for cmd, fn := range sb.Commands {
 		if cmd == promptCmd {
 			fnMsg = fn(args)
 			break
@@ -304,73 +304,73 @@ func (s *StatusBar) execPromptFn() message.StatusBarMsg {
 }
 
 // CancelAction cancels the current prompt input and resets the status bar state.
-func (s *StatusBar) CancelAction(cb func()) message.StatusBarMsg {
-	s.Type = message.Success
-	s.BlurPrompt(true)
+func (sb *StatusBar) CancelAction(cb func()) message.StatusBarMsg {
+	sb.Type = message.Success
+	sb.BlurPrompt(true)
 	return message.StatusBarMsg{}
 }
 
-func (s *StatusBar) PromptHistoryBack() message.StatusBarMsg {
-	entry := s.State.CycleCommands(false)
-	s.Prompt.SetValue(entry.Content())
-	s.Prompt.CursorEnd()
+func (sb *StatusBar) PromptHistoryBack() message.StatusBarMsg {
+	entry := sb.State.CycleCommands(false)
+	sb.Prompt.SetValue(entry.Content())
+	sb.Prompt.CursorEnd()
 	return message.StatusBarMsg{}
 }
 
-func (s *StatusBar) PromptHistoryForward() message.StatusBarMsg {
-	entry := s.State.CycleCommands(true)
-	s.Prompt.SetValue(entry.Content())
-	s.Prompt.CursorEnd()
+func (sb *StatusBar) PromptHistoryForward() message.StatusBarMsg {
+	entry := sb.State.CycleCommands(true)
+	sb.Prompt.SetValue(entry.Content())
+	sb.Prompt.CursorEnd()
 	return message.StatusBarMsg{}
 }
 
-func (s *StatusBar) SearchHistoryBack() message.StatusBarMsg {
-	entry := s.State.CycleSearchResults(false)
-	s.Prompt.SetValue(entry.Content())
-	s.Prompt.CursorEnd()
+func (sb *StatusBar) SearchHistoryBack() message.StatusBarMsg {
+	entry := sb.State.CycleSearchResults(false)
+	sb.Prompt.SetValue(entry.Content())
+	sb.Prompt.CursorEnd()
 	return message.StatusBarMsg{}
 }
 
-func (s *StatusBar) SearchHistoryForward() message.StatusBarMsg {
-	entry := s.State.CycleSearchResults(true)
-	s.Prompt.SetValue(entry.Content())
-	s.Prompt.CursorEnd()
+func (sb *StatusBar) SearchHistoryForward() message.StatusBarMsg {
+	entry := sb.State.CycleSearchResults(true)
+	sb.Prompt.SetValue(entry.Content())
+	sb.Prompt.CursorEnd()
 	return message.StatusBarMsg{}
 }
 
 // colContent returns the content string of the specified column.
-func (s *StatusBar) colContent(col sbc.Column) string {
-	return s.Columns[col]
+func (sb *StatusBar) colContent(col sbc.Column) string {
+	return sb.Columns[col]
 }
 
 // setColContent updates the content of the specified status bar col
-func (s *StatusBar) setColContent(col sbc.Column, cnt *string) {
-	s.Columns[col] = *cnt
+func (sb *StatusBar) setColContent(col sbc.Column, cnt *string) {
+	sb.Columns[col] = *cnt
 }
 
-func (s *StatusBar) BlurPrompt(resetValue bool) {
+func (sb *StatusBar) BlurPrompt(resetValue bool) {
 	if resetValue {
-		s.Prompt.SetValue("")
+		sb.Prompt.SetValue("")
 	}
 
-	s.Prompt.Blur()
-	s.Mode = mode.Normal
+	sb.Prompt.Blur()
+	sb.Mode = mode.Normal
 }
 
-func (s *StatusBar) isPrompt() bool {
-	return s.Type == message.Prompt ||
-		s.Type == message.PromptError
+func (sb *StatusBar) isPrompt() bool {
+	return sb.Type == message.Prompt ||
+		sb.Type == message.PromptError
 }
 
-func (s *StatusBar) shouldShowMode() bool {
-	return s.Mode == mode.Insert ||
-		s.Mode == mode.Command ||
-		s.Mode == mode.Search ||
-		s.Mode == mode.SearchPrompt ||
-		s.Mode == mode.Replace ||
-		s.Mode == mode.Visual ||
-		s.Mode == mode.VisualLine ||
-		s.Mode == mode.VisualBlock
+func (sb *StatusBar) shouldShowMode() bool {
+	return sb.Mode == mode.Insert ||
+		sb.Mode == mode.Command ||
+		sb.Mode == mode.Search ||
+		sb.Mode == mode.SearchPrompt ||
+		sb.Mode == mode.Replace ||
+		sb.Mode == mode.Visual ||
+		sb.Mode == mode.VisualLine ||
+		sb.Mode == mode.VisualBlock
 }
 
 func style() lipgloss.Style {

@@ -60,29 +60,29 @@ type TreeItem struct {
 }
 
 // Expanded returns the name of a Dir-Item
-func (d TreeItem) Expanded() bool {
-	return d.expanded
+func (item TreeItem) Expanded() bool {
+	return item.expanded
 }
 
-func (d *TreeItem) Expand() {
-	d.expanded = true
+func (item *TreeItem) Expand() {
+	item.expanded = true
 }
 
-func (d *TreeItem) Collapse() {
-	d.expanded = false
+func (item *TreeItem) Collapse() {
+	item.expanded = false
 }
 
-func (d *TreeItem) SetExpanded(expand bool) {
+func (item *TreeItem) SetExpanded(expand bool) {
 	if expand {
-		d.Expand()
+		item.Expand()
 	} else {
-		d.Collapse()
+		item.Collapse()
 	}
 }
 
 // setIndentation sets the visual indentation for the tree item based on its level
 // and whether line markers (like │ or ╰) should be shown.
-func (d *TreeItem) setIndentation(indentLines bool) {
+func (item *TreeItem) setIndentation(indentLines bool) {
 	indentStr := "  "
 	if indentLines {
 		//if d.isLastChild {
@@ -94,113 +94,113 @@ func (d *TreeItem) setIndentation(indentLines bool) {
 	}
 
 	// repeat indentation once per indentation level
-	indent := strings.Repeat(indentStr, d.level)
+	indent := strings.Repeat(indentStr, item.level)
 
 	// width of indentation per level which needs to be subtracted later rom
 	// general item width to prevent row breaks
 	indentWidth := lipgloss.Width(indent)
-	style := d.Styles.Indent.Width(indentWidth)
+	style := item.Styles.Indent.Width(indentWidth)
 
-	if d.IsSelected {
+	if item.IsSelected {
 		style = style.Background(theme.ColourBgSelected)
 	}
 
 	// store rendered indentation
-	d.Indent = style.Render(indent)
+	item.Indent = style.Render(indent)
 
 	// subtract the indentation width from the item width
-	d.SetWidth(d.Width() - indentWidth)
+	item.SetWidth(item.Width() - indentWidth)
 }
 
 // setIcon sets the icon representing a folder state (open/closed).
 // If the nerd fonts settings is disabled, nothing will be shown
-func (d *TreeItem) setIcon() {
+func (item *TreeItem) setIcon() {
 	folderClosed := ""
 	folderOpen := ""
 
-	if d.NerdFonts {
+	if item.NerdFonts {
 		folderClosed = theme.IconDirClosed.Nerd
 		folderOpen = theme.IconDirOpen.Nerd
 	}
 
-	style := d.Styles.Icon.Width(d.Styles.IconWidth)
-	if d.IsSelected {
-		style = d.Styles.Selected.Width(d.Styles.IconWidth)
+	style := item.Styles.Icon.Width(item.Styles.IconWidth)
+	if item.IsSelected {
+		style = item.Styles.Selected.Width(item.Styles.IconWidth)
 	}
 
 	iconDir := folderClosed
 
-	if d.IsPinned {
-		iconDir = theme.Icon(theme.IconPin, d.NerdFonts)
+	if item.IsPinned {
+		iconDir = theme.Icon(theme.IconPin, item.NerdFonts)
 		style = style.Foreground(theme.ColourBorderFocused)
-	} else if d.Expanded() {
+	} else if item.Expanded() {
 		iconDir = folderOpen
 	}
 
 	// store rendered icon
-	d.Icon = style.Render(iconDir)
+	item.Icon = style.Render(iconDir)
 
 	// subtract the indentation width from the item width
-	d.SetWidth(d.Width() - d.Styles.IconWidth)
+	item.SetWidth(item.Width() - item.Styles.IconWidth)
 }
 
 // setToggleArrow sets the arrow icon used to expand/collapse tree items.
 // Hides the arrow if the item has no children.
-func (d *TreeItem) setToggleArrow() {
+func (item *TreeItem) setToggleArrow() {
 	iconArrow := theme.IconDirClosed.Alt
-	if d.Expanded() {
+	if item.Expanded() {
 		iconArrow = theme.IconDirOpen.Alt
 	}
 
-	if len(d.children) == 0 {
+	if len(item.children) == 0 {
 		iconArrow = ""
 	}
 
-	style := d.Styles.Toggle
-	if d.IsSelected {
-		style = d.Styles.Selected.Width(d.Styles.ToggleWidth)
+	style := item.Styles.Toggle
+	if item.IsSelected {
+		style = item.Styles.Selected.Width(item.Styles.ToggleWidth)
 	}
 
 	// store rendered toggle arrow
-	d.ToggleArrow = style.Render(iconArrow)
+	item.ToggleArrow = style.Render(iconArrow)
 
 	// subtract the indentation width from the item width
-	d.SetWidth(d.Width() - d.Styles.ToggleWidth)
+	item.SetWidth(item.Width() - item.Styles.ToggleWidth)
 }
 
 // prepareRow initialises all visual elements (indent, icon, arrow) for the row.
-func (d *TreeItem) prepareRow(showIndentLines bool) {
-	d.setIndentation(showIndentLines)
-	d.setIcon()
-	d.setToggleArrow()
+func (item *TreeItem) prepareRow(showIndentLines bool) {
+	item.setIndentation(showIndentLines)
+	item.setIcon()
+	item.setToggleArrow()
 }
 
 // String renders the complete visual representation of the tree item.
 // If input is true render the input view to allow renaming/creating.
-func (d TreeItem) String(input bool) string {
-	if d.Width() <= 0 {
+func (item TreeItem) String(input bool) string {
+	if item.Width() <= 0 {
 		return ""
 	}
 
-	baseStyle := d.Styles.Base.Width(d.Width())
-	selectedStyle := d.Styles.Selected.Width(d.Width())
-	if d.IsSelected {
+	baseStyle := item.Styles.Base.Width(item.Width())
+	selectedStyle := item.Styles.Selected.Width(item.Width())
+	if item.IsSelected {
 		baseStyle = selectedStyle
 	}
 
-	name := utils.TruncateText(d.Name(), d.Width()-1)
+	name := utils.TruncateText(item.Name(), item.Width()-1)
 	name = baseStyle.Render(name)
 
 	// replace name with the stored input view if we are creating or
 	// renaming
 	if input {
-		name = d.InputModel().View()
-		d.Icon = ""
+		name = item.InputModel().View()
+		item.Icon = ""
 	}
 
 	return lipgloss.JoinHorizontal(
 		lipgloss.Center,
-		d.Indent, d.ToggleArrow, d.Icon, name,
+		item.Indent, item.ToggleArrow, item.Icon, name,
 	)
 }
 
@@ -219,50 +219,50 @@ type DirectoryTree struct {
 
 // Init initialises the Model on program load.
 // It partly implements the tea.Model interface.
-func (t *DirectoryTree) Init() tea.Cmd {
+func (tree *DirectoryTree) Init() tea.Cmd {
 	return nil
 }
 
-func (t *DirectoryTree) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (tree *DirectoryTree) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		// focus the input field when renaming a list item
-		if t.EditIndex != nil && !t.InputModel.Focused() {
-			t.InputModel.Focus()
-			return t, nil
+		if tree.EditIndex != nil && !tree.InputModel.Focused() {
+			tree.InputModel.Focus()
+			return tree, nil
 		}
 
-		if t.InputModel.Focused() {
-			t.InputModel, cmd = t.InputModel.Update(msg)
-			return t, cmd
+		if tree.InputModel.Focused() {
+			tree.InputModel, cmd = tree.InputModel.Update(msg)
+			return tree, cmd
 		}
 
 	case tea.WindowSizeMsg:
-		t.Size.Width = msg.Width
-		t.Size.Height = msg.Height
+		tree.Size.Width = msg.Width
+		tree.Size.Height = msg.Height
 
-		if !t.IsReady {
-			t.Viewport = viewport.New()
-			t.Viewport.SetContent(t.viewportContent())
-			t.Viewport.KeyMap = viewport.KeyMap{}
-			t.LastVisibleLine = t.Viewport.VisibleLineCount() - shared.ReservedLines
-			t.IsReady = true
+		if !tree.IsReady {
+			tree.Viewport = viewport.New()
+			tree.Viewport.SetContent(tree.viewportContent())
+			tree.Viewport.KeyMap = viewport.KeyMap{}
+			tree.LastVisibleLine = tree.Viewport.VisibleLineCount() - shared.ReservedLines
+			tree.IsReady = true
 		} else {
-			t.Viewport.SetWidth(t.Size.Width)
-			t.Viewport.SetHeight(t.Size.Height)
+			tree.Viewport.SetWidth(tree.Size.Width)
+			tree.Viewport.SetHeight(tree.Size.Height)
 		}
 	}
 
-	t.Viewport, cmd = t.Viewport.Update(msg)
+	tree.Viewport, cmd = tree.Viewport.Update(msg)
 
-	return t, cmd
+	return tree, cmd
 }
 
-func (t *DirectoryTree) View() tea.View {
+func (tree *DirectoryTree) View() tea.View {
 	var view tea.View
-	view.SetContent(t.Content())
+	view.SetContent(tree.Content())
 	return view
 }
 
@@ -304,9 +304,9 @@ func New(title string, conf *config.Config) *DirectoryTree {
 	return tree
 }
 
-func (t DirectoryTree) NotesDir() string {
+func (tree DirectoryTree) NotesDir() string {
 	// fetch notes directory
-	notesDir, err := t.Conf.NotesDir()
+	notesDir, err := tree.Conf.NotesDir()
 	if err != nil {
 		debug.LogErr(err)
 		return ""
@@ -316,9 +316,9 @@ func (t DirectoryTree) NotesDir() string {
 }
 
 // Input returns and textinput model tailored to the directory tree
-func (t *DirectoryTree) TreeInput() textinput.Model {
+func (tree *DirectoryTree) TreeInput() textinput.Model {
 	ti := textinput.New()
-	ti.Prompt = theme.Icon(theme.IconPen, t.Conf.NerdFonts()) + " "
+	ti.Prompt = theme.Icon(theme.IconPen, tree.Conf.NerdFonts()) + " "
 	ti.CharLimit = 100
 	ti.VirtualCursor = true
 
@@ -331,114 +331,114 @@ func (t *DirectoryTree) TreeInput() textinput.Model {
 	return ti
 }
 
-func (t *DirectoryTree) RefreshSize() {
-	vp := t.Viewport
-	if vp.Width() != t.Size.Width && vp.Height() != t.Size.Height {
-		t.Viewport.SetWidth(t.Size.Width)
-		t.Viewport.SetHeight(t.Size.Height)
+func (tree *DirectoryTree) RefreshSize() {
+	vp := tree.Viewport
+	if vp.Width() != tree.Size.Width && vp.Height() != tree.Size.Height {
+		tree.Viewport.SetWidth(tree.Size.Width)
+		tree.Viewport.SetHeight(tree.Size.Height)
 	}
 }
 
-func (t *DirectoryTree) Content() string {
-	if !t.IsReady {
+func (tree *DirectoryTree) Content() string {
+	if !tree.IsReady {
 		return "\n  Initializing..."
 	}
 
-	if !t.Visible() {
+	if !tree.Visible() {
 		return ""
 	}
 
-	t.Viewport.SetContent(t.viewportContent())
-	t.UpdateViewportInfo()
-	t.Viewport.EnsureVisible(t.SelectedIndex, 0, 0)
+	tree.Viewport.SetContent(tree.viewportContent())
+	tree.UpdateViewportInfo()
+	tree.Viewport.EnsureVisible(tree.SelectedIndex, 0, 0)
 
-	t.Viewport.Style = t.Theme().BaseColumnLayout(
-		t.Size,
-		t.Focused(),
+	tree.Viewport.Style = tree.Theme().BaseColumnLayout(
+		tree.Size,
+		tree.Focused(),
 	)
 
 	var view strings.Builder
-	view.WriteString(t.BuildHeader(t.Size.Width, false))
-	view.WriteString(t.Viewport.View())
+	view.WriteString(tree.BuildHeader(tree.Size.Width, false))
+	view.WriteString(tree.Viewport.View())
 	return view.String()
 }
 
-func (t *DirectoryTree) viewportContent() string {
-	var tree strings.Builder
+func (tree *DirectoryTree) viewportContent() string {
+	var s strings.Builder
 
-	for i, dir := range t.dirsListFlat {
+	for i, dir := range tree.dirsListFlat {
 		// Removes invalid directory items
 		// index and parent 0 shouldn't be possible but
 		//sometime occurs after certain user actions
 		if dir.Index() == 0 && dir.parent == 0 {
-			t.dirsListFlat = slices.Delete(t.dirsListFlat, i, i+1)
+			tree.dirsListFlat = slices.Delete(tree.dirsListFlat, i, i+1)
 			continue
 		}
 
-		if t.LastIndex == dir.Index() {
+		if tree.LastIndex == dir.Index() {
 			dir.isLastChild = true
 		}
 
-		dir.IsSelected = (t.SelectedIndex == i)
+		dir.IsSelected = (tree.SelectedIndex == i)
 
 		if *app.Debug {
 			// prepend tree item indices for debugging purposes
 			style := lipgloss.NewStyle().Foreground(lipgloss.Color("#999"))
-			tree.WriteString(style.Render(fmt.Sprintf("%02d", dir.Index())))
-			tree.WriteString(" ")
+			s.WriteString(style.Render(fmt.Sprintf("%02d", dir.Index())))
+			s.WriteString(" ")
 		}
 
-		if t.Size.Width > 0 {
-			dir.SetWidth(t.Size.Width - 2)
+		if tree.Size.Width > 0 {
+			dir.SetWidth(tree.Size.Width - 2)
 		}
 
 		// Prepare all visual row elements and get the correct width.
 		// This has to be called before any actuall output
-		dir.prepareRow(t.indentLines)
+		dir.prepareRow(tree.indentLines)
 
 		// Set the correct input width so that in case the folder name is too
 		// long we're not breaking to the next line
-		t.InputModel.SetWidth(dir.Width() - 1)
-		dir.SetInputModel(t.InputModel)
+		tree.InputModel.SetWidth(dir.Width() - 1)
+		dir.SetInputModel(tree.InputModel)
 
 		// get text input if there's an edit index which likely means
 		// we're renaming or creating
-		isInput := t.EditIndex != nil && i == *t.EditIndex
+		isInput := tree.EditIndex != nil && i == *tree.EditIndex
 
-		tree.WriteString(dir.String(isInput))
-		tree.WriteByte('\n')
+		s.WriteString(dir.String(isInput))
+		s.WriteByte('\n')
 	}
 
-	return tree.String()
+	return s.String()
 }
 
 // build prepares t.dirsListFlat for rendering
 // checking directory states etc.
-func (t *DirectoryTree) build() {
-	t.refreshFlatList()
-	t.Length = len(t.dirsListFlat)
-	t.LastIndex = t.dirsListFlat[len(t.dirsListFlat)-1].Index()
+func (tree *DirectoryTree) build() {
+	tree.refreshFlatList()
+	tree.Length = len(tree.dirsListFlat)
+	tree.LastIndex = tree.dirsListFlat[len(tree.dirsListFlat)-1].Index()
 }
 
 // getChildren reads a directory and returns a slice of a directory Dir
-func (t *DirectoryTree) getChildren(path string, level int) []*TreeItem {
+func (tree *DirectoryTree) getChildren(path string, level int) []*TreeItem {
 	var dirs []*TreeItem
 	childDir, _ := directories.List(path)
 
 	// pinned stuff
-	if !t.PinnedItems.IsLoaded {
+	if !tree.PinnedItems.IsLoaded {
 		// reset pinned and refetch pinned notes when we entered a new directory
-		t.PinnedItems.Items = make([]*TreeItem, 0, len(childDir))
+		tree.PinnedItems.Items = make([]*TreeItem, 0, len(childDir))
 		for _, dir := range childDir {
 			if dir.IsPinned {
-				item := t.createDirectoryItem(dir, -1, true)
-				t.PinnedItems.Add(&item)
+				item := tree.createDirectoryItem(dir, -1, true)
+				tree.PinnedItems.Add(&item)
 			}
 		}
 	}
 
-	pinnedMap := make(map[string]struct{}, len(t.PinnedItems.Items))
-	for _, n := range t.PinnedItems.Items {
+	pinnedMap := make(map[string]struct{}, len(tree.PinnedItems.Items))
+	for _, n := range tree.PinnedItems.Items {
 		pinnedMap[n.Path()] = struct{}{}
 	}
 
@@ -449,10 +449,10 @@ func (t *DirectoryTree) getChildren(path string, level int) []*TreeItem {
 
 	for _, dir := range childDir {
 		_, isPinned := pinnedMap[dir.Path]
-		dirItem := t.createDirectoryItem(dir, level, isPinned)
+		dirItem := tree.createDirectoryItem(dir, level, isPinned)
 
 		if dir.IsExpanded {
-			t.expandedDirs[dir.Path] = dir.IsExpanded
+			tree.expandedDirs[dir.Path] = dir.IsExpanded
 		}
 
 		dirItem.SetExpanded(dir.IsExpanded)
@@ -465,13 +465,13 @@ func (t *DirectoryTree) getChildren(path string, level int) []*TreeItem {
 	}
 
 	dirs = append(pinnedItems, unpinnedItems...)
-	t.PinnedItems.IsLoaded = true
+	tree.PinnedItems.IsLoaded = true
 
 	return dirs
 }
 
 // createDirectoryItem creates a directory item
-func (m *DirectoryTree) createDirectoryItem(
+func (tree *DirectoryTree) createDirectoryItem(
 	dir directories.Directory,
 	level int,
 	isPinned bool,
@@ -482,7 +482,7 @@ func (m *DirectoryTree) createDirectoryItem(
 	item.SetIndex(0)
 	item.SetName(dir.Name())
 	item.SetPath(dir.Path)
-	item.NerdFonts = m.Conf.NerdFonts()
+	item.NerdFonts = tree.Conf.NerdFonts()
 	item.IsPinned = isPinned
 	item.Styles = style
 
@@ -490,7 +490,7 @@ func (m *DirectoryTree) createDirectoryItem(
 		Item:       item,
 		expanded:   dir.IsExpanded,
 		parent:     0,
-		children:   m.getChildren(dir.Path, level+1),
+		children:   tree.getChildren(dir.Path, level+1),
 		NbrFolders: dir.NbrFolders,
 		level:      level,
 		NbrNotes:   dir.NbrNotes,
@@ -503,8 +503,8 @@ func (m *DirectoryTree) createDirectoryItem(
 //
 // This directory is mainly used as a placeholder when creating a directory
 // and is not actually written to the file system.
-func (t *DirectoryTree) createVirtualDir() TreeItem {
-	selectedDir := t.SelectedDir()
+func (tree *DirectoryTree) createVirtualDir() TreeItem {
+	selectedDir := tree.SelectedDir()
 	tempFolderName := "New Folder"
 	tempFolderPath := filepath.Join(
 		selectedDir.Path(),
@@ -513,7 +513,7 @@ func (t *DirectoryTree) createVirtualDir() TreeItem {
 	indent := selectedDir.level + 1
 
 	var item shared.Item
-	item.SetIndex(len(t.dirsListFlat))
+	item.SetIndex(len(tree.dirsListFlat))
 	item.SetName(tempFolderName)
 	item.SetPath(tempFolderPath)
 
@@ -530,37 +530,37 @@ func (t *DirectoryTree) createVirtualDir() TreeItem {
 //
 // If `resetIndex` is set to true, 't.selectedIndex' will be set to -1
 // which means the selected directory's parent
-func (t *DirectoryTree) Refresh(
+func (tree *DirectoryTree) Refresh(
 	resetIndex bool,
 	resetPinned bool,
 ) message.StatusBarMsg {
 	statusMsg := message.StatusBarMsg{}
 
-	if t.EditState == shared.EditStates.Create {
+	if tree.EditState == shared.EditStates.Create {
 		resetIndex = true
 	}
 
-	if sel := t.SelectedDir(); sel != nil {
-		selectAfter := t.SelectedIndex
+	if sel := tree.SelectedDir(); sel != nil {
+		selectAfter := tree.SelectedIndex
 		if resetIndex {
 			selectAfter = -1
 		}
 
-		t.RefreshBranch(
-			t.SelectedDir().parent,
+		tree.RefreshBranch(
+			tree.SelectedDir().parent,
 			selectAfter,
 		)
 	} else {
 		// If for some reason there is no selected directory and
 		// refresh is triggered just select root
-		if t.SelectedIndex != 0 {
-			t.SelectedIndex = 0
-			t.Refresh(false, false)
+		if tree.SelectedIndex != 0 {
+			tree.SelectedIndex = 0
+			tree.Refresh(false, false)
 		}
 	}
 
-	t.checkVisibility()
-	t.checkIndentLines()
+	tree.checkVisibility()
+	tree.checkIndentLines()
 
 	return statusMsg
 }
@@ -569,12 +569,12 @@ func (t *DirectoryTree) Refresh(
 //
 // Use `selectAfter` to change the selected tree item after the branch got refreshed.
 // If `selectAfter` is -1 the branch's parent is selected
-func (t *DirectoryTree) RefreshBranch(index int, selectAfter int) {
-	t.SelectedIndex = index
+func (tree *DirectoryTree) RefreshBranch(index int, selectAfter int) {
+	tree.SelectedIndex = index
 
-	if sel := t.SelectedDir(); sel != nil {
-		if dir := findDirInTree(t.Items, sel.Path()); dir != nil {
-			dir.children = t.getChildren(dir.Path(), dir.level+1)
+	if sel := tree.SelectedDir(); sel != nil {
+		if dir := findDirInTree(tree.Items, sel.Path()); dir != nil {
+			dir.children = tree.getChildren(dir.Path(), dir.level+1)
 		}
 	}
 
@@ -582,24 +582,24 @@ func (t *DirectoryTree) RefreshBranch(index int, selectAfter int) {
 		selectAfter = index
 	}
 
-	t.SelectedIndex = selectAfter
-	t.build()
+	tree.SelectedIndex = selectAfter
+	tree.build()
 }
 
 // SelectedDir returns the currently selected directory in the directory tree
-func (t *DirectoryTree) SelectedDir() *TreeItem {
-	return t.SelectedItem(t.dirsListFlat)
+func (tree *DirectoryTree) SelectedDir() *TreeItem {
+	return tree.SelectedItem(tree.dirsListFlat)
 }
 
 // refreshFlatList reorganises the one-dimensional directory tree
-func (t *DirectoryTree) refreshFlatList() {
+func (tree *DirectoryTree) refreshFlatList() {
 	nextIndex := 0
-	t.dirsListFlat = t.flatten(t.Items, 0, -1, &nextIndex)
+	tree.dirsListFlat = tree.flatten(tree.Items, 0, -1, &nextIndex)
 }
 
 // flatten converts a slice of Dir and its sub slices into
 // a one dimensional slice that we use to render the directory tree
-func (t *DirectoryTree) flatten(
+func (tree *DirectoryTree) flatten(
 	dirs []*TreeItem,
 	level int,
 	parent int,
@@ -613,7 +613,7 @@ func (t *DirectoryTree) flatten(
 
 		*nextIndex++
 
-		if _, contains := t.expandedDirs[dir.Path()]; contains {
+		if _, contains := tree.expandedDirs[dir.Path()]; contains {
 			dir.Expand()
 		}
 
@@ -626,7 +626,7 @@ func (t *DirectoryTree) flatten(
 		children := dirs[i].children
 		result = append(
 			result,
-			t.flatten(children, level+1, dir.Index(), nextIndex)...,
+			tree.flatten(children, level+1, dir.Index(), nextIndex)...,
 		)
 	}
 	return result
@@ -634,12 +634,12 @@ func (t *DirectoryTree) flatten(
 
 // lastChildOfSelection returns the corresponding last child
 // of the selected directory.
-func (t *DirectoryTree) lastChildOfSelection() *TreeItem {
-	selectedDir := t.SelectedDir()
-	lastChild := t.getLastChild(selectedDir.Index())
+func (tree *DirectoryTree) lastChildOfSelection() *TreeItem {
+	selectedDir := tree.SelectedDir()
+	lastChild := tree.getLastChild(selectedDir.Index())
 
 	if lastChild.Expanded() && len(lastChild.children) > 0 {
-		lastChild = t.getLastChild(lastChild.Index())
+		lastChild = tree.getLastChild(lastChild.Index())
 	}
 	return lastChild
 }
@@ -648,9 +648,9 @@ func (t *DirectoryTree) lastChildOfSelection() *TreeItem {
 //
 // if `createEmpty` is set to true, we attempt to create an empty
 // Dir{}
-func (t *DirectoryTree) getLastChild(index int) *TreeItem {
-	lastChild := t.dirsListFlat[len(t.dirsListFlat)-1]
-	dir := t.dirsListFlat[index]
+func (tree *DirectoryTree) getLastChild(index int) *TreeItem {
+	lastChild := tree.dirsListFlat[len(tree.dirsListFlat)-1]
+	dir := tree.dirsListFlat[index]
 
 	// If the selected directory is root, bail out early
 	// with the last item of the flattend directory tree
@@ -663,7 +663,7 @@ func (t *DirectoryTree) getLastChild(index int) *TreeItem {
 		if lastChild.Name() == "" {
 			lastChild = dir
 		}
-		for _, dir := range t.dirsListFlat {
+		for _, dir := range tree.dirsListFlat {
 			if lastChild.Name() == dir.Name() {
 				lastChild = dir
 			}
@@ -678,19 +678,19 @@ func (t *DirectoryTree) getLastChild(index int) *TreeItem {
 // Note: this is only a virtual insertion into to the flat copy
 // of the directories.
 // To make it persistent write it to the file system
-func (m *DirectoryTree) insertDirAfter(afterIndex int, directory TreeItem) {
-	for i, dir := range m.dirsListFlat {
+func (tree *DirectoryTree) insertDirAfter(afterIndex int, directory TreeItem) {
+	for i, dir := range tree.dirsListFlat {
 		if dir.Index() == afterIndex {
-			m.dirsListFlat = append(
-				m.dirsListFlat[:i+1],
-				append([]*TreeItem{&directory}, m.dirsListFlat[i+1:]...)...,
+			tree.dirsListFlat = append(
+				tree.dirsListFlat[:i+1],
+				append([]*TreeItem{&directory}, tree.dirsListFlat[i+1:]...)...,
 			)
 			break
 		}
 	}
 }
 
-func (t *DirectoryTree) dirExists(dirPath string) bool {
+func (tree *DirectoryTree) dirExists(dirPath string) bool {
 	parentPath := filepath.Dir(dirPath)
 	dirName := filepath.Base(dirPath)
 
@@ -728,16 +728,16 @@ func findDirInTree(directories []*TreeItem, path string) *TreeItem {
 }
 
 // SelectLastDir selects the last directory
-func (t *DirectoryTree) SelectLastDir() string {
-	dirPath, err := t.Conf.MetaValue("", config.LastDirectory)
+func (tree *DirectoryTree) SelectLastDir() string {
+	dirPath, err := tree.Conf.MetaValue("", config.LastDirectory)
 	if err == nil && dirPath != "" {
-		for i := range t.dirsListFlat {
-			if t.dirsListFlat[i].Path() != dirPath {
+		for i := range tree.dirsListFlat {
+			if tree.dirsListFlat[i].Path() != dirPath {
 				continue
 			}
 
-			index := t.dirsListFlat[i].Index()
-			t.SelectedIndex = index
+			index := tree.dirsListFlat[i].Index()
+			tree.SelectedIndex = index
 			return dirPath
 		}
 	}
@@ -749,56 +749,56 @@ func (t *DirectoryTree) SelectLastDir() string {
 ///
 
 // Collapse collapses the currently selected directory
-func (t *DirectoryTree) Collapse() message.StatusBarMsg {
+func (tree *DirectoryTree) Collapse() message.StatusBarMsg {
 	statusMsg := message.StatusBarMsg{}
-	if t.SelectedIndex >= len(t.dirsListFlat) {
+	if tree.SelectedIndex >= len(tree.dirsListFlat) {
 		return statusMsg
 	}
 
-	items := t.Items
-	path := t.SelectedDir().Path()
+	items := tree.Items
+	path := tree.SelectedDir().Path()
 
 	if dir := findDirInTree(items, path); dir != nil {
 		if dir.Expanded() {
 			// remove expanded state from cached map
-			delete(t.expandedDirs, dir.Path())
+			delete(tree.expandedDirs, dir.Path())
 			dir.Collapse()
 
 			// rebuild directory tree
-			t.build()
+			tree.build()
 		}
 
 		// save state to meta config file
-		t.Conf.SetMetaValue(dir.Path(), config.Expanded, "false")
+		tree.Conf.SetMetaValue(dir.Path(), config.Expanded, "false")
 	}
 
 	return statusMsg
 }
 
 // Expand expands the currently selected directory
-func (t *DirectoryTree) Expand() message.StatusBarMsg {
+func (tree *DirectoryTree) Expand() message.StatusBarMsg {
 	statusMsg := message.StatusBarMsg{}
-	if t.SelectedIndex >= len(t.dirsListFlat) ||
-		len(t.SelectedDir().children) == 0 {
+	if tree.SelectedIndex >= len(tree.dirsListFlat) ||
+		len(tree.SelectedDir().children) == 0 {
 
 		return statusMsg
 	}
 
-	items := t.Items
-	path := t.SelectedDir().Path()
+	items := tree.Items
+	path := tree.SelectedDir().Path()
 
 	if dir := findDirInTree(items, path); dir != nil {
 		if !dir.Expanded() {
 			// add expanded state to cached map
-			t.expandedDirs[dir.Path()] = true
-			dir.children = t.getChildren(dir.Path(), dir.level+1)
+			tree.expandedDirs[dir.Path()] = true
+			dir.children = tree.getChildren(dir.Path(), dir.level+1)
 			dir.Expand()
 
 			// rebuild directory tree
-			t.build()
+			tree.build()
 
 			// save state to meta config file
-			t.Conf.SetMetaValue(dir.Path(), config.Expanded, "true")
+			tree.Conf.SetMetaValue(dir.Path(), config.Expanded, "true")
 		}
 	}
 
@@ -809,25 +809,25 @@ func (t *DirectoryTree) Expand() message.StatusBarMsg {
 // If root is selected, directory will be created at the end
 //
 // @todo: reindex directories immediately on creating temp dir
-func (t *DirectoryTree) Create(
+func (tree *DirectoryTree) Create(
 	mi *mode.ModeInstance,
 	statusBar *statusbar.StatusBar,
 ) message.StatusBarMsg {
 	statusMsg := message.StatusBarMsg{}
 
-	if t.Focused() {
+	if tree.Focused() {
 		mi.Current = mode.Insert
 		statusBar.Focused = false
 
-		t.EditState = shared.EditStates.Create
+		tree.EditState = shared.EditStates.Create
 		// get a fresh version of the tree to work with
-		t.refreshFlatList()
+		tree.refreshFlatList()
 		// expand the selected directory for a live preview
 		// of the new directory
-		t.Expand()
+		tree.Expand()
 
-		vrtDir := t.createVirtualDir()
-		selDir := t.SelectedDir()
+		vrtDir := tree.createVirtualDir()
+		selDir := tree.SelectedDir()
 
 		// if the selected directory has no children yet
 		// we append and empty Dir so that we get a correct result
@@ -835,18 +835,18 @@ func (t *DirectoryTree) Create(
 			selDir.children = append(selDir.children, &TreeItem{})
 		}
 
-		lastChild := t.lastChildOfSelection()
-		t.insertDirAfter(lastChild.Index(), vrtDir)
+		lastChild := tree.lastChildOfSelection()
+		tree.insertDirAfter(lastChild.Index(), vrtDir)
 
 		// update the selected index to the virtual directory
 		// so that we input the name at the correct position
-		t.SelectedIndex = lastChild.Index() + 1
+		tree.SelectedIndex = lastChild.Index() + 1
 
-		if t.EditIndex == nil {
-			index := t.SelectedIndex
-			t.EditIndex = &index
-			t.InputModel.SetValue(vrtDir.Name())
-			t.InputModel.CursorEnd()
+		if tree.EditIndex == nil {
+			index := tree.SelectedIndex
+			tree.EditIndex = &index
+			tree.InputModel.SetValue(vrtDir.Name())
+			tree.InputModel.CursorEnd()
 		}
 	}
 
@@ -855,15 +855,15 @@ func (t *DirectoryTree) Create(
 
 // ConfirmRemove returns a status bar prompt
 // to confirm or cancel the removal of a directory
-func (t *DirectoryTree) ConfirmRemove() message.StatusBarMsg {
-	selectedDir := t.SelectedDir()
+func (tree *DirectoryTree) ConfirmRemove() message.StatusBarMsg {
+	selectedDir := tree.SelectedDir()
 
 	// prevent deleting root directory
-	if selectedDir == nil || t.SelectedIndex == 0 {
+	if selectedDir == nil || tree.SelectedIndex == 0 {
 		return message.StatusBarMsg{Type: message.None}
 	}
 
-	t.EditState = shared.EditStates.Delete
+	tree.EditState = shared.EditStates.Delete
 
 	rootDir, _ := app.NotesRootDir()
 	path := strings.ReplaceAll(selectedDir.Path(), rootDir, ".")
@@ -878,17 +878,17 @@ func (t *DirectoryTree) ConfirmRemove() message.StatusBarMsg {
 }
 
 // Remove removes the currently selected directory
-func (t *DirectoryTree) Remove() message.StatusBarMsg {
-	dir := t.SelectedDir()
-	index := t.SelectedIndex
+func (tree *DirectoryTree) Remove() message.StatusBarMsg {
+	dir := tree.SelectedDir()
+	index := tree.SelectedIndex
 	parent := dir.parent
 	resultMsg := ""
 	msgType := message.Success
 
 	if err := directories.Delete(dir.Path(), true); err == nil {
 		// delete the directory from the flat list
-		t.dirsListFlat = slices.Delete(
-			t.dirsListFlat,
+		tree.dirsListFlat = slices.Delete(
+			tree.dirsListFlat,
 			index,
 			index+1,
 		)
@@ -897,7 +897,7 @@ func (t *DirectoryTree) Remove() message.StatusBarMsg {
 		resultMsg = err.Error()
 	}
 
-	t.RefreshBranch(parent, index)
+	tree.RefreshBranch(parent, index)
 
 	return message.StatusBarMsg{
 		Content: resultMsg,
@@ -907,37 +907,37 @@ func (t *DirectoryTree) Remove() message.StatusBarMsg {
 }
 
 // ConfirmAction confirms a user action
-func (t *DirectoryTree) ConfirmAction() message.StatusBarMsg {
+func (tree *DirectoryTree) ConfirmAction() message.StatusBarMsg {
 	// if editingindex is set it most likely means that we are
 	// renaming or creating a directory
-	if t.EditIndex != nil {
-		selDir := t.SelectedDir()
+	if tree.EditIndex != nil {
+		selDir := tree.SelectedDir()
 		oldPath := selDir.Path()
 
 		// build the new path with the new name
 		newPath := filepath.Join(
 			filepath.Dir(oldPath),
-			t.InputModel.Value(),
+			tree.InputModel.Value(),
 		)
 
-		switch t.EditState {
+		switch tree.EditState {
 		case shared.EditStates.Rename:
 			if err := directories.Rename(oldPath, newPath); err != nil {
 				debug.LogErr(err)
 			}
 
 		case shared.EditStates.Create:
-			if !t.dirExists(newPath) {
+			if !tree.dirExists(newPath) {
 				directories.Create(newPath)
 			}
 		}
 
 		// selected the newly renamed or created directory
-		t.Refresh(false, false)
-		t.SelectedIndex = t.IndexByPath(newPath, &t.dirsListFlat)
+		tree.Refresh(false, false)
+		tree.SelectedIndex = tree.IndexByPath(newPath, &tree.dirsListFlat)
 
-		t.CancelAction(func() {
-			t.Refresh(false, false)
+		tree.CancelAction(func() {
+			tree.Refresh(false, false)
 		})
 
 		return message.StatusBarMsg{Content: "yep"}
@@ -948,10 +948,10 @@ func (t *DirectoryTree) ConfirmAction() message.StatusBarMsg {
 
 // ContentInfo returns the info about the currently selected directory
 // in the status bar
-func (t *DirectoryTree) ContentInfo() message.StatusBarMsg {
-	sel := t.SelectedDir()
-	iconDir := theme.Icon(theme.IconDirClosed, t.Conf.NerdFonts())
-	iconNotes := theme.Icon(theme.IconNote, t.Conf.NerdFonts())
+func (tree *DirectoryTree) ContentInfo() message.StatusBarMsg {
+	sel := tree.SelectedDir()
+	iconDir := theme.Icon(theme.IconDirClosed, tree.Conf.NerdFonts())
+	iconNotes := theme.Icon(theme.IconNote, tree.Conf.NerdFonts())
 
 	var nbrFolders strings.Builder
 	nbrFolders.WriteString(iconDir)
@@ -976,18 +976,18 @@ func (t *DirectoryTree) ContentInfo() message.StatusBarMsg {
 	}
 }
 
-func (t *DirectoryTree) TogglePinnedItems() message.StatusBarMsg {
-	dir := t.SelectedDir()
+func (tree *DirectoryTree) TogglePinnedItems() message.StatusBarMsg {
+	dir := tree.SelectedDir()
 
-	t.TogglePinned(dir)
-	t.Refresh(false, false)
+	tree.TogglePinned(dir)
+	tree.Refresh(false, false)
 
 	// get the new index and select the newly pinned or unpinned note
 	// since the pinned notes are always at the top and the notes order
 	// is changed
-	for i, it := range t.dirsListFlat {
+	for i, it := range tree.dirsListFlat {
 		if it.Path() == dir.Path() {
-			t.SelectedIndex = i
+			tree.SelectedIndex = i
 		}
 	}
 
@@ -996,24 +996,24 @@ func (t *DirectoryTree) TogglePinnedItems() message.StatusBarMsg {
 
 // YankSelection clears the yankedItems list and adds the currently selected item
 // from the NotesList to it. This simulates copying an item for later pasting.
-func (t *DirectoryTree) YankSelection(markCut bool) {
-	sel := t.SelectedDir()
+func (tree *DirectoryTree) YankSelection(markCut bool) {
+	sel := tree.SelectedDir()
 	sel.SetIsCut(markCut)
 
-	t.YankedItems = []*TreeItem{}
-	t.YankedItems = append(t.YankedItems, sel)
+	tree.YankedItems = []*TreeItem{}
+	tree.YankedItems = append(tree.YankedItems, sel)
 }
 
 // PasteSelection duplicates all yanked notes into the specified directory path.
 // It handles name conflicts by appending " Copy" to the note name until a unique
 // path is found. Returns an error if any note cannot be created.
-func (t *DirectoryTree) PasteSelectedItems() message.StatusBarMsg {
+func (tree *DirectoryTree) PasteSelectedItems() message.StatusBarMsg {
 	statusMsg := message.StatusBarMsg{}
 
-	sel := t.SelectedDir()
+	sel := tree.SelectedDir()
 
-	for _, dir := range t.YankedItems {
-		t.PasteSelection(dir, sel.Path(), func(newPath string) {
+	for _, dir := range tree.YankedItems {
+		tree.PasteSelection(dir, sel.Path(), func(newPath string) {
 			err := directories.Copy(dir.Path(), newPath)
 
 			if err != nil {
@@ -1022,12 +1022,12 @@ func (t *DirectoryTree) PasteSelectedItems() message.StatusBarMsg {
 			}
 
 			//t.Refresh(false, false)
-			t.RefreshBranch(sel.Index(), -1)
-			t.Expand()
+			tree.RefreshBranch(sel.Index(), -1)
+			tree.Expand()
 
 			// select the currently pasted item
-			if dir, ok := t.ItemsContain(newPath); ok {
-				t.SelectedIndex = dir.Index()
+			if dir, ok := tree.ItemsContain(newPath); ok {
+				tree.SelectedIndex = dir.Index()
 			}
 
 			// Remove the original note if it's marked for moving (cut)
@@ -1044,8 +1044,8 @@ func (t *DirectoryTree) PasteSelectedItems() message.StatusBarMsg {
 
 // ItemsContain returns the ListItem with the given path from the List.
 // If no such item exists, it returns a nil and an error.
-func (t *DirectoryTree) ItemsContain(path string) (*TreeItem, bool) {
-	for _, item := range t.dirsListFlat {
+func (tree *DirectoryTree) ItemsContain(path string) (*TreeItem, bool) {
+	for _, item := range tree.dirsListFlat {
 		if item.Path() == path {
 			return item, true
 		}
@@ -1054,13 +1054,13 @@ func (t *DirectoryTree) ItemsContain(path string) (*TreeItem, bool) {
 	return nil, false
 }
 
-func (t *DirectoryTree) ToggleIndentLines() message.StatusBarMsg {
-	t.indentLines = !t.indentLines
+func (tree *DirectoryTree) ToggleIndentLines() message.StatusBarMsg {
+	tree.indentLines = !tree.indentLines
 
-	t.Conf.SetValue(
+	tree.Conf.SetValue(
 		config.Folders,
 		config.IndentLines,
-		strconv.FormatBool(t.indentLines),
+		strconv.FormatBool(tree.indentLines),
 	)
 
 	return message.StatusBarMsg{
@@ -1068,13 +1068,13 @@ func (t *DirectoryTree) ToggleIndentLines() message.StatusBarMsg {
 	}
 }
 
-func (t *DirectoryTree) Toggle() message.StatusBarMsg {
-	t.ToggleVisibility()
+func (tree *DirectoryTree) Toggle() message.StatusBarMsg {
+	tree.ToggleVisibility()
 
-	t.Conf.SetValue(
+	tree.Conf.SetValue(
 		config.Folders,
 		config.Visible,
-		strconv.FormatBool(t.Visible()),
+		strconv.FormatBool(tree.Visible()),
 	)
 
 	return message.StatusBarMsg{
@@ -1082,22 +1082,22 @@ func (t *DirectoryTree) Toggle() message.StatusBarMsg {
 	}
 }
 
-func (t *DirectoryTree) checkIndentLines() {
-	lines, err := t.Conf.Value(config.Folders, config.IndentLines)
+func (tree *DirectoryTree) checkIndentLines() {
+	lines, err := tree.Conf.Value(config.Folders, config.IndentLines)
 
 	if err != nil {
 		debug.LogErr(err)
 	}
 
-	t.indentLines = lines.GetBool()
+	tree.indentLines = lines.GetBool()
 }
 
-func (t *DirectoryTree) checkVisibility() {
-	vis, err := t.Conf.Value(config.Folders, config.Visible)
+func (tree *DirectoryTree) checkVisibility() {
+	vis, err := tree.Conf.Value(config.Folders, config.Visible)
 
 	if err != nil {
 		debug.LogErr(err)
 	}
 
-	t.SetVisibility(vis.GetBool())
+	tree.SetVisibility(vis.GetBool())
 }

@@ -78,37 +78,37 @@ type Buffer struct {
 }
 
 // Name returns the name of the buffer without its suffix.
-func (b *Buffer) Name() string {
-	name := filepath.Base(b.Path(false))
+func (buf *Buffer) Name() string {
+	name := filepath.Base(buf.Path(false))
 	name = strings.TrimSuffix(name, filepath.Ext(name))
 	return name
 }
 
 // Path returns the buffer's path.
 // If encoded is true it returns a file:// URL safe for writing to a config file.
-func (b *Buffer) Path(encoded bool) string {
+func (buf *Buffer) Path(encoded bool) string {
 	if encoded {
 		p := &url.URL{
 			Scheme: "file",
-			Path:   filepath.ToSlash(b.path),
+			Path:   filepath.ToSlash(buf.path),
 		}
 		return p.String()
 	}
-	return b.path
+	return buf.path
 }
 
 // SetPath sets the buffer's path.
-func (b *Buffer) SetPath(path string) {
-	b.path = path
+func (buf *Buffer) SetPath(path string) {
+	buf.path = path
 }
 
 // undo applies the last undo patch, returning the restored content
 // and cursor position.
-func (b *Buffer) undo() (string, textarea.CursorPos) {
-	patch, hash, pos := b.History.Undo()
+func (buf *Buffer) undo() (string, textarea.CursorPos) {
+	patch, hash, pos := buf.History.Undo()
 
-	if patch != nil && hash != b.hash() {
-		restored, _ := b.History.Dmp.PatchApply(patch, b.Content)
+	if patch != nil && hash != buf.hash() {
+		restored, _ := buf.History.Dmp.PatchApply(patch, buf.Content)
 		return restored, pos
 	}
 
@@ -116,11 +116,11 @@ func (b *Buffer) undo() (string, textarea.CursorPos) {
 }
 
 // redo reapplies the most recently undone change.
-func (b *Buffer) redo() (string, textarea.CursorPos) {
-	patch, hash, pos := b.History.Redo()
+func (buf *Buffer) redo() (string, textarea.CursorPos) {
+	patch, hash, pos := buf.History.Redo()
 
-	if patch != nil && hash == b.hash() {
-		restored, _ := b.History.Dmp.PatchApply(patch, b.Content)
+	if patch != nil && hash == buf.hash() {
+		restored, _ := buf.History.Dmp.PatchApply(patch, buf.Content)
 		return restored, pos
 	}
 
@@ -128,8 +128,8 @@ func (b *Buffer) redo() (string, textarea.CursorPos) {
 }
 
 // hash returns the hash of the buffer content
-func (b Buffer) hash() string {
-	return utils.HashContent(b.Content)
+func (buf Buffer) hash() string {
+	return utils.HashContent(buf.Content)
 }
 
 // BufferSavedMsg is sent when a buffer has been saved
@@ -199,18 +199,18 @@ type Buffers []Buffer
 
 // Find returns the buffer if a buffer with the given path exists.
 // It returns nil if no buffer could be found.
-func (b Buffers) Find(path string) *Buffer {
-	for i := range b {
-		if b[i].path == path {
-			return &b[i]
+func (bufs Buffers) Find(path string) *Buffer {
+	for i := range bufs {
+		if bufs[i].path == path {
+			return &bufs[i]
 		}
 	}
 	return nil
 }
 
 // Contain returns whether the buffer with the given path exists.
-func (b Buffers) Contain(path string) bool {
-	buf := b.Find(path)
+func (bufs Buffers) Contain(path string) bool {
+	buf := bufs.Find(path)
 	return buf != nil
 }
 
@@ -306,8 +306,8 @@ func defaultStyles(t theme.Theme) Styles {
 }
 
 // NewTextarea returns a new textarea instance with default settings
-func (e Editor) NewTextarea() textarea.Model {
-	styles := defaultStyles(e.Theme())
+func (editor Editor) NewTextarea() textarea.Model {
+	styles := defaultStyles(editor.Theme())
 
 	ta := textarea.New()
 	ta.Prompt = ""
@@ -317,13 +317,13 @@ func (e Editor) NewTextarea() textarea.Model {
 
 	ta.CharLimit = charLimit
 	ta.MaxHeight = maxHeight
-	ta.ShowLineNumbers = e.ShowLineNumbers
+	ta.ShowLineNumbers = editor.ShowLineNumbers
 
 	ta.Selection.Cursor.SetMode(cursor.CursorStatic)
 	ta.Selection.Cursor.TextStyle = ta.SelectionStyle()
 	ta.Selection.Cursor.Style = ta.SelectionStyle()
 
-	ta.Search.IgnoreCase = e.SearchIgnoreCase()
+	ta.Search.IgnoreCase = editor.SearchIgnoreCase()
 	ta.ResetSelection()
 
 	return ta
@@ -331,141 +331,141 @@ func (e Editor) NewTextarea() textarea.Model {
 
 // Init initialises the Model on program load.
 // It partially implements the tea.Model interface.
-func (e *Editor) Init() tea.Cmd {
+func (editor *Editor) Init() tea.Cmd {
 	return textarea.Blink
 }
 
 // Update is the Bubble Tea update loop.
-func (e *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (editor *Editor) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var (
 		cmds []tea.Cmd
 		cmd  tea.Cmd
 	)
 
-	e.Textarea.Selection.Cursor.Blur()
+	editor.Textarea.Selection.Cursor.Blur()
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		switch e.Mode.Current {
+		switch editor.Mode.Current {
 		case mode.Normal:
-			cmd = e.handleNormalMode(msg)
+			cmd = editor.handleNormalMode(msg)
 
 		case mode.Insert:
-			cmd = e.handleInsertMode(msg)
+			cmd = editor.handleInsertMode(msg)
 
 		case mode.Visual, mode.VisualLine, mode.VisualBlock:
-			cmd = e.handleVisualMode(msg)
+			cmd = editor.handleVisualMode(msg)
 
 		case mode.Replace:
-			cmd = e.handleReplaceMode(msg)
+			cmd = editor.handleReplaceMode(msg)
 
 		case mode.Command:
-			cmd = e.handleCommandMode(msg)
+			cmd = editor.handleCommandMode(msg)
 
 		case mode.SearchPrompt, mode.Search:
-			cmd = e.handleSearchMode(msg)
+			cmd = editor.handleSearchMode(msg)
 		}
 
-		e.checkDirty()
+		editor.checkDirty()
 
 	case tea.WindowSizeMsg:
-		e.Size.Width = msg.Width
-		e.Size.Height = msg.Height
+		editor.Size.Width = msg.Width
+		editor.Size.Height = msg.Height
 
-		if !e.IsReady {
-			e.IsReady = true
+		if !editor.IsReady {
+			editor.IsReady = true
 		}
 
 	case errMsg:
-		e.err = msg
-		return e, nil
+		editor.err = msg
+		return editor, nil
 
 	case SearchMsg:
 		caseOverride := strings.HasPrefix(msg.SearchTerm, "\\c")
 
-		e.Textarea.Search.IgnoreCase = e.SearchIgnoreCase()
+		editor.Textarea.Search.IgnoreCase = editor.SearchIgnoreCase()
 
 		if caseOverride {
 			msg.SearchTerm = msg.SearchTerm[2:]
-			e.Textarea.Search.IgnoreCase = true
+			editor.Textarea.Search.IgnoreCase = true
 		}
 
-		e.Textarea.Search.Query = msg.SearchTerm
+		editor.Textarea.Search.Query = msg.SearchTerm
 
 	case SearchConfirmedMsg:
-		match := e.Textarea.Search.FirstMatch()
-		e.Textarea.MoveCursor(match.Row, match.RowOffset, match.ColumnOffset)
+		match := editor.Textarea.Search.FirstMatch()
+		editor.Textarea.MoveCursor(match.Row, match.RowOffset, match.ColumnOffset)
 
 	case RefreshBufferMsg:
-		e.BuildHeader(e.Size.Width, true)
-		e.UpdateMetaInfo()
+		editor.BuildHeader(editor.Size.Width, true)
+		editor.UpdateMetaInfo()
 
 	case SwitchBufferMsg:
-		if buf := e.Buffers.Find(msg.Path); buf != nil {
-			e.SwitchBuffer(buf)
-			e.BuildHeader(e.Size.Width, true)
+		if buf := editor.Buffers.Find(msg.Path); buf != nil {
+			editor.SwitchBuffer(buf)
+			editor.BuildHeader(editor.Size.Width, true)
 		} else {
-			e.OpenBuffer(msg.Path)
+			editor.OpenBuffer(msg.Path)
 		}
 	}
 
-	e.RefreshSize()
+	editor.RefreshSize()
 	cmds = append(cmds, cmd)
 
-	return e, tea.Batch(cmds...)
+	return editor, tea.Batch(cmds...)
 }
 
 // View renders the editor in its current state.
-func (e *Editor) View() tea.View {
+func (editor *Editor) View() tea.View {
 	var view tea.View
-	view.SetContent(e.Content())
+	view.SetContent(editor.Content())
 	return view
 }
 
-func (e *Editor) Content() string {
+func (editor *Editor) Content() string {
 	var view strings.Builder
-	view.WriteString(e.BuildHeader(e.Size.Width, false))
-	view.WriteString(e.Textarea.View())
+	view.WriteString(editor.BuildHeader(editor.Size.Width, false))
+	view.WriteString(editor.Textarea.View())
 
 	return view.String()
 }
 
 // SetContent updates the textarea with the current buffer's content
 // and sets the cursor to the last known position
-func (e *Editor) SetContent() {
-	buf := e.CurrentBuffer
-	e.Textarea.SetValue(buf.Content)
-	e.Textarea.MoveCursor(
+func (editor *Editor) SetContent() {
+	buf := editor.CurrentBuffer
+	editor.Textarea.SetValue(buf.Content)
+	editor.Textarea.MoveCursor(
 		buf.CursorPos.Row,
 		buf.CursorPos.RowOffset,
 		buf.CursorPos.ColumnOffset,
 	)
-	e.Textarea.RepositionView()
+	editor.Textarea.RepositionView()
 }
 
 // RefreshSize update the textarea height and width to match
 // the height and width of the editor
-func (e *Editor) RefreshSize() {
-	if e.Textarea.Width() != e.Size.Width && e.Textarea.Height() != e.Size.Height {
+func (editor *Editor) RefreshSize() {
+	if editor.Textarea.Width() != editor.Size.Width && editor.Textarea.Height() != editor.Size.Height {
 		const reserverdLines = 1
-		e.Textarea.SetWidth(e.Size.Width)
-		e.Textarea.SetHeight(e.Size.Height - reserverdLines)
+		editor.Textarea.SetWidth(editor.Size.Width)
+		editor.Textarea.SetHeight(editor.Size.Height - reserverdLines)
 	}
 }
 
-func (e *Editor) SetWidth(w int) {
-	e.Viewport.SetWidth(w)
-	e.Textarea.SetWidth(w)
-	e.Size.Width = w
+func (editor *Editor) SetWidth(w int) {
+	editor.Viewport.SetWidth(w)
+	editor.Textarea.SetWidth(w)
+	editor.Size.Width = w
 }
 
-func (e *Editor) SetBuffers(b *Buffers) {
-	e.Buffers = b
+func (editor *Editor) SetBuffers(b *Buffers) {
+	editor.Buffers = b
 }
 
 // NewBuffer creates a new buffer, sets the textareas content
 // and creates a new history for the buffer
-func (e *Editor) NewBuffer(path string) message.StatusBarMsg {
+func (editor *Editor) NewBuffer(path string) message.StatusBarMsg {
 	note, err := os.ReadFile(path)
 
 	if err != nil {
@@ -474,36 +474,36 @@ func (e *Editor) NewBuffer(path string) message.StatusBarMsg {
 	}
 
 	noteContent := string(note)
-	cursorPos := e.cursorPosFromConf(path)
+	cursorPos := editor.cursorPosFromConf(path)
 
 	// Create a new scratch buffer
-	e.NewScratchBuffer("", noteContent)
+	editor.NewScratchBuffer("", noteContent)
 
 	// Fill scratch buffer with the note's data
-	buf := e.CurrentBuffer
+	buf := editor.CurrentBuffer
 	buf.IsScratch = false
 	buf.path = path
 	buf.CursorPos = cursorPos
 	buf.History = textarea.NewHistory()
 	buf.LastSavedContentHash = buf.hash()
 
-	e.SetContent()
-	e.saveLineLength()
-	e.UpdateMetaInfo()
+	editor.SetContent()
+	editor.saveLineLength()
+	editor.UpdateMetaInfo()
 
 	return message.StatusBarMsg{}
 }
 
 // NewScratchBuffer creates a new temporary buffer
-func (e *Editor) NewScratchBuffer(
+func (editor *Editor) NewScratchBuffer(
 	title string,
 	content string,
 ) message.StatusBarMsg {
 	notesRoot, _ := app.NotesRootDir()
-	path := e.scratchPath(notesRoot + "/" + title)
+	path := editor.scratchPath(notesRoot + "/" + title)
 
 	buf := Buffer{
-		Index:                len(*e.Buffers) + 1,
+		Index:                len(*editor.Buffers) + 1,
 		path:                 path,
 		Content:              content,
 		History:              textarea.NewHistory(),
@@ -514,57 +514,57 @@ func (e *Editor) NewScratchBuffer(
 		IsScratch:            true,
 	}
 
-	*e.Buffers = append(*e.Buffers, buf)
-	buffers := *e.Buffers
-	e.CurrentBuffer = &buffers[len(buffers)-1]
+	*editor.Buffers = append(*editor.Buffers, buf)
+	buffers := *editor.Buffers
+	editor.CurrentBuffer = &buffers[len(buffers)-1]
 
 	return message.StatusBarMsg{}
 }
 
 // OpenBuffer attempts to open the buffer with the given path.
 // If no buffer is found a new buffer is created
-func (e *Editor) OpenBuffer(path string) message.StatusBarMsg {
+func (editor *Editor) OpenBuffer(path string) message.StatusBarMsg {
 	relPath := utils.RelativePath(path, true)
-	icon := theme.Icon(theme.IconNote, e.conf.NerdFonts())
+	icon := theme.Icon(theme.IconNote, editor.conf.NerdFonts())
 
 	statusMsg := message.StatusBarMsg{
 		Content: icon + " " + relPath,
 		Column:  sbc.FileInfo,
 	}
 
-	buf := e.Buffers.Find(path)
+	buf := editor.Buffers.Find(path)
 
 	// create new buffer if we can't find anything
-	if len(*e.Buffers) <= 0 || buf == nil {
-		e.NewBuffer(path)
+	if len(*editor.Buffers) <= 0 || buf == nil {
+		editor.NewBuffer(path)
 		return statusMsg
 	}
 
-	e.CurrentBuffer = buf
+	editor.CurrentBuffer = buf
 
-	e.SetContent()
-	e.saveLineLength()
-	e.UpdateMetaInfo()
+	editor.SetContent()
+	editor.saveLineLength()
+	editor.UpdateMetaInfo()
 
 	return statusMsg
 }
 
 // SwitchBuffer replaces the current editor view with the content of
 // the given buffer
-func (e *Editor) SwitchBuffer(buf *Buffer) message.StatusBarMsg {
-	if !e.Buffers.Contain(buf.path) {
+func (editor *Editor) SwitchBuffer(buf *Buffer) message.StatusBarMsg {
+	if !editor.Buffers.Contain(buf.path) {
 		return message.StatusBarMsg{}
 	}
 
-	e.CurrentBuffer = buf
+	editor.CurrentBuffer = buf
 
-	e.SetContent()
-	e.Textarea.RepositionView()
-	e.saveLineLength()
-	e.UpdateMetaInfo()
+	editor.SetContent()
+	editor.Textarea.RepositionView()
+	editor.saveLineLength()
+	editor.UpdateMetaInfo()
 
-	if !e.Focused() {
-		e.Focus()
+	if !editor.Focused() {
+		editor.Focus()
 	}
 
 	return message.StatusBarMsg{}
@@ -572,8 +572,8 @@ func (e *Editor) SwitchBuffer(buf *Buffer) message.StatusBarMsg {
 
 // CheckTime re-reads the current buffer's content from file and
 // updates the textarea
-func (e *Editor) CheckTime() {
-	buf := e.CurrentBuffer
+func (editor *Editor) CheckTime() {
+	buf := editor.CurrentBuffer
 	note, err := os.ReadFile(buf.path)
 
 	if err != nil {
@@ -585,24 +585,24 @@ func (e *Editor) CheckTime() {
 	buf.Content = content
 	buf.LastSavedContentHash = buf.hash()
 
-	e.SetContent()
-	e.updateHistoryEntry()
+	editor.SetContent()
+	editor.updateHistoryEntry()
 }
 
 // SaveBuffer writes the current buffer's content to the corresponding
 // file on the disk and resets the dirty state
-func (e *Editor) SaveBuffer() message.StatusBarMsg {
+func (editor *Editor) SaveBuffer() message.StatusBarMsg {
 	statusMsg := message.StatusBarMsg{
 		Type:   message.Success,
 		Column: sbc.General,
 	}
 
-	buf := e.CurrentBuffer
+	buf := editor.CurrentBuffer
 	rootDir, _ := app.NotesRootDir()
 
 	path := buf.path
 	relativePath := strings.ReplaceAll(path, rootDir+"/", "")
-	bufContent := e.Textarea.Value()
+	bufContent := editor.Textarea.Value()
 	forceCreate := buf.IsScratch
 
 	bytes, err := notes.Write(path, bufContent, forceCreate)
@@ -616,49 +616,49 @@ func (e *Editor) SaveBuffer() message.StatusBarMsg {
 
 	resultMsg := fmt.Sprintf(
 		message.StatusBar.FileWritten,
-		relativePath, e.Textarea.LineCount(), bytes,
+		relativePath, editor.Textarea.LineCount(), bytes,
 	)
 
 	buf.LastSavedContentHash = buf.hash()
 
 	statusMsg.Content = resultMsg
-	statusMsg.Cmd = SendBufferSavedMsg(e.CurrentBuffer)
+	statusMsg.Cmd = SendBufferSavedMsg(editor.CurrentBuffer)
 
 	return statusMsg
 }
 
 // DeleteBuffer closes the currently active buffer or resets the editor if
 // none is available
-func (e *Editor) DeleteBuffer(path string) message.StatusBarMsg {
-	if buf := e.Buffers.Find(path); buf != nil {
+func (editor *Editor) DeleteBuffer(path string) message.StatusBarMsg {
+	if buf := editor.Buffers.Find(path); buf != nil {
 		index := buf.Index - 1
-		*e.Buffers = slices.Delete(*e.Buffers, index, index+1)
+		*editor.Buffers = slices.Delete(*editor.Buffers, index, index+1)
 	}
 
-	buffers := *e.Buffers
+	buffers := *editor.Buffers
 	if len(buffers) > 0 {
 		lastBuf := buffers[len(buffers)-1]
-		e.OpenBuffer(lastBuf.path)
+		editor.OpenBuffer(lastBuf.path)
 	} else {
-		e.reset()
+		editor.reset()
 	}
 
 	return message.StatusBarMsg{}
 }
 
-func (e *Editor) DeleteCurrentBuffer() message.StatusBarMsg {
-	return e.DeleteBuffer(e.CurrentBuffer.path)
+func (editor *Editor) DeleteCurrentBuffer() message.StatusBarMsg {
+	return editor.DeleteBuffer(editor.CurrentBuffer.path)
 }
 
-func (e *Editor) DeleteAllBuffers() message.StatusBarMsg {
-	e.reset()
+func (editor *Editor) DeleteAllBuffers() message.StatusBarMsg {
+	editor.reset()
 	return message.StatusBarMsg{}
 }
 
 // DirtyBuffers collects all the dirty, dirty buffers
-func (e *Editor) DirtyBuffers() Buffers {
+func (editor *Editor) DirtyBuffers() Buffers {
 	dirty := make(Buffers, 0)
-	buffers := *e.Buffers
+	buffers := *editor.Buffers
 
 	for i := range buffers {
 		if buffers[i].Dirty {
@@ -670,98 +670,98 @@ func (e *Editor) DirtyBuffers() Buffers {
 }
 
 // BuildHeader builds title of the editor column
-func (e *Editor) BuildHeader(width int, rebuild bool) string {
+func (editor *Editor) BuildHeader(width int, rebuild bool) string {
 	// return cached header
-	if e.CurrentBuffer.header != nil && !rebuild {
-		if width == lipgloss.Width(*e.CurrentBuffer.header) {
-			return *e.CurrentBuffer.header
+	if editor.CurrentBuffer.header != nil && !rebuild {
+		if width == lipgloss.Width(*editor.CurrentBuffer.header) {
+			return *editor.CurrentBuffer.header
 		}
 	}
 
-	title := e.Title()
-	if e.CurrentBuffer.path != "" {
-		title = e.breadcrumb()
+	title := editor.Title()
+	if editor.CurrentBuffer.path != "" {
+		title = editor.breadcrumb()
 	}
 
-	theme := e.Theme()
-	header := theme.Header(title, width, e.Focused()) + "\n"
-	e.CurrentBuffer.header = &header
+	theme := editor.Theme()
+	header := theme.Header(title, width, editor.Focused()) + "\n"
+	editor.CurrentBuffer.header = &header
 	return header
 }
 
-func (e *Editor) OpenLastNotes() {
-	lastNotes, lastNotesErr := e.conf.MetaValue("", config.LastNotes)
-	lastNote, err := e.conf.MetaValue("", config.LastOpenNote)
+func (editor *Editor) OpenLastNotes() {
+	lastNotes, lastNotesErr := editor.conf.MetaValue("", config.LastNotes)
+	lastNote, err := editor.conf.MetaValue("", config.LastOpenNote)
 
 	if lastNotesErr == nil && lastNotes != "" {
 		for n := range strings.SplitSeq(lastNotes, ",") {
-			e.OpenBuffer(utils.PathFromUrl(n))
+			editor.OpenBuffer(utils.PathFromUrl(n))
 		}
 	}
 
 	if err == nil && lastNote != "" {
-		e.OpenBuffer(utils.PathFromUrl(lastNote))
+		editor.OpenBuffer(utils.PathFromUrl(lastNote))
 	}
 }
 
 // scratchPath returns a valid path for a scratch note.
 // If the path already exists as a physical note or is already virtually
 // present as a buffer it appends "Copy" to the last found scratch name
-func (e *Editor) scratchPath(path string) string {
+func (editor *Editor) scratchPath(path string) string {
 	path = notes.GetValidPath(path, true)
 
-	if buf := e.Buffers.Find(path); buf != nil {
+	if buf := editor.Buffers.Find(path); buf != nil {
 		path = filepath.Dir(buf.Path(false)) + "/" + buf.Name() + " Copy" + notes.Ext
 	}
 
-	if e.Buffers.Contain(path) {
-		path = e.scratchPath(path)
+	if editor.Buffers.Contain(path) {
+		path = editor.scratchPath(path)
 	}
 
 	return path
 }
 
-func (e *Editor) onFocus() {
-	if !e.Textarea.Focused() {
-		e.Textarea.Focus()
+func (editor *Editor) onFocus() {
+	if !editor.Textarea.Focused() {
+		editor.Textarea.Focus()
 	}
 }
 
-func (e *Editor) onBlur() {
-	if !e.Focused() {
-		e.Textarea.Blur()
+func (editor *Editor) onBlur() {
+	if !editor.Focused() {
+		editor.Textarea.Blur()
 	}
 }
 
-func (e *Editor) breadcrumb() string {
-	noteName := e.CurrentBuffer.Name()
+func (editor *Editor) breadcrumb() string {
+	noteName := editor.CurrentBuffer.Name()
 	pathSeparator := string(os.PathSeparator)
 	breadcrumbSeparator := " › "
 
-	p := filepath.Dir(e.CurrentBuffer.Path(false))
+	p := filepath.Dir(editor.CurrentBuffer.Path(false))
 	relPath := utils.RelativePath(p, false)
 	breadcrumb := strings.ReplaceAll(relPath, pathSeparator, breadcrumbSeparator)
 
-	iconDir := theme.Icon(theme.IconDirClosed, e.conf.NerdFonts())
-	iconNote := theme.Icon(theme.IconNote, e.conf.NerdFonts())
+	iconDir := theme.Icon(theme.IconDirClosed, editor.conf.NerdFonts())
+	iconNote := theme.Icon(theme.IconNote, editor.conf.NerdFonts())
 
 	return iconDir + breadcrumb + breadcrumbSeparator + iconNote + " " + noteName
 }
 
 // reset puts the editor to default by clearing the textarea, resetting the
 // meta value for current note and deleting the current buffer
-func (e *Editor) reset() {
-	e.Textarea.SetValue("")
-	e.conf.SetMetaValue("", config.LastOpenNote, "")
-	e.conf.SetMetaValue("", config.LastNotes, "")
-	e.CurrentBuffer = &Buffer{}
+func (editor *Editor) reset() {
+	editor.Textarea.SetValue("")
+	editor.conf.SetMetaValue("", config.LastOpenNote, "")
+	editor.conf.SetMetaValue("", config.LastNotes, "")
+	editor.CurrentBuffer = &Buffer{}
 }
 
 // EnterNormalMode sets the current editor mode to normal,
 // checks if the cursor position exceeds the line length and
 // saves the cursor position.
 // It also updates the current history entry
-func (e *Editor) EnterNormalMode(withHistory bool) message.StatusBarMsg {
+func (editor *Editor) EnterNormalMode(withHistory bool) message.StatusBarMsg {
 	statusMsg := message.StatusBarMsg{
 		Content: "",
 		Column:  sbc.General,
@@ -770,137 +770,137 @@ func (e *Editor) EnterNormalMode(withHistory bool) message.StatusBarMsg {
 	// We need to remember if the cursor is at the and of the line
 	// so that lineup and linedown moves the cursor to the end
 	// when it's supposed to do so
-	isInsertMode := e.Mode.Current == mode.Insert
+	isInsertMode := editor.Mode.Current == mode.Insert
 
 	// check if we're at the end of a non empty line and set isAtLineEnd flag
 	if !isInsertMode &&
-		e.Textarea.IsExceedingLine() &&
-		e.Textarea.LineInfo().Width > 1 {
+		editor.Textarea.IsExceedingLine() &&
+		editor.Textarea.LineInfo().Width > 1 {
 
-		e.Textarea.CursorLineVimEnd()
-		e.isAtLineEnd = true
+		editor.Textarea.CursorLineVimEnd()
+		editor.isAtLineEnd = true
 	} else if isInsertMode {
-		e.MoveCharacterLeft()
+		editor.MoveCharacterLeft()
 	}
 
-	if e.Mode.IsAnyVisual() {
+	if editor.Mode.IsAnyVisual() {
 		statusMsg.Column = sbc.KeyInfo
 	}
 
-	e.Mode.Current = mode.Normal
+	editor.Mode.Current = mode.Normal
 
-	if e.CurrentBuffer == nil {
+	if editor.CurrentBuffer == nil {
 		return statusMsg
 	}
 
-	e.saveCursorPos()
+	editor.saveCursorPos()
 
-	buf := e.CurrentBuffer
-	currHash := utils.HashContent(e.Textarea.Value())
+	buf := editor.CurrentBuffer
+	currHash := utils.HashContent(editor.Textarea.Value())
 
 	// only update if there's a change otherwise
 	// remove the entry we added in newHistoryEntry
 	if currHash != buf.hash() {
-		e.updateBufferContent(withHistory)
+		editor.updateBufferContent(withHistory)
 	}
 
-	e.Textarea.ResetSelection()
-	e.Textarea.SetCursorColor(mode.Normal.Colour())
+	editor.Textarea.ResetSelection()
+	editor.Textarea.SetCursorColor(mode.Normal.Colour())
 
 	return statusMsg
 }
 
 // SendEnterNormalModeDeferredMsg returns a bubbletea command that enters
 // normal mode after a 150ms delay
-func (e *Editor) SendEnterNormalModeDeferredMsg() tea.Cmd {
+func (editor *Editor) SendEnterNormalModeDeferredMsg() tea.Cmd {
 	return func() tea.Msg {
 		time.Sleep(150 * time.Millisecond)
-		e.EnterNormalMode(true)
+		editor.EnterNormalMode(true)
 		return shared.DeferredActionMsg{}
 	}
 }
 
 // EnterInsertMode sets the current editor mode to insert
 // and creates a new history entry
-func (e *Editor) EnterInsertMode(withHistory bool) message.StatusBarMsg {
+func (editor *Editor) EnterInsertMode(withHistory bool) message.StatusBarMsg {
 	msg := message.StatusBarMsg{}
 
-	if !e.CurrentBuffer.Writeable {
+	if !editor.CurrentBuffer.Writeable {
 		return msg
 	}
 
-	e.Mode.Current = mode.Insert
+	editor.Mode.Current = mode.Insert
 	if withHistory {
-		e.newHistoryEntry()
+		editor.newHistoryEntry()
 	}
-	e.Textarea.SetCursorColor(mode.Insert.Colour())
-	e.Textarea.ResetSelection()
+	editor.Textarea.SetCursorColor(mode.Insert.Colour())
+	editor.Textarea.ResetSelection()
 
 	return msg
 }
 
 // EnterReplaceMode sets the current editor mode to replace
 // and creates a new history entry
-func (e *Editor) EnterReplaceMode() message.StatusBarMsg {
+func (editor *Editor) EnterReplaceMode() message.StatusBarMsg {
 	msg := message.StatusBarMsg{}
 
-	if !e.CurrentBuffer.Writeable {
+	if !editor.CurrentBuffer.Writeable {
 		return msg
 	}
 
-	e.Mode.Current = mode.Replace
-	e.newHistoryEntry()
-	e.Textarea.SetCursorColor(mode.Replace.Colour())
+	editor.Mode.Current = mode.Replace
+	editor.newHistoryEntry()
+	editor.Textarea.SetCursorColor(mode.Replace.Colour())
 
 	return msg
 }
 
 // EnterVisualMode sets the current editor mode to replace
 // and creates a new history entry
-func (e *Editor) EnterVisualMode(
+func (editor *Editor) EnterVisualMode(
 	selectionMode textarea.SelectionMode,
 ) message.StatusBarMsg {
-	e.Textarea.StartSelection(selectionMode)
+	editor.Textarea.StartSelection(selectionMode)
 
 	vimMode := mode.Visual
 	if selectionMode == textarea.SelectVisualLine {
 		vimMode = mode.VisualLine
 	}
 
-	e.Mode.Current = vimMode
-	e.Textarea.SetCursorColor(mode.VisualBlock.Colour())
-	return e.UpdateSelectedRowsCount()
+	editor.Mode.Current = vimMode
+	editor.Textarea.SetCursorColor(mode.VisualBlock.Colour())
+	return editor.UpdateSelectedRowsCount()
 }
 
 // newHistoryEntry creates a new history entry for the current Buffers
 // saving the correct undo cursor position
-func (e *Editor) newHistoryEntry() {
-	e.CurrentBuffer.History.NewTmpEntry(e.Textarea.CursorPos())
+func (editor *Editor) newHistoryEntry() {
+	editor.CurrentBuffer.History.NewTmpEntry(editor.Textarea.CursorPos())
 }
 
 // updateHistoryEntry update the history entry saving the undo/redo
 // patch, the current cursor position and the hash of the buffer content
-func (e *Editor) updateHistoryEntry() {
-	buf := e.CurrentBuffer
-	e.saveCursorPos()
+func (editor *Editor) updateHistoryEntry() {
+	buf := editor.CurrentBuffer
+	editor.saveCursorPos()
 
-	redoPatch := buf.History.MakePatch(buf.Content, e.Textarea.Value())
-	undoPatch := buf.History.MakePatch(e.Textarea.Value(), buf.Content)
+	redoPatch := buf.History.MakePatch(buf.Content, editor.Textarea.Value())
+	undoPatch := buf.History.MakePatch(editor.Textarea.Value(), buf.Content)
 
 	buf.History.UpdateEntry(
 		redoPatch,
 		undoPatch,
-		e.Textarea.CursorPos(),
+		editor.Textarea.CursorPos(),
 		buf.hash(),
 	)
 }
 
 // checkDirty marks the current buffer as dirty if the current
 // buffer is unsaved and the content differs from the saved content's file
-func (e *Editor) checkDirty() bool {
-	if saved := e.CurrentBuffer.LastSavedContentHash; saved != "" {
-		isDirty := utils.HashContent(e.Textarea.Value()) != saved
-		e.CurrentBuffer.Dirty = isDirty
+func (editor *Editor) checkDirty() bool {
+	if saved := editor.CurrentBuffer.LastSavedContentHash; saved != "" {
+		isDirty := utils.HashContent(editor.Textarea.Value()) != saved
+		editor.CurrentBuffer.Dirty = isDirty
 		return isDirty
 	}
 
@@ -908,26 +908,26 @@ func (e *Editor) checkDirty() bool {
 }
 
 // fileProgress returns the scroll progression of the file in percent
-func (e *Editor) fileProgress() int {
-	pc := float32(e.Textarea.Line()+1) / float32(e.Textarea.LineCount())
+func (editor *Editor) fileProgress() int {
+	pc := float32(editor.Textarea.Line()+1) / float32(editor.Textarea.LineCount())
 	return int(pc * 100.0)
 }
 
 // fileProgressStr returns the scroll progression of the file as a string
-func (e *Editor) fileProgressStr() string {
+func (editor *Editor) fileProgressStr() string {
 	var p strings.Builder
-	p.WriteString(strconv.Itoa(e.fileProgress()))
+	p.WriteString(strconv.Itoa(editor.fileProgress()))
 	p.WriteByte('%')
 	return p.String()
 }
 
 // cursorInfo returns the string represenation of the
 // current line and cursor position
-func (e *Editor) cursorInfo() string {
+func (editor *Editor) cursorInfo() string {
 	var info strings.Builder
-	info.WriteString(strconv.Itoa(e.Textarea.Line() + 1))
+	info.WriteString(strconv.Itoa(editor.Textarea.Line() + 1))
 	info.WriteByte(',')
-	info.WriteString(strconv.Itoa(e.Textarea.LineInfo().ColumnOffset))
+	info.WriteString(strconv.Itoa(editor.Textarea.LineInfo().ColumnOffset))
 	return info.String()
 }
 
@@ -944,19 +944,19 @@ func (e *Editor) cursorInfo() string {
 //}
 
 // saveCursorPos saves the cursors current column offset and row
-func (e *Editor) saveCursorPos() {
-	e.CurrentBuffer.CursorPos = e.Textarea.CursorPos()
+func (editor *Editor) saveCursorPos() {
+	editor.CurrentBuffer.CursorPos = editor.Textarea.CursorPos()
 }
 
 // saveCursorRow saves the cursors current row
-func (e *Editor) saveCursorRow() {
-	e.CurrentBuffer.CursorPos.Row = e.Textarea.CursorPos().Row
-	e.CurrentBuffer.CursorPos.RowOffset = e.Textarea.CursorPos().RowOffset
+func (editor *Editor) saveCursorRow() {
+	editor.CurrentBuffer.CursorPos.Row = editor.Textarea.CursorPos().Row
+	editor.CurrentBuffer.CursorPos.RowOffset = editor.Textarea.CursorPos().RowOffset
 }
 
 // saveLineLength stores the length of the current line
-func (e *Editor) saveLineLength() {
-	e.CurrentBuffer.CurrentLineLength = e.Textarea.LineLength(-1)
+func (editor *Editor) saveLineLength() {
+	editor.CurrentBuffer.CurrentLineLength = editor.Textarea.LineLength(-1)
 }
 
 // saveCursorCol saves the cursors current column offset
@@ -964,15 +964,15 @@ func (e *Editor) saveLineLength() {
 //	e.CurrentBuffer.CursorPos.ColumnOffset = e.Textarea.CursorPos().ColumnOffset
 //}
 
-func (e *Editor) UpdateStatusBarInfo() {
-	e.StatusBarMsg = e.StatusBarInfo()
+func (editor *Editor) UpdateStatusBarInfo() {
+	editor.StatusBarMsg = editor.StatusBarInfo()
 }
 
-func (e *Editor) StatusBarInfo() message.StatusBarMsg {
+func (editor *Editor) StatusBarInfo() message.StatusBarMsg {
 	var info strings.Builder
-	info.WriteString(e.cursorInfo())
+	info.WriteString(editor.cursorInfo())
 	info.WriteRune('\t')
-	info.WriteString(e.fileProgressStr())
+	info.WriteString(editor.fileProgressStr())
 
 	return message.StatusBarMsg{
 		Content: info.String(),
@@ -980,94 +980,94 @@ func (e *Editor) StatusBarInfo() message.StatusBarMsg {
 	}
 }
 
-func (e *Editor) SetNumbers() {
-	e.Textarea.ShowLineNumbers = true
-	e.Content()
+func (editor *Editor) SetNumbers() {
+	editor.Textarea.ShowLineNumbers = true
+	editor.Content()
 }
 
-func (e *Editor) SetNoNumbers() {
-	e.Textarea.ShowLineNumbers = false
-	e.Content()
+func (editor *Editor) SetNoNumbers() {
+	editor.Textarea.ShowLineNumbers = false
+	editor.Content()
 }
 
 // OpenConfig opens the config file as a buffer
-func (e *Editor) OpenConfig() message.StatusBarMsg {
+func (editor *Editor) OpenConfig() message.StatusBarMsg {
 	if configFile, err := app.ConfigFile(false); err == nil {
-		return e.OpenBuffer(configFile)
+		return editor.OpenBuffer(configFile)
 	}
 	return message.StatusBarMsg{}
 }
 
 // OpenConfig opens the config file as a buffer
-func (e *Editor) OpenUserKeyMap() message.StatusBarMsg {
-	return e.OpenBuffer(e.KeyInput.KeyMap.Path())
+func (editor *Editor) OpenUserKeyMap() message.StatusBarMsg {
+	return editor.OpenBuffer(editor.KeyInput.KeyMap.Path())
 }
 
 // MoveCharacterLeft moves the cursor one character to the left
 // and checks if the cursor is either at the end or the beginning
 // of the line and saves it's position
-func (e *Editor) MoveCharacterLeft() message.StatusBarMsg {
-	e.Textarea.CharacterLeft(false)
-	e.isAtLineStart = e.Textarea.IsAtLineStart()
-	e.isAtLineEnd = false
-	e.saveCursorPos()
+func (editor *Editor) MoveCharacterLeft() message.StatusBarMsg {
+	editor.Textarea.CharacterLeft(false)
+	editor.isAtLineStart = editor.Textarea.IsAtLineStart()
+	editor.isAtLineEnd = false
+	editor.saveCursorPos()
 	return message.StatusBarMsg{}
 }
 
 // MoveCharacterRight moves the cursor one character to the right
 // and checks if the cursor is either at the end or the beginning
 // of the line and saves its position
-func (e *Editor) MoveCharacterRight() message.StatusBarMsg {
-	e.Textarea.CharacterRight(false)
-	e.isAtLineStart = e.Textarea.IsAtLineStart()
-	e.isAtLineEnd = false
-	e.saveCursorPos()
+func (editor *Editor) MoveCharacterRight() message.StatusBarMsg {
+	editor.Textarea.CharacterRight(false)
+	editor.isAtLineStart = editor.Textarea.IsAtLineStart()
+	editor.isAtLineEnd = false
+	editor.saveCursorPos()
 	return message.StatusBarMsg{}
 }
 
-func (e *Editor) GoToChar() message.StatusBarMsg {
+func (editor *Editor) GoToChar() message.StatusBarMsg {
 	debug.LogDebug("asd")
 	return message.StatusBarMsg{}
 }
 
 // InsertAfter enters insert mode one character after the current cursor's
 // position and saves its position
-func (e *Editor) InsertAfter() message.StatusBarMsg {
-	if !e.CurrentBuffer.Writeable {
+func (editor *Editor) InsertAfter() message.StatusBarMsg {
+	if !editor.CurrentBuffer.Writeable {
 		return message.StatusBarMsg{}
 	}
 
-	e.Textarea.CharacterRight(true)
-	e.EnterInsertMode(true)
-	e.saveCursorPos()
+	editor.Textarea.CharacterRight(true)
+	editor.EnterInsertMode(true)
+	editor.saveCursorPos()
 
 	return message.StatusBarMsg{}
 }
 
 // InsertLineStart moves the cursor to the beginning of the line,
 // enters insert mode and saves the cursor's position
-func (e *Editor) InsertLineStart() message.StatusBarMsg {
-	if !e.CurrentBuffer.Writeable {
+func (editor *Editor) InsertLineStart() message.StatusBarMsg {
+	if !editor.CurrentBuffer.Writeable {
 		return message.StatusBarMsg{}
 	}
 
-	e.Textarea.CursorInputStart()
-	e.EnterInsertMode(true)
-	e.saveCursorPos()
+	editor.Textarea.CursorInputStart()
+	editor.EnterInsertMode(true)
+	editor.saveCursorPos()
 
 	return message.StatusBarMsg{}
 }
 
 // InsertLineEnd moves the cursor to the end of the line,
 // enters insert mode and saves the cursor's position
-func (e *Editor) InsertLineEnd() message.StatusBarMsg {
-	if !e.CurrentBuffer.Writeable {
+func (editor *Editor) InsertLineEnd() message.StatusBarMsg {
+	if !editor.CurrentBuffer.Writeable {
 		return message.StatusBarMsg{}
 	}
 
-	e.Textarea.CursorEnd()
-	e.EnterInsertMode(true)
-	e.saveCursorPos()
+	editor.Textarea.CursorEnd()
+	editor.EnterInsertMode(true)
+	editor.saveCursorPos()
 
 	return message.StatusBarMsg{}
 }
@@ -1075,20 +1075,20 @@ func (e *Editor) InsertLineEnd() message.StatusBarMsg {
 // InsertLine creates and empty line below the current line
 // and enters insert mode.
 // If above is true it inserts the line above the current line
-func (e *Editor) InsertLine(above bool) message.StatusBarMsg {
-	if !e.CurrentBuffer.Writeable {
+func (editor *Editor) InsertLine(above bool) message.StatusBarMsg {
+	if !editor.CurrentBuffer.Writeable {
 		return message.StatusBarMsg{}
 	}
 
-	e.newHistoryEntry()
+	editor.newHistoryEntry()
 
 	if above {
-		e.Textarea.EmptyLineAbove()
+		editor.Textarea.EmptyLineAbove()
 	} else {
-		e.Textarea.EmptyLineBelow()
+		editor.Textarea.EmptyLineBelow()
 	}
 
-	e.EnterInsertMode(false)
+	editor.EnterInsertMode(false)
 	return message.StatusBarMsg{}
 }
 
@@ -1096,31 +1096,31 @@ func (e *Editor) InsertLine(above bool) message.StatusBarMsg {
 // to the previous column's offset.
 // If the column offset exceeds the line length, the offset is set
 // to the end of the line
-func (e *Editor) LineUp(multiline bool) message.StatusBarMsg {
-	e.Textarea.CursorUp()
-	e.Textarea.RepositionView()
+func (editor *Editor) LineUp(multiline bool) message.StatusBarMsg {
+	editor.Textarea.CursorUp()
+	editor.Textarea.RepositionView()
 
 	if !multiline {
-		pos := e.CurrentBuffer.CursorPos
+		pos := editor.CurrentBuffer.CursorPos
 		// if we have a wrapped line we skip the wrapped part of the line
-		if pos.Row == e.Textarea.CursorPos().Row &&
-			e.Textarea.Line() > 0 {
+		if pos.Row == editor.Textarea.CursorPos().Row &&
+			editor.Textarea.Line() > 0 {
 			// e.Textarea.CursorUp() doesn't work properly on some occasions
 			// so I'm gonna be a little dirty
-			e.LineUp(false)
+			editor.LineUp(false)
 		}
 
-		e.Textarea.SetCursorColumn(pos.ColumnOffset)
-		if e.Textarea.IsExceedingLine() || e.isAtLineEnd {
-			e.Textarea.CursorLineVimEnd()
+		editor.Textarea.SetCursorColumn(pos.ColumnOffset)
+		if editor.Textarea.IsExceedingLine() || editor.isAtLineEnd {
+			editor.Textarea.CursorLineVimEnd()
 		}
 	}
 
-	e.saveCursorRow()
-	e.saveLineLength()
+	editor.saveCursorRow()
+	editor.saveLineLength()
 
-	if e.Mode.IsAnyVisual() {
-		return e.UpdateSelectedRowsCount()
+	if editor.Mode.IsAnyVisual() {
+		return editor.UpdateSelectedRowsCount()
 	}
 	return message.StatusBarMsg{}
 }
@@ -1129,290 +1129,290 @@ func (e *Editor) LineUp(multiline bool) message.StatusBarMsg {
 // to the previous column's offset.
 // If the column offset exceeds the line length, the offset is set
 // to the end of the line
-func (e *Editor) LineDown(multiline bool) message.StatusBarMsg {
-	e.Textarea.CursorDown()
-	e.Textarea.RepositionView()
+func (editor *Editor) LineDown(multiline bool) message.StatusBarMsg {
+	editor.Textarea.CursorDown()
+	editor.Textarea.RepositionView()
 
 	if !multiline {
-		pos := e.CurrentBuffer.CursorPos
+		pos := editor.CurrentBuffer.CursorPos
 
 		// If we have a wrapped line we skip the wrapped part of the line
-		if pos.Row == e.Textarea.CursorPos().Row &&
-			e.Textarea.Line() < e.Textarea.LineCount()-1 {
+		if pos.Row == editor.Textarea.CursorPos().Row &&
+			editor.Textarea.Line() < editor.Textarea.LineCount()-1 {
 			// e.Textarea.CursorDown() doesn't work properly for some reason
 			// so I'm gonna be a little dirty again
-			e.LineDown(false)
+			editor.LineDown(false)
 		}
 
-		e.Textarea.SetCursorColumn(pos.ColumnOffset)
-		if e.Textarea.IsExceedingLine() || e.isAtLineEnd {
-			e.Textarea.CursorLineVimEnd()
+		editor.Textarea.SetCursorColumn(pos.ColumnOffset)
+		if editor.Textarea.IsExceedingLine() || editor.isAtLineEnd {
+			editor.Textarea.CursorLineVimEnd()
 		}
 	}
 
-	e.saveCursorRow()
-	e.saveLineLength()
+	editor.saveCursorRow()
+	editor.saveLineLength()
 
-	if e.Mode.IsAnyVisual() {
-		return e.UpdateSelectedRowsCount()
+	if editor.Mode.IsAnyVisual() {
+		return editor.UpdateSelectedRowsCount()
 	}
 	return message.StatusBarMsg{}
 }
 
 // GoToLineStart moves the cursor to the beginning of the line,
 // sets isAtLineStart and saves the cursor position
-func (e *Editor) GoToLineStart() message.StatusBarMsg {
-	e.Textarea.CursorStart()
-	e.isAtLineStart = e.Textarea.IsAtLineStart()
-	e.isAtLineEnd = e.Textarea.IsAtLineEnd()
-	e.saveCursorPos()
+func (editor *Editor) GoToLineStart() message.StatusBarMsg {
+	editor.Textarea.CursorStart()
+	editor.isAtLineStart = editor.Textarea.IsAtLineStart()
+	editor.isAtLineEnd = editor.Textarea.IsAtLineEnd()
+	editor.saveCursorPos()
 	return message.StatusBarMsg{}
 }
 
 // GoToInputStart moves the cursor to the first character of the line,
 // checks if the cursor is at the beginning of the line
 // and saves the cursor position
-func (e *Editor) GoToInputStart() message.StatusBarMsg {
-	e.Textarea.CursorInputStart()
-	e.isAtLineStart = e.Textarea.IsAtLineStart()
-	e.isAtLineEnd = e.Textarea.IsAtLineEnd()
-	e.saveCursorPos()
+func (editor *Editor) GoToInputStart() message.StatusBarMsg {
+	editor.Textarea.CursorInputStart()
+	editor.isAtLineStart = editor.Textarea.IsAtLineStart()
+	editor.isAtLineEnd = editor.Textarea.IsAtLineEnd()
+	editor.saveCursorPos()
 	return message.StatusBarMsg{}
 }
 
 // GoToLineEnd moves the cursor to the end of the line, sets isAtLineEnd
 // and saves the cursor position
-func (e *Editor) GoToLineEnd() message.StatusBarMsg {
-	e.Textarea.CursorLineVimEnd()
-	e.isAtLineStart = e.Textarea.IsAtLineStart()
-	e.isAtLineEnd = e.Textarea.IsAtLineEnd()
-	e.saveCursorPos()
+func (editor *Editor) GoToLineEnd() message.StatusBarMsg {
+	editor.Textarea.CursorLineVimEnd()
+	editor.isAtLineStart = editor.Textarea.IsAtLineStart()
+	editor.isAtLineEnd = editor.Textarea.IsAtLineEnd()
+	editor.saveCursorPos()
 	return message.StatusBarMsg{}
 }
 
 // GoToTop moves the cursor to the beginning of the buffer
-func (e *Editor) GoToTop() message.StatusBarMsg {
-	e.Textarea.MoveToTop()
-	e.Textarea.RepositionView()
-	e.saveCursorPos()
-	return e.UpdateSelectedRowsCount()
+func (editor *Editor) GoToTop() message.StatusBarMsg {
+	editor.Textarea.MoveToTop()
+	editor.Textarea.RepositionView()
+	editor.saveCursorPos()
+	return editor.UpdateSelectedRowsCount()
 }
 
 // GoToBottom moves the cursor to the bottom of the buffer
-func (e *Editor) GoToBottom() message.StatusBarMsg {
-	e.Textarea.MoveToBottom()
-	e.Textarea.RepositionView()
-	e.saveCursorPos()
-	return e.UpdateSelectedRowsCount()
+func (editor *Editor) GoToBottom() message.StatusBarMsg {
+	editor.Textarea.MoveToBottom()
+	editor.Textarea.RepositionView()
+	editor.saveCursorPos()
+	return editor.UpdateSelectedRowsCount()
 }
 
 // WordRightStart moves the cursor to the beginning of the next word
-func (e *Editor) WordForward(end bool) message.StatusBarMsg {
+func (editor *Editor) WordForward(end bool) message.StatusBarMsg {
 	if end {
-		e.Textarea.WordRightEnd()
+		editor.Textarea.WordRightEnd()
 	} else {
-		e.Textarea.WordRight()
+		editor.Textarea.WordRight()
 	}
-	e.saveCursorPos()
+	editor.saveCursorPos()
 	return message.StatusBarMsg{}
 }
 
 // WordBack moves the cursor to the beginning of the next word
-func (e *Editor) WordBack(end bool) message.StatusBarMsg {
+func (editor *Editor) WordBack(end bool) message.StatusBarMsg {
 	if end {
-		e.Textarea.WordLeft()
+		editor.Textarea.WordLeft()
 	} else {
-		e.Textarea.WordLeft()
+		editor.Textarea.WordLeft()
 	}
-	e.isAtLineEnd = false
-	e.saveCursorPos()
+	editor.isAtLineEnd = false
+	editor.saveCursorPos()
 	return message.StatusBarMsg{}
 }
 
 // FindCharacter searches for the given character in the current line,
 // If back is true if searches back otherwise forward.
 // If found, it updates the cursor position
-func (e *Editor) FindCharacter(char string, back bool) message.StatusBarMsg {
-	charPos := e.Textarea.FindCharacter(char, back)
+func (editor *Editor) FindCharacter(char string, back bool) message.StatusBarMsg {
+	charPos := editor.Textarea.FindCharacter(char, back)
 
 	if charPos != nil {
-		e.Textarea.SetCursorColumn(charPos.ColumnOffset)
-		e.saveCursorPos()
+		editor.Textarea.SetCursorColumn(charPos.ColumnOffset)
+		editor.saveCursorPos()
 	}
 
 	return message.StatusBarMsg{}
 }
 
-func (e *Editor) DeleteBeforeCharacter(char string, back bool) message.StatusBarMsg {
-	charPos := e.Textarea.FindCharacter(char, back)
+func (editor *Editor) DeleteBeforeCharacter(char string, back bool) message.StatusBarMsg {
+	charPos := editor.Textarea.FindCharacter(char, back)
 
 	if charPos != nil {
-		e.Textarea.SetCursorColumn(charPos.ColumnOffset)
-		e.saveCursorPos()
+		editor.Textarea.SetCursorColumn(charPos.ColumnOffset)
+		editor.saveCursorPos()
 	}
 
 	return message.StatusBarMsg{}
 }
 
 // DownHalfPage moves the cursor down half a page
-func (e *Editor) DownHalfPage() message.StatusBarMsg {
-	e.Textarea.DownHalfPage()
-	return e.UpdateSelectedRowsCount()
+func (editor *Editor) DownHalfPage() message.StatusBarMsg {
+	editor.Textarea.DownHalfPage()
+	return editor.UpdateSelectedRowsCount()
 }
 
 // UpHalfPage moves the cursor up half a page
-func (e *Editor) UpHalfPage() message.StatusBarMsg {
-	e.Textarea.UpHalfPage()
-	return e.UpdateSelectedRowsCount()
+func (editor *Editor) UpHalfPage() message.StatusBarMsg {
+	editor.Textarea.UpHalfPage()
+	return editor.UpdateSelectedRowsCount()
 }
 
 // SelectWord selects the  word the cursor is currently on.
 // If outer is true it includes the whitespace after.
 // Only effective if we're in visual mode
-func (e *Editor) SelectWord(outer bool) message.StatusBarMsg {
+func (editor *Editor) SelectWord(outer bool) message.StatusBarMsg {
 	if outer {
-		e.Textarea.SelectOuterWord()
+		editor.Textarea.SelectOuterWord()
 	} else {
-		e.Textarea.SelectInnerWord()
+		editor.Textarea.SelectInnerWord()
 	}
-	return e.UpdateSelectedRowsCount()
+	return editor.UpdateSelectedRowsCount()
 }
 
 // DeleteLine deletes the current line and copies its content
 // to the clipboard
-func (e *Editor) DeleteLine() message.StatusBarMsg {
-	if !e.CurrentBuffer.Writeable {
+func (editor *Editor) DeleteLine() message.StatusBarMsg {
+	if !editor.CurrentBuffer.Writeable {
 		return message.StatusBarMsg{}
 	}
 
-	e.newHistoryEntry()
+	editor.newHistoryEntry()
 
-	e.saveLineLength()
-	e.YankLine()
-	e.Textarea.DeleteLine()
-	e.updateBufferContent(true)
-	e.EnterNormalMode(true)
+	editor.saveLineLength()
+	editor.YankLine()
+	editor.Textarea.DeleteLine()
+	editor.updateBufferContent(true)
+	editor.EnterNormalMode(true)
 
-	return e.ResetSelectedRowsCount()
+	return editor.ResetSelectedRowsCount()
 }
 
 // DeleteWord deletes the word the cursor is on.
 // If outer is true it includes the trailing space.
 // If enterInsertMode is true, we're going straight into inser mode.
-func (e *Editor) DeleteWord(outer bool, enterInsertMode bool) message.StatusBarMsg {
-	if !e.CurrentBuffer.Writeable {
+func (editor *Editor) DeleteWord(outer bool, enterInsertMode bool) message.StatusBarMsg {
+	if !editor.CurrentBuffer.Writeable {
 		return message.StatusBarMsg{}
 	}
 
-	e.newHistoryEntry()
+	editor.newHistoryEntry()
 
 	if outer {
-		e.Textarea.DeleteOuterWord()
+		editor.Textarea.DeleteOuterWord()
 	} else {
-		e.Textarea.DeleteInnerWord()
+		editor.Textarea.DeleteInnerWord()
 	}
 
-	e.updateBufferContent(true)
+	editor.updateBufferContent(true)
 
 	if enterInsertMode {
-		e.EnterInsertMode(false)
+		editor.EnterInsertMode(false)
 	}
 
-	return e.ResetSelectedRowsCount()
+	return editor.ResetSelectedRowsCount()
 }
 
 // DeleteAfterCursor deletes all characters after the cursor
-func (e *Editor) DeleteAfterCursor(overshoot bool) message.StatusBarMsg {
-	if !e.CurrentBuffer.Writeable {
+func (editor *Editor) DeleteAfterCursor(overshoot bool) message.StatusBarMsg {
+	if !editor.CurrentBuffer.Writeable {
 		return message.StatusBarMsg{}
 	}
 
-	e.newHistoryEntry()
-	e.Textarea.DeleteAfterCursor(overshoot)
-	e.updateBufferContent(true)
-	return e.ResetSelectedRowsCount()
+	editor.newHistoryEntry()
+	editor.Textarea.DeleteAfterCursor(overshoot)
+	editor.updateBufferContent(true)
+	return editor.ResetSelectedRowsCount()
 }
 
 // DeleteNLines deletes n lines
-func (e *Editor) DeleteNLines(lines int, up bool) message.StatusBarMsg {
-	if !e.CurrentBuffer.Writeable {
+func (editor *Editor) DeleteNLines(lines int, up bool) message.StatusBarMsg {
+	if !editor.CurrentBuffer.Writeable {
 		return message.StatusBarMsg{}
 	}
 
-	e.newHistoryEntry()
-	e.Textarea.DeleteLines(lines, up)
-	e.updateBufferContent(true)
-	e.Textarea.RepositionView()
-	return e.ResetSelectedRowsCount()
+	editor.newHistoryEntry()
+	editor.Textarea.DeleteLines(lines, up)
+	editor.updateBufferContent(true)
+	editor.Textarea.RepositionView()
+	return editor.ResetSelectedRowsCount()
 }
 
 // DeleteWordRight deletes the rest of word after the cursor
-func (e *Editor) DeleteWordRight() message.StatusBarMsg {
-	if !e.CurrentBuffer.Writeable {
+func (editor *Editor) DeleteWordRight() message.StatusBarMsg {
+	if !editor.CurrentBuffer.Writeable {
 		return message.StatusBarMsg{}
 	}
 
-	e.newHistoryEntry()
-	e.Textarea.DeleteWordRight()
-	e.updateHistoryEntry()
+	editor.newHistoryEntry()
+	editor.Textarea.DeleteWordRight()
+	editor.updateHistoryEntry()
 	return message.StatusBarMsg{}
 }
 
 // MergeLineBelow merges the current line with the line below
-func (e *Editor) MergeLineBelow() message.StatusBarMsg {
-	if !e.CurrentBuffer.Writeable {
+func (editor *Editor) MergeLineBelow() message.StatusBarMsg {
+	if !editor.CurrentBuffer.Writeable {
 		return message.StatusBarMsg{}
 	}
 
-	e.newHistoryEntry()
-	e.Textarea.VimMergeLineBelow(e.CurrentBuffer.CursorPos.Row)
-	e.updateBufferContent(true)
+	editor.newHistoryEntry()
+	editor.Textarea.VimMergeLineBelow(editor.CurrentBuffer.CursorPos.Row)
+	editor.updateBufferContent(true)
 	return message.StatusBarMsg{}
 }
 
 // DeleteRune the rune that the cursor is currently on.
 // If buffer is in visual mode it takes the selection into account
 // If keepMode is true this method doesn't enter normal mode
-func (e *Editor) DeleteRune(
+func (editor *Editor) DeleteRune(
 	keepMode bool,
 	withHistory bool,
 	noYank bool,
 ) message.StatusBarMsg {
-	if !e.CurrentBuffer.Writeable {
+	if !editor.CurrentBuffer.Writeable {
 		return message.StatusBarMsg{}
 	}
 
 	if withHistory {
-		e.newHistoryEntry()
+		editor.newHistoryEntry()
 	}
 
-	c := e.CurrentBuffer.CursorPos
+	c := editor.CurrentBuffer.CursorPos
 	char := ""
 
-	if minRange, maxRange := e.Textarea.Selection.Range(); minRange.Row > -1 {
-		char = e.Textarea.SelectionStr()
-		if e.Textarea.Selection.Mode == textarea.SelectVisualLine {
-			e.Textarea.DeleteSelectedLines()
+	if minRange, maxRange := editor.Textarea.Selection.Range(); minRange.Row > -1 {
+		char = editor.Textarea.SelectionStr()
+		if editor.Textarea.Selection.Mode == textarea.SelectVisualLine {
+			editor.Textarea.DeleteSelectedLines()
 		} else {
-			e.Textarea.DeleteRunesInRange(minRange, maxRange)
+			editor.Textarea.DeleteRunesInRange(minRange, maxRange)
 		}
 	} else {
-		char = e.Textarea.DeleteRune(c.Row, c.ColumnOffset)
+		char = editor.Textarea.DeleteRune(c.Row, c.ColumnOffset)
 	}
 
 	if !noYank {
-		e.Yank(char)
+		editor.Yank(char)
 	}
 
 	if !keepMode {
-		e.EnterNormalMode(withHistory)
+		editor.EnterNormalMode(withHistory)
 	}
-	e.Textarea.RepositionView()
-	return e.ResetSelectedRowsCount()
+	editor.Textarea.RepositionView()
+	return editor.ResetSelectedRowsCount()
 }
 
 // ResetSelectedRowsCount resets the selected rows count in the status bar
-func (e *Editor) ResetSelectedRowsCount() message.StatusBarMsg {
+func (editor *Editor) ResetSelectedRowsCount() message.StatusBarMsg {
 	return message.StatusBarMsg{
 		Content: "",
 		Column:  sbc.KeyInfo,
@@ -1420,10 +1420,10 @@ func (e *Editor) ResetSelectedRowsCount() message.StatusBarMsg {
 }
 
 // UpdateSelectedRowsCount updates the selected rows count in the status bar
-func (e *Editor) UpdateSelectedRowsCount() message.StatusBarMsg {
-	if e.Mode.IsAnyVisual() {
+func (editor *Editor) UpdateSelectedRowsCount() message.StatusBarMsg {
+	if editor.Mode.IsAnyVisual() {
 		return message.StatusBarMsg{
-			Content: strconv.Itoa(e.SelectedRowsCount()),
+			Content: strconv.Itoa(editor.SelectedRowsCount()),
 			Column:  sbc.KeyInfo,
 		}
 	}
@@ -1431,9 +1431,9 @@ func (e *Editor) UpdateSelectedRowsCount() message.StatusBarMsg {
 }
 
 // SelectedRowsCount returns the number of selected rows
-func (e *Editor) SelectedRowsCount() int {
-	startRow := e.Textarea.Selection.StartRow
-	cursorRow := e.Textarea.CursorPos().Row
+func (editor *Editor) SelectedRowsCount() int {
+	startRow := editor.Textarea.Selection.StartRow
+	cursorRow := editor.Textarea.CursorPos().Row
 	minRow := min(startRow, cursorRow)
 	maxRow := max(startRow, cursorRow)
 
@@ -1441,60 +1441,60 @@ func (e *Editor) SelectedRowsCount() int {
 }
 
 // Undo sets the buffer content to the previous history entry
-func (e *Editor) Undo() message.StatusBarMsg {
-	if !e.CurrentBuffer.Writeable {
+func (editor *Editor) Undo() message.StatusBarMsg {
+	if !editor.CurrentBuffer.Writeable {
 		return message.StatusBarMsg{}
 	}
 
-	if val, cursorPos := e.CurrentBuffer.undo(); val != "" {
-		curBuf := e.CurrentBuffer
+	if val, cursorPos := editor.CurrentBuffer.undo(); val != "" {
+		curBuf := editor.CurrentBuffer
 
 		// dirty check
 		curBuf.Dirty = val != curBuf.LastSavedContentHash
-		e.Textarea.SetValue(val)
+		editor.Textarea.SetValue(val)
 
-		e.Textarea.MoveCursor(
+		editor.Textarea.MoveCursor(
 			cursorPos.Row,
 			cursorPos.RowOffset,
 			cursorPos.ColumnOffset,
 		)
 
-		e.Textarea.RepositionView()
-		e.CurrentBuffer.Content = e.Textarea.Value()
-		e.isAtLineEnd = e.Textarea.IsAtLineEnd()
-		e.isAtLineStart = e.Textarea.IsAtLineStart()
-		e.saveCursorPos()
+		editor.Textarea.RepositionView()
+		editor.CurrentBuffer.Content = editor.Textarea.Value()
+		editor.isAtLineEnd = editor.Textarea.IsAtLineEnd()
+		editor.isAtLineStart = editor.Textarea.IsAtLineStart()
+		editor.saveCursorPos()
 	}
 
 	return message.StatusBarMsg{}
 }
 
 // Redo sets the buffer content to the next history entry
-func (e *Editor) Redo() message.StatusBarMsg {
-	if !e.CurrentBuffer.Writeable {
+func (editor *Editor) Redo() message.StatusBarMsg {
+	if !editor.CurrentBuffer.Writeable {
 		return message.StatusBarMsg{}
 	}
 
-	if val, cursorPos := e.CurrentBuffer.redo(); val != "" {
+	if val, cursorPos := editor.CurrentBuffer.redo(); val != "" {
 		// dirty check
-		e.CurrentBuffer.Dirty = val != e.CurrentBuffer.LastSavedContentHash
-		e.Textarea.SetValue(val)
+		editor.CurrentBuffer.Dirty = val != editor.CurrentBuffer.LastSavedContentHash
+		editor.Textarea.SetValue(val)
 
-		e.Textarea.MoveCursor(
+		editor.Textarea.MoveCursor(
 			cursorPos.Row,
 			cursorPos.RowOffset,
 			cursorPos.ColumnOffset,
 		)
 
-		e.Textarea.RepositionView()
-		e.CurrentBuffer.Content = e.Textarea.Value()
+		editor.Textarea.RepositionView()
+		editor.CurrentBuffer.Content = editor.Textarea.Value()
 	}
 
 	return message.StatusBarMsg{}
 }
 
 // Yank copies the given string to the clipboard
-func (e *Editor) Yank(str string) message.StatusBarMsg {
+func (editor *Editor) Yank(str string) message.StatusBarMsg {
 	if err := clipboard.Write(str); err != nil {
 		debug.LogDebug(err)
 	}
@@ -1504,8 +1504,8 @@ func (e *Editor) Yank(str string) message.StatusBarMsg {
 // YankSelection copies the current selection to the clipboard.
 // If keepCursorPos is true the cursor position remains the same
 // otherwise the cursor is moved to the beginning of the selection
-func (e *Editor) YankSelection(keepCursor bool) message.StatusBarMsg {
-	sel := e.Textarea.SelectionStr()
+func (editor *Editor) YankSelection(keepCursor bool) message.StatusBarMsg {
+	sel := editor.Textarea.SelectionStr()
 
 	if err := clipboard.Write(sel); err != nil {
 		debug.LogDebug(err)
@@ -1513,11 +1513,11 @@ func (e *Editor) YankSelection(keepCursor bool) message.StatusBarMsg {
 
 	var cursorDeferredCmd tea.Cmd
 
-	buf := e.CurrentBuffer
-	startRow := e.Textarea.Selection.StartRow
-	startCol := e.Textarea.Selection.StartCol
+	buf := editor.CurrentBuffer
+	startRow := editor.Textarea.Selection.StartRow
+	startCol := editor.Textarea.Selection.StartCol
 
-	if e.Mode.Current == mode.VisualLine {
+	if editor.Mode.Current == mode.VisualLine {
 		startCol = 0
 		// append a new line as a hacky indicator that we are supposed
 		// to paste visual line selections on a new line
@@ -1531,15 +1531,15 @@ func (e *Editor) YankSelection(keepCursor bool) message.StatusBarMsg {
 	}
 
 	if keepCursor {
-		cursor.ColumnOffset = e.Textarea.Selection.StartCol
+		cursor.ColumnOffset = editor.Textarea.Selection.StartCol
 	}
 
 	// move the cursor to the beginning of the selection after
 	// a short delay to briefly show the selection
 	cursorDeferredCmd = func() tea.Msg {
 		time.Sleep(150 * time.Millisecond)
-		e.Textarea.MoveCursor(cursor.Row, cursor.RowOffset, cursor.ColumnOffset)
-		e.isAtLineEnd = e.Textarea.IsAtLineEnd()
+		editor.Textarea.MoveCursor(cursor.Row, cursor.RowOffset, cursor.ColumnOffset)
+		editor.isAtLineEnd = editor.Textarea.IsAtLineEnd()
 
 		return shared.DeferredActionMsg{}
 	}
@@ -1547,46 +1547,46 @@ func (e *Editor) YankSelection(keepCursor bool) message.StatusBarMsg {
 	return message.StatusBarMsg{
 		Cmd: tea.Batch(
 			cursorDeferredCmd,
-			e.SendEnterNormalModeDeferredMsg(),
+			editor.SendEnterNormalModeDeferredMsg(),
 		),
 	}
 }
 
-func (e *Editor) YankAfterCursor() message.StatusBarMsg {
-	e.saveCursorPos()
-	e.Textarea.StartSelection(textarea.SelectVisual)
-	e.GoToLineEnd()
+func (editor *Editor) YankAfterCursor() message.StatusBarMsg {
+	editor.saveCursorPos()
+	editor.Textarea.StartSelection(textarea.SelectVisual)
+	editor.GoToLineEnd()
 
-	return e.YankSelection(true)
+	return editor.YankSelection(true)
 }
 
 // YankLine copies the current line to the clipboard
-func (e *Editor) YankLine() message.StatusBarMsg {
-	e.saveCursorPos()
-	e.EnterVisualMode(textarea.SelectVisualLine)
-	return e.YankSelection(true)
+func (editor *Editor) YankLine() message.StatusBarMsg {
+	editor.saveCursorPos()
+	editor.EnterVisualMode(textarea.SelectVisualLine)
+	return editor.YankSelection(true)
 }
 
 // YankWord copies the current word to the clipboard.
 // If outer is set to true it copies the space after the word.
-func (e *Editor) YankWord(outer bool) message.StatusBarMsg {
-	e.EnterVisualMode(textarea.SelectVisual)
+func (editor *Editor) YankWord(outer bool) message.StatusBarMsg {
+	editor.EnterVisualMode(textarea.SelectVisual)
 
 	if outer {
-		e.Textarea.SelectOuterWord()
+		editor.Textarea.SelectOuterWord()
 	} else {
-		e.Textarea.SelectInnerWord()
+		editor.Textarea.SelectInnerWord()
 	}
 
-	return e.YankSelection(false)
+	return editor.YankSelection(false)
 }
 
 // Paste pastes the clipboard content.
 // If the selection exceeds the length of the current line
 // it attempts to paste the clipboard content on a newline below
 // the current line
-func (e *Editor) Paste() message.StatusBarMsg {
-	if !e.CurrentBuffer.Writeable {
+func (editor *Editor) Paste() message.StatusBarMsg {
+	if !editor.CurrentBuffer.Writeable {
 		return message.StatusBarMsg{}
 	}
 
@@ -1600,19 +1600,19 @@ func (e *Editor) Paste() message.StatusBarMsg {
 		// save the curren cursor position to adjust the correct position
 		// after the clipboard content is pasted
 		var (
-			cursorPos = e.CurrentBuffer.CursorPos
+			cursorPos = editor.CurrentBuffer.CursorPos
 			col       = cursorPos.ColumnOffset
 			row       = cursorPos.Row
 			rowOffset = cursorPos.RowOffset
 		)
 
-		e.newHistoryEntry()
+		editor.newHistoryEntry()
 
 		r := []rune(cnt)
 		pasteOnNewLine := r[len(r)-1] == '\n'
 
 		if pasteOnNewLine {
-			e.Textarea.EmptyLineBelow()
+			editor.Textarea.EmptyLineBelow()
 
 			// strip the last new line since we've already inserted
 			// an empty line so we don't need it
@@ -1629,44 +1629,44 @@ func (e *Editor) Paste() message.StatusBarMsg {
 			// add the length of the selection to the current column offset
 			// to set the cursor to the end of the selection
 			col += len(cnt)
-			e.Textarea.CharacterRight(false)
+			editor.Textarea.CharacterRight(false)
 		}
 
 		// insert clipboard content
-		e.Textarea.InsertString(cnt)
-		e.Textarea.MoveCursor(row, rowOffset, col)
-		e.Textarea.RepositionView()
+		editor.Textarea.InsertString(cnt)
+		editor.Textarea.MoveCursor(row, rowOffset, col)
+		editor.Textarea.RepositionView()
 
-		e.updateBufferContent(true)
+		editor.updateBufferContent(true)
 	}
 	return message.StatusBarMsg{}
 }
 
 // ChangeCaseOfSelection changes the case of the selected text to
 // either lower- or uppercase depending on `toUpper`
-func (e *Editor) ChangeCaseOfSelection(toUpper bool) message.StatusBarMsg {
-	e.newHistoryEntry()
+func (editor *Editor) ChangeCaseOfSelection(toUpper bool) message.StatusBarMsg {
+	editor.newHistoryEntry()
 
-	selection := e.Textarea.SelectionStr()
-	start, end := e.Textarea.Selection.Range()
+	selection := editor.Textarea.SelectionStr()
+	start, end := editor.Textarea.Selection.Range()
 
 	// If we're in visual line mode set the start column to the first
 	// of the first line and the end column to the last column of the
 	// last selected line
-	if e.Mode.Current == mode.VisualLine {
+	if editor.Mode.Current == mode.VisualLine {
 		start.ColumnOffset = 0
-		end.ColumnOffset = e.Textarea.LineLength(end.Row) - 1
+		end.ColumnOffset = editor.Textarea.LineLength(end.Row) - 1
 	}
-	e.Textarea.DeleteRunesInRange(start, end)
+	editor.Textarea.DeleteRunesInRange(start, end)
 
 	if toUpper {
-		e.Textarea.InsertString(strings.ToUpper(selection))
+		editor.Textarea.InsertString(strings.ToUpper(selection))
 	} else {
-		e.Textarea.InsertString(strings.ToLower(selection))
+		editor.Textarea.InsertString(strings.ToLower(selection))
 	}
 
-	e.Textarea.MoveCursor(start.Row, start.RowOffset, start.ColumnOffset)
-	e.EnterNormalMode(true)
+	editor.Textarea.MoveCursor(start.Row, start.RowOffset, start.ColumnOffset)
+	editor.EnterNormalMode(true)
 
 	return message.StatusBarMsg{}
 }
@@ -1675,9 +1675,9 @@ func (e *Editor) ChangeCaseOfSelection(toUpper bool) message.StatusBarMsg {
 // from the meta config file.
 // If the meta config value is invalid it returns the empty CursorPos which
 // equals the beginning of the file
-func (e *Editor) cursorPosFromConf(filepath string) textarea.CursorPos {
+func (editor *Editor) cursorPosFromConf(filepath string) textarea.CursorPos {
 	cursorPos := textarea.CursorPos{}
-	pos, err := e.conf.MetaValue(filepath, config.CursorPosition)
+	pos, err := editor.conf.MetaValue(filepath, config.CursorPosition)
 
 	if err == nil {
 		p := strings.Split(pos, ",")
@@ -1701,11 +1701,11 @@ func (e *Editor) cursorPosFromConf(filepath string) textarea.CursorPos {
 }
 
 // saveCursorPosToConf saves the current cursor position to the config file
-func (e *Editor) saveCursorPosToConf() {
-	pos := e.Textarea.CursorPos()
+func (editor *Editor) saveCursorPosToConf() {
+	pos := editor.Textarea.CursorPos()
 
-	e.conf.SetMetaValue(
-		e.CurrentBuffer.path,
+	editor.conf.SetMetaValue(
+		editor.CurrentBuffer.path,
 		config.CursorPosition,
 		pos.String(),
 	)
@@ -1713,34 +1713,34 @@ func (e *Editor) saveCursorPosToConf() {
 
 // updateBufferContent replaces the content of the current buffer with the
 // current textarea value
-func (e *Editor) updateBufferContent(withHistory bool) {
+func (editor *Editor) updateBufferContent(withHistory bool) {
 	if withHistory {
-		e.updateHistoryEntry()
+		editor.updateHistoryEntry()
 	}
 
 	// set the content after we updated the buffer history
 	// otherwise the undo/redo-patches won't be correct
-	e.CurrentBuffer.Content = e.Textarea.Value()
+	editor.CurrentBuffer.Content = editor.Textarea.Value()
 }
 
 // UpdateMetaInfo records the current state of the editor by updating
 // metadata values for recently opened notes and the currently opened note.
-func (e *Editor) UpdateMetaInfo() {
-	notePaths := make([]string, 0, len(*e.Buffers))
+func (editor *Editor) UpdateMetaInfo() {
+	notePaths := make([]string, 0, len(*editor.Buffers))
 
-	for _, buf := range *e.Buffers {
+	for _, buf := range *editor.Buffers {
 		notePaths = append(notePaths, buf.Path(true))
 	}
 
 	noteStr := strings.Join(notePaths[:], ",")
 
-	e.conf.SetMetaValue("", config.LastNotes, noteStr)
-	e.conf.SetMetaValue("", config.LastOpenNote, e.CurrentBuffer.Path(true))
+	editor.conf.SetMetaValue("", config.LastNotes, noteStr)
+	editor.conf.SetMetaValue("", config.LastOpenNote, editor.CurrentBuffer.Path(true))
 }
 
 // LineNumbers returns whether line numbers are enabled in the config file
-func (e *Editor) LineNumbers() bool {
-	numbers, err := e.conf.Value(config.Editor, config.LineNumbers)
+func (editor *Editor) LineNumbers() bool {
+	numbers, err := editor.conf.Value(config.Editor, config.LineNumbers)
 
 	if err != nil {
 		debug.LogErr(err)
@@ -1752,8 +1752,8 @@ func (e *Editor) LineNumbers() bool {
 
 // SearchIgnoreCase returns true if the editor config enables
 // case-insensitive search.
-func (e *Editor) SearchIgnoreCase() bool {
-	ignoreCase, err := e.conf.Value(config.Editor, config.SearchIgnoreCase)
+func (editor *Editor) SearchIgnoreCase() bool {
+	ignoreCase, err := editor.conf.Value(config.Editor, config.SearchIgnoreCase)
 
 	if err != nil {
 		return false
@@ -1762,11 +1762,11 @@ func (e *Editor) SearchIgnoreCase() bool {
 	return ignoreCase.GetBool()
 }
 
-func (e *Editor) RefreshTextAreaStyles() {
-	s := defaultStyles(e.Theme())
-	e.Textarea.Styles.Blurred.Base = s.blurred
-	e.Textarea.Styles.Focused.Base = s.focused
-	e.Textarea.ShowLineNumbers = e.LineNumbers()
-	e.BuildHeader(e.Size.Width, true)
-	e.Content()
+func (editor *Editor) RefreshTextAreaStyles() {
+	s := defaultStyles(editor.Theme())
+	editor.Textarea.Styles.Blurred.Base = s.blurred
+	editor.Textarea.Styles.Focused.Base = s.focused
+	editor.Textarea.ShowLineNumbers = editor.LineNumbers()
+	editor.BuildHeader(editor.Size.Width, true)
+	editor.Content()
 }

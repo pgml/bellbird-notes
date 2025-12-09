@@ -4,13 +4,13 @@ import (
 	tea "github.com/charmbracelet/bubbletea/v2"
 )
 
-func (e *Editor) handleNormalMode(msg tea.KeyMsg) tea.Cmd {
-	e.saveCursorPosToConf()
+func (editor *Editor) handleNormalMode(msg tea.KeyMsg) tea.Cmd {
+	editor.saveCursorPosToConf()
 
-	isSearching := e.Textarea.Search.Query != ""
+	isSearching := editor.Textarea.Search.Query != ""
 	if msg.String() == "esc" && isSearching {
-		e.EnterNormalMode(true)
-		e.Textarea.ResetMultiSelection()
+		editor.EnterNormalMode(true)
+		editor.Textarea.ResetMultiSelection()
 		return nil
 	}
 

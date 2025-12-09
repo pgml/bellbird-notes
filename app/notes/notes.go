@@ -25,8 +25,8 @@ type Note struct {
 }
 
 // Name returns the note name without its file extension.
-func (n Note) Name() string {
-	name := filepath.Base(n.Path)
+func (note Note) Name() string {
+	name := filepath.Base(note.Path)
 	name = strings.TrimSuffix(
 		name,
 		filepath.Ext(name),
@@ -35,23 +35,23 @@ func (n Note) Name() string {
 }
 
 // NameWithExt returns the full note name including the extension.
-func (n Note) NameWithExt() string {
-	filename := filepath.Base(n.Path)
-	if strings.HasSuffix(filename, n.Ext()) {
+func (note Note) NameWithExt() string {
+	filename := filepath.Base(note.Path)
+	if strings.HasSuffix(filename, note.Ext()) {
 		return filename
 	}
 
 	var name strings.Builder
 	name.WriteString(filename)
-	name.WriteString(n.Ext())
+	name.WriteString(note.Ext())
 	return name.String()
 }
 
-func (n Note) Ext() string { return Ext }
+func (note Note) Ext() string { return Ext }
 
 // LegacyExt is the extension used in the old rust version
 // of bellbird notes and is just here for compatibility reasons
-func (n Note) LegacyExt() string { return LegacyExt }
+func (note Note) LegacyExt() string { return LegacyExt }
 
 func NewNote(path string, isPinned bool) Note {
 	return Note{

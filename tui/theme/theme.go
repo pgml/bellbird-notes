@@ -68,7 +68,7 @@ func New(conf *config.Config) Theme {
 	}
 }
 
-func (t *Theme) Header(title string, colWidth int, focused bool) string {
+func (theme *Theme) Header(title string, colWidth int, focused bool) string {
 	borderColour := BorderColour(focused)
 	titleColour := ColourTitle
 
@@ -77,8 +77,8 @@ func (t *Theme) Header(title string, colWidth int, focused bool) string {
 	}
 
 	// @todo clean this shit up
-	b := t.BorderStyle()
-	b.Left = t.BorderStyle().TopLeft
+	b := theme.BorderStyle()
+	b.Left = theme.BorderStyle().TopLeft
 	ts := lipgloss.NewStyle().
 		Border(b, false, false, false, true).
 		BorderForeground(borderColour).
@@ -89,11 +89,11 @@ func (t *Theme) Header(title string, colWidth int, focused bool) string {
 	ls := lipgloss.NewStyle().Foreground(borderColour)
 	title = ts.Render(title)
 	line := ls.Render(strings.Repeat(
-		t.BorderStyle().Top,
+		theme.BorderStyle().Top,
 		max(0, colWidth-lipgloss.Width(title)-1)),
 	)
 
-	borderTopRight := ls.Render(t.BorderStyle().TopRight)
+	borderTopRight := ls.Render(theme.BorderStyle().TopRight)
 
 	return lipgloss.JoinHorizontal(
 		lipgloss.Center,
@@ -104,12 +104,12 @@ func (t *Theme) Header(title string, colWidth int, focused bool) string {
 }
 
 // BaseColumnLayout provides thae basic layout style for a column
-func (t Theme) BaseColumnLayout(size bl.Size, focused bool) lipgloss.Style {
+func (theme Theme) BaseColumnLayout(size bl.Size, focused bool) lipgloss.Style {
 	borderColour := BorderColour(focused)
 	_, termHeight := TerminalSize()
 
 	return lipgloss.NewStyle().
-		Border(t.BorderStyle()).
+		Border(theme.BorderStyle()).
 		BorderTop(false).
 		BorderForeground(borderColour).
 		Foreground(ColourFg).
@@ -129,8 +129,8 @@ func TerminalSize() (int, int) {
 	return width, height
 }
 
-func (t *Theme) BorderStyle() lipgloss.Border {
-	border, err := t.Conf.Value(config.Theme, config.Border)
+func (theme *Theme) BorderStyle() lipgloss.Border {
+	border, err := theme.Conf.Value(config.Theme, config.Border)
 	style := lipgloss.NormalBorder()
 
 	if err != nil {

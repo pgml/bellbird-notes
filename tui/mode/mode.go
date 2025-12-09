@@ -62,12 +62,12 @@ var colour = map[Mode]color.Color{
 	SearchPrompt: lipgloss.NoColor{},
 }
 
-func (m Mode) String() string {
-	return modeName[m]
+func (mode Mode) String() string {
+	return modeName[mode]
 }
 
-func (m Mode) FullString(formatted bool) string {
-	str := fullName[m]
+func (mode Mode) FullString(formatted bool) string {
+	str := fullName[mode]
 
 	if formatted {
 		name := strings.ReplaceAll(str, "_", " ")
@@ -77,18 +77,18 @@ func (m Mode) FullString(formatted bool) string {
 	return str
 }
 
-func (m Mode) Colour() color.Color {
-	return colour[m]
+func (mode Mode) Colour() color.Color {
+	return colour[mode]
 }
 
 type ModeInstance struct {
 	Current Mode
 }
 
-func (m *ModeInstance) IsAnyVisual() bool {
-	return m.Current == Visual ||
-		m.Current == VisualLine ||
-		m.Current == VisualBlock
+func (instance *ModeInstance) IsAnyVisual() bool {
+	return instance.Current == Visual ||
+		instance.Current == VisualLine ||
+		instance.Current == VisualBlock
 }
 
 func SupportsMotion() []Mode {

@@ -17,110 +17,110 @@ import (
 	sbc "bellbird-notes/tui/types/statusbar_column"
 )
 
-func (v *Vim) FnRegistry() ki.MotionRegistry {
+func (vim *Vim) FnRegistry() ki.MotionRegistry {
 	return ki.MotionRegistry{
 		// Movement/Navigation
-		"LineDown":       v.lineDown,
-		"LineUp":         v.lineUp,
-		"DownHalfPage":   bind(v.app.Editor.DownHalfPage),
-		"UpHalfPage":     bind(v.app.Editor.UpHalfPage),
-		"CharacterLeft":  bind(v.app.Editor.MoveCharacterLeft),
-		"CharacterRight": bind(v.app.Editor.MoveCharacterRight),
-		"GoToTop":        v.goToTop,
-		"GoToBottom":     v.goToBottom,
+		"LineDown":       vim.lineDown,
+		"LineUp":         vim.lineUp,
+		"DownHalfPage":   bind(vim.app.Editor.DownHalfPage),
+		"UpHalfPage":     bind(vim.app.Editor.UpHalfPage),
+		"CharacterLeft":  bind(vim.app.Editor.MoveCharacterLeft),
+		"CharacterRight": bind(vim.app.Editor.MoveCharacterRight),
+		"GoToTop":        vim.goToTop,
+		"GoToBottom":     vim.goToBottom,
 
-		"FocusNextColumn": v.focusNextColumn,
-		"FocusPrevColumn": v.focusPrevColumn,
-		"FocusFolders":    v.focusDirectoryTree,
-		"FocusNotes":      v.focusNotesList,
-		"FocusEditor":     v.focusEditor,
+		"FocusNextColumn": vim.focusNextColumn,
+		"FocusPrevColumn": vim.focusPrevColumn,
+		"FocusFolders":    vim.focusDirectoryTree,
+		"FocusNotes":      vim.focusNotesList,
+		"FocusEditor":     vim.focusEditor,
 
 		// List specific actions
-		"RenameListItem":    v.rename,
-		"DeleteListItem":    v.delete,
-		"YankListItem":      v.yankListItem,
-		"CutListItem":       v.cutListItem,
-		"PasteListItem":     v.pasteListItem,
-		"TogglePinListItem": v.togglePin,
-		"RefreshList":       v.refreshList,
+		"RenameListItem":    vim.rename,
+		"DeleteListItem":    vim.delete,
+		"YankListItem":      vim.yankListItem,
+		"CutListItem":       vim.cutListItem,
+		"PasteListItem":     vim.pasteListItem,
+		"TogglePinListItem": vim.togglePin,
+		"RefreshList":       vim.refreshList,
 
 		// directory tree specific
-		"TreeExpand":   bind(v.app.DirTree.Expand),
-		"TreeCollapse": bind(v.app.DirTree.Collapse),
-		"CreateFolder": v.createDir,
+		"TreeExpand":   bind(vim.app.DirTree.Expand),
+		"TreeCollapse": bind(vim.app.DirTree.Collapse),
+		"CreateFolder": vim.createDir,
 
 		// notes list specific
-		"CreateNote": v.createNote,
+		"CreateNote": vim.createNote,
 
 		// General
-		"EnterCommand":      v.enterCmdMode,
-		"ShowBufferList":    v.showBufferList,
-		"CloseBufferList":   v.closeBufferList,
-		"ConfirmAction":     v.confirmAction,
-		"CancelAction":      v.cancelAction,
-		"CloseNote":         bind(v.app.Editor.DeleteCurrentBuffer),
-		"CloseSelectedNote": v.deleteSelectedBuffer,
-		"NewScratch":        v.newScratchBuffer,
-		"ToggleFolders":     bind(v.app.DirTree.Toggle),
-		"ToggleNotes":       bind(v.app.NotesList.Toggle),
+		"EnterCommand":      vim.enterCmdMode,
+		"ShowBufferList":    vim.showBufferList,
+		"CloseBufferList":   vim.closeBufferList,
+		"ConfirmAction":     vim.confirmAction,
+		"CancelAction":      vim.cancelAction,
+		"CloseNote":         bind(vim.app.Editor.DeleteCurrentBuffer),
+		"CloseSelectedNote": vim.deleteSelectedBuffer,
+		"NewScratch":        vim.newScratchBuffer,
+		"ToggleFolders":     bind(vim.app.DirTree.Toggle),
+		"ToggleNotes":       bind(vim.app.NotesList.Toggle),
 
 		// Text editing
-		"SaveCurrentBuffer": bind(v.app.Editor.SaveBuffer),
-		"EnterNormalMode":   v.enterNormalMode,
-		"Replace":           bind(v.app.Editor.EnterReplaceMode),
-		"ToggleVisual":      v.toggleVisual,
-		"ToggleVisualLine":  v.toggleVisualLine,
-		"ToggleVisualBlock": v.toggleVisualBlock,
+		"SaveCurrentBuffer": bind(vim.app.Editor.SaveBuffer),
+		"EnterNormalMode":   vim.enterNormalMode,
+		"Replace":           bind(vim.app.Editor.EnterReplaceMode),
+		"ToggleVisual":      vim.toggleVisual,
+		"ToggleVisualLine":  vim.toggleVisualLine,
+		"ToggleVisualBlock": vim.toggleVisualBlock,
 
-		"Undo": bind(v.app.Editor.Undo),
-		"Redo": bind(v.app.Editor.Redo),
+		"Undo": bind(vim.app.Editor.Undo),
+		"Redo": bind(vim.app.Editor.Redo),
 
-		"InsertBefore":     v.enterInsertMode,
-		"InsertAfter":      bind(v.app.Editor.InsertAfter),
-		"InsertBelow":      v.insertBelow,
-		"InsertAbove":      v.insertAbove,
-		"InsertBeforeLine": bind(v.app.Editor.InsertLineStart),
-		"InsertAfterLine":  bind(v.app.Editor.InsertLineEnd),
+		"InsertBefore":     vim.enterInsertMode,
+		"InsertAfter":      bind(vim.app.Editor.InsertAfter),
+		"InsertBelow":      vim.insertBelow,
+		"InsertAbove":      vim.insertAbove,
+		"InsertBeforeLine": bind(vim.app.Editor.InsertLineStart),
+		"InsertAfterLine":  bind(vim.app.Editor.InsertLineEnd),
 
-		"SelectWord":             v.selectWord,
-		"NextWord":               v.nextWord,
-		"PrevWord":               v.prevWord,
-		"FindCharacter":          v.findCharacter,
-		"FindWordUnderCursor":    v.findWordUnderCursor,
-		"Find":                   v.find,
-		"MoveToMatch":            v.moveToMatch,
-		"GoToFirstNonWhiteSpace": bind(v.app.Editor.GoToInputStart),
-		"GoToLineStart":          bind(v.app.Editor.GoToLineStart),
-		"GoToLineEnd":            bind(v.app.Editor.GoToLineEnd),
-		"MergeLines":             bind(v.app.Editor.MergeLineBelow),
+		"SelectWord":             vim.selectWord,
+		"NextWord":               vim.nextWord,
+		"PrevWord":               vim.prevWord,
+		"FindCharacter":          vim.findCharacter,
+		"FindWordUnderCursor":    vim.findWordUnderCursor,
+		"Find":                   vim.find,
+		"MoveToMatch":            vim.moveToMatch,
+		"GoToFirstNonWhiteSpace": bind(vim.app.Editor.GoToInputStart),
+		"GoToLineStart":          bind(vim.app.Editor.GoToLineStart),
+		"GoToLineEnd":            bind(vim.app.Editor.GoToLineEnd),
+		"MergeLines":             bind(vim.app.Editor.MergeLineBelow),
 
-		"DeleteLine":             bind(v.app.Editor.DeleteLine),
-		"DeleteWord":             v.deleteWord,
-		"DeleteAfterCursor":      v.deleteAfterCursor,
-		"DeleteSelection":        v.deleteSelection,
-		"DeleteCharacter":        v.deleteCharacter,
-		"DeleteFromCursorToChar": v.deleteFromCursorToChar,
+		"DeleteLine":             bind(vim.app.Editor.DeleteLine),
+		"DeleteWord":             vim.deleteWord,
+		"DeleteAfterCursor":      vim.deleteAfterCursor,
+		"DeleteSelection":        vim.deleteSelection,
+		"DeleteCharacter":        vim.deleteCharacter,
+		"DeleteFromCursorToChar": vim.deleteFromCursorToChar,
 
-		"SubstituteText":    v.substituteText,
-		"ChangeAfterCursor": v.changeAfterCursor,
-		"ChangeLine":        v.changeLine,
-		"ChangeWord":        v.changeWord,
+		"SubstituteText":    vim.substituteText,
+		"ChangeAfterCursor": vim.changeAfterCursor,
+		"ChangeLine":        vim.changeLine,
+		"ChangeWord":        vim.changeWord,
 
-		"YankAfterCursor":   bind(v.app.Editor.YankAfterCursor),
-		"YankSelection":     v.yankSelection,
-		"YankLine":          bind(v.app.Editor.YankLine),
-		"YankWord":          v.yankWord,
-		"Paste":             v.paste,
-		"ChangeToLowerCase": v.changeToLowerCase,
-		"ChangeToUpperCase": v.changeToUpperCase,
+		"YankAfterCursor":   bind(vim.app.Editor.YankAfterCursor),
+		"YankSelection":     vim.yankSelection,
+		"YankLine":          bind(vim.app.Editor.YankLine),
+		"YankWord":          vim.yankWord,
+		"Paste":             vim.paste,
+		"ChangeToLowerCase": vim.changeToLowerCase,
+		"ChangeToUpperCase": vim.changeToUpperCase,
 
 		// Command
-		"CmdHistoryBack":    bind(v.app.StatusBar.PromptHistoryBack),
-		"CmdHistoryForward": bind(v.app.StatusBar.PromptHistoryForward),
+		"CmdHistoryBack":    bind(vim.app.StatusBar.PromptHistoryBack),
+		"CmdHistoryForward": bind(vim.app.StatusBar.PromptHistoryForward),
 
 		// Search
-		"CmdSearchHistoryBack":    bind(v.app.StatusBar.SearchHistoryBack),
-		"CmdSearchHistoryForward": bind(v.app.StatusBar.SearchHistoryForward),
+		"CmdSearchHistoryBack":    bind(vim.app.StatusBar.SearchHistoryBack),
+		"CmdSearchHistoryForward": bind(vim.app.StatusBar.SearchHistoryForward),
 	}
 }
 
@@ -138,21 +138,21 @@ func bind(fn func() StatusBarMsg) ki.Motion {
 
 // lineUp moves the cursor one line up in the currently focused column.
 // Ignores editor since it is handled differently
-func (v *Vim) lineDown(opts ki.Options) func() StatusBarMsg {
+func (vim *Vim) lineDown(opts ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
 		msg := StatusBarMsg{}
 
-		if f := v.focusedComponent(); f != nil {
+		if f := vim.focusedComponent(); f != nil {
 			f.LineDown()
 
-			if f == v.app.DirTree {
-				msg = v.app.DirTree.ContentInfo()
+			if f == vim.app.DirTree {
+				msg = vim.app.DirTree.ContentInfo()
 			}
 		}
 
-		if v.app.Editor.Focused() {
+		if vim.app.Editor.Focused() {
 			multiline := opts.GetBool(ki.Args.MultiLine)
-			msg = v.app.Editor.LineDown(multiline)
+			msg = vim.app.Editor.LineDown(multiline)
 		}
 
 		return msg
@@ -161,21 +161,21 @@ func (v *Vim) lineDown(opts ki.Options) func() StatusBarMsg {
 
 // lineUp moves the cursor one line up in the currently focused column.
 // Ignores editor since it is handled differently
-func (v *Vim) lineUp(opts ki.Options) func() StatusBarMsg {
+func (vim *Vim) lineUp(opts ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
 		msg := StatusBarMsg{}
 
-		if f := v.focusedComponent(); f != nil {
+		if f := vim.focusedComponent(); f != nil {
 			f.LineUp()
 
-			if f == v.app.DirTree {
-				msg = v.app.DirTree.ContentInfo()
+			if f == vim.app.DirTree {
+				msg = vim.app.DirTree.ContentInfo()
 			}
 		}
 
-		if v.app.Editor.Focused() {
+		if vim.app.Editor.Focused() {
 			multiline := opts.GetBool(ki.Args.MultiLine)
-			msg = v.app.Editor.LineUp(multiline)
+			msg = vim.app.Editor.LineUp(multiline)
 		}
 
 		return msg
@@ -183,14 +183,14 @@ func (v *Vim) lineUp(opts ki.Options) func() StatusBarMsg {
 }
 
 // goToTop moves the current item of focused list to its first item
-func (v *Vim) goToTop(_ ki.Options) func() StatusBarMsg {
+func (vim *Vim) goToTop(_ ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
-		if f := v.focusedComponent(); f != nil {
+		if f := vim.focusedComponent(); f != nil {
 			return f.GoToTop()
 		}
 
-		if v.app.Editor.Focused() {
-			return v.app.Editor.GoToTop()
+		if vim.app.Editor.Focused() {
+			return vim.app.Editor.GoToTop()
 		}
 
 		return StatusBarMsg{}
@@ -198,14 +198,14 @@ func (v *Vim) goToTop(_ ki.Options) func() StatusBarMsg {
 }
 
 // goToBottom moves the current item of the focused list to its last item
-func (v *Vim) goToBottom(_ ki.Options) func() StatusBarMsg {
+func (vim *Vim) goToBottom(_ ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
-		if f := v.focusedComponent(); f != nil {
+		if f := vim.focusedComponent(); f != nil {
 			return f.GoToBottom()
 		}
 
-		if v.app.Editor.Focused() {
-			return v.app.Editor.GoToBottom()
+		if vim.app.Editor.Focused() {
+			return vim.app.Editor.GoToBottom()
 		}
 
 		return StatusBarMsg{}
@@ -214,10 +214,10 @@ func (v *Vim) goToBottom(_ ki.Options) func() StatusBarMsg {
 
 // focusNextColumn selects and highlights the respectivley next of the
 // currently selected column.
-func (v *Vim) focusNextColumn(opts ki.Options) func() StatusBarMsg {
+func (vim *Vim) focusNextColumn(opts ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
 		nbrCols := 3
-		currenColumn := v.app.CurrColFocus
+		currenColumn := vim.app.CurrColFocus
 
 		cycle := opts.GetBool(ki.Args.Cycle)
 
@@ -226,16 +226,16 @@ func (v *Vim) focusNextColumn(opts ki.Options) func() StatusBarMsg {
 		}
 
 		index := min(currenColumn+1, nbrCols)
-		return v.FocusColumn(index)
+		return vim.FocusColumn(index)
 	}
 }
 
 // focusPrevColumn selects and highlights the respectivley previous of the
 // currently selected column.
-func (v *Vim) focusPrevColumn(opts ki.Options) func() StatusBarMsg {
+func (vim *Vim) focusPrevColumn(opts ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
 		firstCol := 1
-		currenColumn := v.app.CurrColFocus
+		currenColumn := vim.app.CurrColFocus
 
 		cycle := opts.GetBool(ki.Args.Cycle)
 
@@ -244,55 +244,55 @@ func (v *Vim) focusPrevColumn(opts ki.Options) func() StatusBarMsg {
 		}
 
 		column := max(currenColumn-1, firstCol)
-		return v.FocusColumn(column)
+		return vim.FocusColumn(column)
 	}
 }
 
 // focusDirectoryTree is a helper function
 // for selecting the directory tree
-func (v *Vim) focusDirectoryTree(_ ki.Options) func() StatusBarMsg {
+func (vim *Vim) focusDirectoryTree(_ ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
-		return v.FocusColumn(1)
+		return vim.FocusColumn(1)
 	}
 }
 
 // focusNotesList() is a helper function
 // for selecting the notes list
-func (v *Vim) focusNotesList(_ ki.Options) func() StatusBarMsg {
+func (vim *Vim) focusNotesList(_ ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
-		return v.FocusColumn(2)
+		return vim.FocusColumn(2)
 	}
 }
 
 // focusEditor is a helper function
 // for selecting the editor
-func (v *Vim) focusEditor(_ ki.Options) func() StatusBarMsg {
+func (vim *Vim) focusEditor(_ ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
-		return v.FocusColumn(3)
+		return vim.FocusColumn(3)
 	}
 }
 
 // rename enters insert mode and renames the selected item
 // in the directory or note list
-func (v *Vim) rename(_ ki.Options) func() StatusBarMsg {
+func (vim *Vim) rename(_ ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
-		if v.app.DirTree.Focused() || v.app.NotesList.Focused() {
-			v.app.Mode.Current = mode.Insert
-			v.app.StatusBar.Focused = false
+		if vim.app.DirTree.Focused() || vim.app.NotesList.Focused() {
+			vim.app.Mode.Current = mode.Insert
+			vim.app.StatusBar.Focused = false
 		}
 
-		if v.app.DirTree.Focused() {
-			if v.app.DirTree.SelectedIndex > 0 {
-				return v.app.DirTree.Rename(
-					v.app.DirTree.SelectedDir().Name(),
+		if vim.app.DirTree.Focused() {
+			if vim.app.DirTree.SelectedIndex > 0 {
+				return vim.app.DirTree.Rename(
+					vim.app.DirTree.SelectedDir().Name(),
 				)
 			}
-			v.app.Mode.Current = mode.Normal
+			vim.app.Mode.Current = mode.Normal
 		}
 
-		if v.app.NotesList.Focused() {
-			return v.app.NotesList.Rename(
-				v.app.NotesList.SelectedItem(nil).Name(),
+		if vim.app.NotesList.Focused() {
+			return vim.app.NotesList.Rename(
+				vim.app.NotesList.SelectedItem(nil).Name(),
 			)
 		}
 		return StatusBarMsg{}
@@ -301,30 +301,30 @@ func (v *Vim) rename(_ ki.Options) func() StatusBarMsg {
 
 // delete enters insert mode and triggers a delete confirmation
 // for the focused component
-func (v *Vim) delete(_ ki.Options) func() StatusBarMsg {
+func (vim *Vim) delete(_ ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
 		// go into insert mode because we always ask for
 		// confirmation before deleting anything
-		v.app.Mode.Current = mode.Insert
+		vim.app.Mode.Current = mode.Insert
 
 		statusMsg := StatusBarMsg{}
 
-		if f := v.focusedComponent(); f != nil {
-			v.app.StatusBar.Focused = true
+		if f := vim.focusedComponent(); f != nil {
+			vim.app.StatusBar.Focused = true
 			statusMsg = f.ConfirmRemove()
 		}
 
 		if statusMsg.Type == message.None {
-			v.app.Mode.Current = mode.Normal
+			vim.app.Mode.Current = mode.Normal
 		}
 
 		return statusMsg
 	}
 }
 
-func (v *Vim) yankListItem(_ ki.Options) func() StatusBarMsg {
+func (vim *Vim) yankListItem(_ ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
-		if f := v.focusedComponent(); f != nil {
+		if f := vim.focusedComponent(); f != nil {
 			f.YankSelection(false)
 		}
 
@@ -332,18 +332,18 @@ func (v *Vim) yankListItem(_ ki.Options) func() StatusBarMsg {
 	}
 }
 
-func (v *Vim) cutListItem(_ ki.Options) func() StatusBarMsg {
+func (vim *Vim) cutListItem(_ ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
-		if f := v.focusedComponent(); f != nil {
+		if f := vim.focusedComponent(); f != nil {
 			f.YankSelection(true)
 		}
 		return StatusBarMsg{}
 	}
 }
 
-func (v *Vim) pasteListItem(_ ki.Options) func() StatusBarMsg {
+func (vim *Vim) pasteListItem(_ ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
-		if f := v.focusedComponent(); f != nil {
+		if f := vim.focusedComponent(); f != nil {
 			return f.PasteSelectedItems()
 		}
 
@@ -352,48 +352,48 @@ func (v *Vim) pasteListItem(_ ki.Options) func() StatusBarMsg {
 }
 
 // togglePin pins or unpins the selected item to the top of the list
-func (v *Vim) togglePin(_ ki.Options) func() StatusBarMsg {
+func (vim *Vim) togglePin(_ ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
-		if f := v.focusedComponent(); f != nil {
+		if f := vim.focusedComponent(); f != nil {
 			return f.TogglePinnedItems()
 		}
 		return StatusBarMsg{}
 	}
 }
 
-func (v *Vim) refreshList(_ ki.Options) func() StatusBarMsg {
+func (vim *Vim) refreshList(_ ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
-		v.app.DirTree.RefreshBranch(0, v.app.DirTree.SelectedIndex)
-		v.app.DirTree.Refresh(false, false)
-		v.app.DirTree.Refresh(false, false)
+		vim.app.DirTree.RefreshBranch(0, vim.app.DirTree.SelectedIndex)
+		vim.app.DirTree.Refresh(false, false)
+		vim.app.DirTree.Refresh(false, false)
 		return StatusBarMsg{}
 	}
 }
 
 // createDir enters insert mode and triggers directory creation
-func (v *Vim) createDir(_ ki.Options) func() StatusBarMsg {
+func (vim *Vim) createDir(_ ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
-		return v.app.DirTree.Create(v.app.Mode, v.app.StatusBar)
+		return vim.app.DirTree.Create(vim.app.Mode, vim.app.StatusBar)
 	}
 }
 
 // createNote enters insert mode and triggers notes creation
-func (v *Vim) createNote(_ ki.Options) func() StatusBarMsg {
+func (vim *Vim) createNote(_ ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
-		return v.app.NotesList.Create(v.app.Mode, v.app.StatusBar)
+		return vim.app.NotesList.Create(vim.app.Mode, vim.app.StatusBar)
 	}
 }
 
-func (v *Vim) enterCmdMode(_ ki.Options) func() StatusBarMsg {
+func (vim *Vim) enterCmdMode(_ ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
-		if v.app.Mode.Current != mode.Normal {
+		if vim.app.Mode.Current != mode.Normal {
 			return StatusBarMsg{}
 		}
 
-		v.app.Editor.Mode.Current = mode.Command
-		v.app.Mode.Current = mode.Command
-		v.app.StatusBar.Focused = true
-		v.app.State.ResetIndex()
+		vim.app.Editor.Mode.Current = mode.Command
+		vim.app.Mode.Current = mode.Command
+		vim.app.StatusBar.Focused = true
+		vim.app.State.ResetIndex()
 
 		return StatusBarMsg{
 			Type:   message.Prompt,
@@ -403,21 +403,21 @@ func (v *Vim) enterCmdMode(_ ki.Options) func() StatusBarMsg {
 }
 
 // showBufferList opens an overlay showing all open buffers
-func (v *Vim) showBufferList(_ ki.Options) func() StatusBarMsg {
+func (vim *Vim) showBufferList(_ ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
-		v.OverlayOpenBuffers()
+		vim.OverlayOpenBuffers()
 		return StatusBarMsg{}
 	}
 }
 
 // closeBufferList opens an overlay showing all open buffers
-func (v *Vim) closeBufferList(_ ki.Options) func() StatusBarMsg {
+func (vim *Vim) closeBufferList(_ ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
-		if v.app.BufferList.Focused() {
-			v.app.BufferList.Hide()
-			v.FocusColumn(v.app.CurrColFocus)
-			v.app.CurrentOverlay = nil
-			v.app.BufferList.Blur()
+		if vim.app.BufferList.Focused() {
+			vim.app.BufferList.Hide()
+			vim.FocusColumn(vim.app.CurrColFocus)
+			vim.app.CurrentOverlay = nil
+			vim.app.BufferList.Blur()
 		}
 		return StatusBarMsg{}
 	}
@@ -425,57 +425,57 @@ func (v *Vim) closeBufferList(_ ki.Options) func() StatusBarMsg {
 
 // confirmAction performs the primary action for the focused component,
 // or loads note data into the editor if in normal mode.
-func (v *Vim) confirmAction(opts ki.Options) func() StatusBarMsg {
+func (vim *Vim) confirmAction(opts ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
 		statusMsg := StatusBarMsg{}
 
-		f := v.focusedComponent()
+		f := vim.focusedComponent()
 
-		if v.app.StatusBar.Focused {
-			statusMsg = v.app.StatusBar.ConfirmAction(statusMsg.Sender, f)
-			v.app.Editor.Mode.Current = mode.Normal
+		if vim.app.StatusBar.Focused {
+			statusMsg = vim.app.StatusBar.ConfirmAction(statusMsg.Sender, f)
+			vim.app.Editor.Mode.Current = mode.Normal
 		}
 
-		if v.app.Mode.Current != mode.Normal &&
-			!v.app.StatusBar.Focused &&
-			!v.app.Editor.Focused() {
+		if vim.app.Mode.Current != mode.Normal &&
+			!vim.app.StatusBar.Focused &&
+			!vim.app.Editor.Focused() {
 
 			statusMsg = f.ConfirmAction()
 		} else {
 			// only open stuff if we're in normal mode
-			if v.app.Mode.Current != mode.Normal {
-				v.app.Mode.Current = mode.Normal
+			if vim.app.Mode.Current != mode.Normal {
+				vim.app.Mode.Current = mode.Normal
 				return statusMsg
 			}
 
 			switch f {
-			case v.app.DirTree:
-				path := v.app.DirTree.SelectedDir().Path()
-				v.app.NotesList.CurrentPath = path
-				v.app.Conf.SetMetaValue("", config.LastDirectory, path)
-				statusMsg = v.app.NotesList.Refresh(true, true)
+			case vim.app.DirTree:
+				path := vim.app.DirTree.SelectedDir().Path()
+				vim.app.NotesList.CurrentPath = path
+				vim.app.Conf.SetMetaValue("", config.LastDirectory, path)
+				statusMsg = vim.app.NotesList.Refresh(true, true)
 
-			case v.app.NotesList:
-				if sel := v.app.NotesList.SelectedItem(nil); sel != nil {
-					statusMsg = v.app.Editor.OpenBuffer(sel.Path())
+			case vim.app.NotesList:
+				if sel := vim.app.NotesList.SelectedItem(nil); sel != nil {
+					statusMsg = vim.app.Editor.OpenBuffer(sel.Path())
 				}
 
-			case v.app.BufferList:
-				items := v.app.BufferList.Items
-				sel := items[v.app.BufferList.SelectedIndex]
+			case vim.app.BufferList:
+				items := vim.app.BufferList.Items
+				sel := items[vim.app.BufferList.SelectedIndex]
 
 				statusMsg.Cmd = editor.SendSwitchBufferMsg(
 					sel.Path(),
 					true,
 				)
 
-				v.app.BufferList.Blur()
-				v.app.CurrentOverlay = nil
+				vim.app.BufferList.Blur()
+				vim.app.CurrentOverlay = nil
 			}
 		}
 
-		v.app.Mode.Current = mode.Normal
-		v.app.UpdateComponents(statusMsg)
+		vim.app.Mode.Current = mode.Normal
+		vim.app.UpdateComponents(statusMsg)
 
 		return statusMsg
 	}
@@ -483,21 +483,21 @@ func (v *Vim) confirmAction(opts ki.Options) func() StatusBarMsg {
 
 // cancelAction resets mode to normal
 // and cancels pending actions in the focused component.
-func (v *Vim) cancelAction(opts ki.Options) func() StatusBarMsg {
+func (vim *Vim) cancelAction(opts ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
-		v.app.Mode.Current = mode.Normal
-		v.app.StatusBar.Focused = false
+		vim.app.Mode.Current = mode.Normal
+		vim.app.StatusBar.Focused = false
 
-		if v.app.StatusBar.Prompt.Focused() {
-			v.app.StatusBar.CancelAction(func() {})
-			return v.enterNormalMode(opts)()
+		if vim.app.StatusBar.Prompt.Focused() {
+			vim.app.StatusBar.CancelAction(func() {})
+			return vim.enterNormalMode(opts)()
 		} else {
-			if f := v.focusedComponent(); f != nil {
+			if f := vim.focusedComponent(); f != nil {
 				resetIndex := false
 				stateCreate := shared.EditStates.Create
 
-				if v.app.DirTree.EditState == stateCreate ||
-					v.app.NotesList.EditState == stateCreate {
+				if vim.app.DirTree.EditState == stateCreate ||
+					vim.app.NotesList.EditState == stateCreate {
 					resetIndex = true
 				}
 
@@ -516,33 +516,33 @@ func (v *Vim) cancelAction(opts ki.Options) func() StatusBarMsg {
 	}
 }
 
-func (v *Vim) deleteSelectedBuffer(_ ki.Options) func() StatusBarMsg {
+func (vim *Vim) deleteSelectedBuffer(_ ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
-		if !v.app.BufferList.Focused() {
+		if !vim.app.BufferList.Focused() {
 			return StatusBarMsg{}
 		}
 
-		if buffer := v.app.BufferList.SelectedBuffer(); buffer != nil {
-			v.app.Editor.DeleteBuffer(buffer.Path())
+		if buffer := vim.app.BufferList.SelectedBuffer(); buffer != nil {
+			vim.app.Editor.DeleteBuffer(buffer.Path())
 		}
 
 		return StatusBarMsg{}
 	}
 }
 
-func (v *Vim) newScratchBuffer(_ ki.Options) func() StatusBarMsg {
+func (vim *Vim) newScratchBuffer(_ ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
-		statusMsg := v.app.Editor.NewScratchBuffer("Scratch", "")
-		v.app.Editor.Textarea.SetValue("")
+		statusMsg := vim.app.Editor.NewScratchBuffer("Scratch", "")
+		vim.app.Editor.Textarea.SetValue("")
 		return statusMsg
 	}
 }
 
-func (v *Vim) enterNormalMode(_ ki.Options) func() StatusBarMsg {
+func (vim *Vim) enterNormalMode(_ ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
-		v.app.Editor.Mode.Current = mode.Normal
-		v.app.Mode.Current = mode.Normal
-		v.app.StatusBar.Focused = false
+		vim.app.Editor.Mode.Current = mode.Normal
+		vim.app.Mode.Current = mode.Normal
+		vim.app.StatusBar.Focused = false
 
 		return StatusBarMsg{
 			Content: "",
@@ -552,139 +552,139 @@ func (v *Vim) enterNormalMode(_ ki.Options) func() StatusBarMsg {
 	}
 }
 
-func (v *Vim) toggleVisual(opts ki.Options) func() StatusBarMsg {
+func (vim *Vim) toggleVisual(opts ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
-		if v.app.Editor.Mode.Current == mode.Visual {
-			return v.app.Editor.EnterNormalMode(true)
+		if vim.app.Editor.Mode.Current == mode.Visual {
+			return vim.app.Editor.EnterNormalMode(true)
 		}
 
-		return v.app.Editor.EnterVisualMode(textarea.SelectVisual)
+		return vim.app.Editor.EnterVisualMode(textarea.SelectVisual)
 	}
 }
 
-func (v *Vim) toggleVisualLine(opts ki.Options) func() StatusBarMsg {
+func (vim *Vim) toggleVisualLine(opts ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
-		if v.app.Editor.Mode.Current == mode.VisualLine {
-			return v.app.Editor.EnterNormalMode(true)
+		if vim.app.Editor.Mode.Current == mode.VisualLine {
+			return vim.app.Editor.EnterNormalMode(true)
 		}
 
-		return v.app.Editor.EnterVisualMode(textarea.SelectVisualLine)
+		return vim.app.Editor.EnterVisualMode(textarea.SelectVisualLine)
 	}
 }
 
-func (v *Vim) toggleVisualBlock(opts ki.Options) func() StatusBarMsg {
+func (vim *Vim) toggleVisualBlock(opts ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
-		if v.app.Editor.Mode.Current == mode.VisualBlock {
-			return v.app.Editor.EnterNormalMode(true)
+		if vim.app.Editor.Mode.Current == mode.VisualBlock {
+			return vim.app.Editor.EnterNormalMode(true)
 		}
 
-		return v.app.Editor.EnterVisualMode(textarea.SelectVisualBlock)
+		return vim.app.Editor.EnterVisualMode(textarea.SelectVisualBlock)
 	}
 }
 
-func (v *Vim) enterInsertMode(_ ki.Options) func() StatusBarMsg {
+func (vim *Vim) enterInsertMode(_ ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
-		return v.app.Editor.EnterInsertMode(true)
+		return vim.app.Editor.EnterInsertMode(true)
 	}
 }
 
-func (v *Vim) insertBelow(_ ki.Options) func() StatusBarMsg {
+func (vim *Vim) insertBelow(_ ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
-		return v.app.Editor.InsertLine(false)
+		return vim.app.Editor.InsertLine(false)
 	}
 }
 
-func (m *Vim) insertAbove(_ ki.Options) func() StatusBarMsg {
+func (vim *Vim) insertAbove(_ ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
-		return m.app.Editor.InsertLine(true)
+		return vim.app.Editor.InsertLine(true)
 	}
 }
 
-func (v *Vim) selectWord(opts ki.Options) func() StatusBarMsg {
+func (vim *Vim) selectWord(opts ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
 		outer := opts.GetBool(ki.Args.Outer)
-		return v.app.Editor.SelectWord(outer)
+		return vim.app.Editor.SelectWord(outer)
 	}
 }
 
-func (v *Vim) nextWord(opts ki.Options) func() StatusBarMsg {
+func (vim *Vim) nextWord(opts ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
 		end := opts.GetBool(ki.Args.End)
-		return v.app.Editor.WordForward(end)
+		return vim.app.Editor.WordForward(end)
 	}
 }
 
-func (v *Vim) prevWord(opts ki.Options) func() StatusBarMsg {
+func (vim *Vim) prevWord(opts ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
 		end := opts.GetBool(ki.Args.End)
-		return v.app.Editor.WordBack(end)
+		return vim.app.Editor.WordBack(end)
 	}
 }
 
-func (v *Vim) findCharacter(opts ki.Options) func() StatusBarMsg {
+func (vim *Vim) findCharacter(opts ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
-		action := *v.KeyMap.AwaitInputAction
+		action := *vim.KeyMap.AwaitInputAction
 		binding := []rune(action.Binding())
 
 		prev := action.Opts().GetBool(ki.Args.Prev)
 		input := action.Opts().GetBool(ki.Args.Insert)
-		char := v.KeyMap.KeySequence[len(binding):]
+		char := vim.KeyMap.KeySequence[len(binding):]
 
-		v.app.Editor.FindCharacter(char, prev)
+		vim.app.Editor.FindCharacter(char, prev)
 
 		if input {
-			v.app.Editor.EnterInsertMode(true)
+			vim.app.Editor.EnterInsertMode(true)
 		}
 
 		return message.StatusBarMsg{}
 	}
 }
 
-func (v *Vim) findWordUnderCursor(opts ki.Options) func() StatusBarMsg {
+func (vim *Vim) findWordUnderCursor(opts ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
-		if len(v.app.Editor.Textarea.Search.Matches) > 0 {
-			v.app.Editor.Textarea.FindNextMatch()
+		if len(vim.app.Editor.Textarea.Search.Matches) > 0 {
+			vim.app.Editor.Textarea.FindNextMatch()
 			return message.StatusBarMsg{}
 		} else {
 
-			v.app.Editor.Textarea.SelectInnerWord()
-			word := v.app.Editor.Textarea.SelectionStr()
-			v.app.Editor.Textarea.ResetSelection()
+			vim.app.Editor.Textarea.SelectInnerWord()
+			word := vim.app.Editor.Textarea.SelectionStr()
+			vim.app.Editor.Textarea.ResetSelection()
 
 			if !unicode.IsLetter([]rune(word)[0]) {
-				v.app.Editor.Textarea.WordRight()
-				return v.findWordUnderCursor(opts)()
+				vim.app.Editor.Textarea.WordRight()
+				return vim.findWordUnderCursor(opts)()
 			}
 
-			v.app.Editor.Textarea.Search = textarea.Search{
+			vim.app.Editor.Textarea.Search = textarea.Search{
 				IgnoreCase: opts.GetBool(ki.Args.IgnoreCase),
 				Matches:    make(map[int][]int, 1),
 				Query:      word,
 				ExactWord:  true,
 			}
 
-			v.app.Editor.Mode.Current = mode.SearchPrompt
-			v.app.Mode.Current = mode.SearchPrompt
+			vim.app.Editor.Mode.Current = mode.SearchPrompt
+			vim.app.Mode.Current = mode.SearchPrompt
 
 			return StatusBarMsg{
 				Type:   message.Prompt,
 				Column: sbc.General,
-				Cmd:    v.app.Editor.SendSearchConfirmedMsg(true),
+				Cmd:    vim.app.Editor.SendSearchConfirmedMsg(true),
 			}
 		}
 	}
 }
 
-func (v *Vim) find(opts ki.Options) func() StatusBarMsg {
+func (vim *Vim) find(opts ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
-		v.app.Editor.Textarea.Search = textarea.Search{
+		vim.app.Editor.Textarea.Search = textarea.Search{
 			IgnoreCase: opts.GetBool(ki.Args.IgnoreCase),
 			Matches:    make(map[int][]int, 1),
 		}
 
-		v.app.Editor.Mode.Current = mode.SearchPrompt
-		v.app.Mode.Current = mode.SearchPrompt
-		v.app.StatusBar.Focused = true
+		vim.app.Editor.Mode.Current = mode.SearchPrompt
+		vim.app.Mode.Current = mode.SearchPrompt
+		vim.app.StatusBar.Focused = true
 
 		return StatusBarMsg{
 			Type:   message.Prompt,
@@ -693,66 +693,66 @@ func (v *Vim) find(opts ki.Options) func() StatusBarMsg {
 	}
 }
 
-func (v *Vim) moveToMatch(opts ki.Options) func() StatusBarMsg {
+func (vim *Vim) moveToMatch(opts ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
 		if opts.GetBool("prev") {
-			v.app.Editor.Textarea.FindPrevMatch()
+			vim.app.Editor.Textarea.FindPrevMatch()
 		} else {
-			v.app.Editor.Textarea.FindNextMatch()
+			vim.app.Editor.Textarea.FindNextMatch()
 		}
 		return StatusBarMsg{}
 	}
 }
 
-func (v *Vim) deleteWord(opts ki.Options) func() StatusBarMsg {
+func (vim *Vim) deleteWord(opts ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
 		outer := opts.GetBool(ki.Args.Outer)
 
 		if opts.GetBool(ki.Args.Remaining) {
-			return v.app.Editor.DeleteWordRight()
+			return vim.app.Editor.DeleteWordRight()
 		}
 
-		return v.app.Editor.DeleteWord(outer, false)
+		return vim.app.Editor.DeleteWord(outer, false)
 	}
 }
 
-func (v *Vim) deleteAfterCursor(opts ki.Options) func() StatusBarMsg {
+func (vim *Vim) deleteAfterCursor(opts ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
-		return v.app.Editor.DeleteAfterCursor(false)
+		return vim.app.Editor.DeleteAfterCursor(false)
 	}
 }
 
-func (v *Vim) deleteSelection(_ ki.Options) func() StatusBarMsg {
+func (vim *Vim) deleteSelection(_ ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
-		if v.app.Mode.IsAnyVisual() {
-			return v.app.Editor.DeleteRune(false, true, false)
+		if vim.app.Mode.IsAnyVisual() {
+			return vim.app.Editor.DeleteRune(false, true, false)
 		}
 		return StatusBarMsg{}
 	}
 }
 
-func (v *Vim) deleteCharacter(_ ki.Options) func() StatusBarMsg {
+func (vim *Vim) deleteCharacter(_ ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
-		return v.app.Editor.DeleteRune(false, true, false)
+		return vim.app.Editor.DeleteRune(false, true, false)
 	}
 }
 
-func (v *Vim) deleteFromCursorToChar(opts ki.Options) func() StatusBarMsg {
+func (vim *Vim) deleteFromCursorToChar(opts ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
-		action := *v.KeyMap.AwaitInputAction
+		action := *vim.KeyMap.AwaitInputAction
 		binding := []rune(action.Binding())
 
 		includeChar := action.Opts().GetBool(ki.Args.Include)
 		prev := action.Opts().GetBool(ki.Args.Prev)
-		char := v.KeyMap.KeySequence[len(binding):]
+		char := vim.KeyMap.KeySequence[len(binding):]
 
-		if ok := v.app.Editor.Textarea.DeleteFromCursorToChar(
+		if ok := vim.app.Editor.Textarea.DeleteFromCursorToChar(
 			char,
 			includeChar,
 			prev,
 		); ok {
 			if action.Opts().GetBool(ki.Args.Insert) {
-				v.app.Editor.EnterInsertMode(true)
+				vim.app.Editor.EnterInsertMode(true)
 			}
 		}
 
@@ -760,126 +760,126 @@ func (v *Vim) deleteFromCursorToChar(opts ki.Options) func() StatusBarMsg {
 	}
 }
 
-func (v *Vim) substituteText(opts ki.Options) func() StatusBarMsg {
+func (vim *Vim) substituteText(opts ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
-		msg := v.app.Editor.DeleteRune(false, true, false)
+		msg := vim.app.Editor.DeleteRune(false, true, false)
 
 		if opts.GetBool(ki.Args.NewLine) {
-			v.app.Editor.Textarea.EmptyLineAbove()
+			vim.app.Editor.Textarea.EmptyLineAbove()
 		}
 
-		v.app.Editor.EnterInsertMode(false)
+		vim.app.Editor.EnterInsertMode(false)
 
 		return msg
 	}
 }
 
-func (v *Vim) changeAfterCursor(opts ki.Options) func() StatusBarMsg {
+func (vim *Vim) changeAfterCursor(opts ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
-		v.app.Editor.DeleteAfterCursor(true)
-		v.app.Editor.MoveCharacterRight()
-		v.app.Editor.EnterInsertMode(false)
+		vim.app.Editor.DeleteAfterCursor(true)
+		vim.app.Editor.MoveCharacterRight()
+		vim.app.Editor.EnterInsertMode(false)
 
 		return StatusBarMsg{}
 	}
 }
 
-func (v *Vim) changeLine(_ ki.Options) func() StatusBarMsg {
+func (vim *Vim) changeLine(_ ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
-		v.app.Editor.GoToLineStart()
-		v.app.Editor.DeleteAfterCursor(false)
-		v.app.Editor.EnterInsertMode(false)
+		vim.app.Editor.GoToLineStart()
+		vim.app.Editor.DeleteAfterCursor(false)
+		vim.app.Editor.EnterInsertMode(false)
 
-		return v.app.Editor.ResetSelectedRowsCount()
+		return vim.app.Editor.ResetSelectedRowsCount()
 	}
 }
 
-func (v *Vim) changeWord(opts ki.Options) func() StatusBarMsg {
+func (vim *Vim) changeWord(opts ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
 		outer := opts.GetBool(ki.Args.Outer)
 
 		if opts.GetBool(ki.Args.Remaining) {
-			v.app.Editor.DeleteWordRight()
-			return v.app.Editor.EnterInsertMode(false)
+			vim.app.Editor.DeleteWordRight()
+			return vim.app.Editor.EnterInsertMode(false)
 		}
 
-		return v.app.Editor.DeleteWord(outer, true)
+		return vim.app.Editor.DeleteWord(outer, true)
 	}
 }
 
-func (v *Vim) yankSelection(_ ki.Options) func() StatusBarMsg {
+func (vim *Vim) yankSelection(_ ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
-		return v.app.Editor.YankSelection(false)
+		return vim.app.Editor.YankSelection(false)
 	}
 }
 
-func (v *Vim) yankWord(opts ki.Options) func() StatusBarMsg {
+func (vim *Vim) yankWord(opts ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
 		outer := opts.GetBool("outer")
-		return v.app.Editor.YankWord(outer)
+		return vim.app.Editor.YankWord(outer)
 	}
 }
 
-func (v *Vim) paste(opts ki.Options) func() StatusBarMsg {
+func (vim *Vim) paste(opts ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
 		// If we're in any visual mode delete the selection without
 		// history and yanking right away
 		//
 		// @todo when undoing this step the cursor is one character left of
 		// the word we replace - fix this
-		if v.app.Mode.IsAnyVisual() {
-			v.app.Editor.DeleteRune(true, false, true)
-			v.app.Editor.MoveCharacterLeft()
+		if vim.app.Mode.IsAnyVisual() {
+			vim.app.Editor.DeleteRune(true, false, true)
+			vim.app.Editor.MoveCharacterLeft()
 		}
 
-		msg := v.app.Editor.Paste()
+		msg := vim.app.Editor.Paste()
 
-		v.selectWord(opts)
+		vim.selectWord(opts)
 		return msg
 	}
 }
 
-func (v *Vim) changeToLowerCase(_ ki.Options) func() StatusBarMsg {
+func (vim *Vim) changeToLowerCase(_ ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
-		return v.app.Editor.ChangeCaseOfSelection(false)
+		return vim.app.Editor.ChangeCaseOfSelection(false)
 	}
 }
 
-func (v *Vim) changeToUpperCase(_ ki.Options) func() StatusBarMsg {
+func (vim *Vim) changeToUpperCase(_ ki.Options) func() StatusBarMsg {
 	return func() StatusBarMsg {
-		return v.app.Editor.ChangeCaseOfSelection(true)
+		return vim.app.Editor.ChangeCaseOfSelection(true)
 	}
 }
 
-func (v *Vim) OverlayOpenBuffers() {
-	ov := v.app.BufferList.Overlay
+func (vim *Vim) OverlayOpenBuffers() {
+	ov := vim.app.BufferList.Overlay
 
-	v.app.BufferList.Show()
-	v.app.BufferList.Focus()
-	v.app.CurrentOverlay = ov
-	v.app.UpdateComponents(false)
+	vim.app.BufferList.Show()
+	vim.app.BufferList.Focus()
+	vim.app.CurrentOverlay = ov
+	vim.app.UpdateComponents(false)
 }
 
 // FocusColumn selects and higlights a column with index `index`
 // (1=dirTree, 2=notesList, 3=editor)
-func (v *Vim) FocusColumn(index int) StatusBarMsg {
-	v.app.Conf.SetMetaValue("", config.CurrentComponent, strconv.Itoa(index))
+func (vim *Vim) FocusColumn(index int) StatusBarMsg {
+	vim.app.Conf.SetMetaValue("", config.CurrentComponent, strconv.Itoa(index))
 
-	v.app.DirTree.SetFocus(index == 1)
-	v.app.DirTree.BuildHeader(v.app.DirTree.Size.Width, true)
+	vim.app.DirTree.SetFocus(index == 1)
+	vim.app.DirTree.BuildHeader(vim.app.DirTree.Size.Width, true)
 
-	v.app.NotesList.SetFocus(index == 2)
-	v.app.NotesList.BuildHeader(v.app.NotesList.Size.Width, true)
+	vim.app.NotesList.SetFocus(index == 2)
+	vim.app.NotesList.BuildHeader(vim.app.NotesList.Size.Width, true)
 
-	v.app.Editor.SetFocus(index == 3)
-	v.app.Editor.BuildHeader(v.app.Editor.Size.Width, true)
+	vim.app.Editor.SetFocus(index == 3)
+	vim.app.Editor.BuildHeader(vim.app.Editor.Size.Width, true)
 
-	v.app.CurrColFocus = index
-	v.KeyMap.FetchKeyMap(true)
+	vim.app.CurrColFocus = index
+	vim.KeyMap.FetchKeyMap(true)
 
 	if index == 3 {
-		relPath := utils.RelativePath(v.app.Editor.CurrentBuffer.Path(false), true)
-		icon := theme.Icon(theme.IconNote, v.app.Conf.NerdFonts())
+		relPath := utils.RelativePath(vim.app.Editor.CurrentBuffer.Path(false), true)
+		icon := theme.Icon(theme.IconNote, vim.app.Conf.NerdFonts())
 		return StatusBarMsg{
 			Content: icon + " " + relPath,
 			Column:  sbc.FileInfo,
@@ -890,35 +890,35 @@ func (v *Vim) FocusColumn(index int) StatusBarMsg {
 }
 
 // focusedComponent returns the component that is currently focused
-func (v *Vim) focusedComponent() interfaces.Focusable {
-	if v.app.DirTree.Focused() {
-		return v.app.DirTree
+func (vim *Vim) focusedComponent() interfaces.Focusable {
+	if vim.app.DirTree.Focused() {
+		return vim.app.DirTree
 	}
 
-	if v.app.NotesList.Focused() {
-		return v.app.NotesList
+	if vim.app.NotesList.Focused() {
+		return vim.app.NotesList
 	}
 
-	if v.app.BufferList.Focused() {
-		return v.app.BufferList
+	if vim.app.BufferList.Focused() {
+		return vim.app.BufferList
 	}
 
 	return nil
 }
 
-func (v *Vim) UnfocusAllColumns() StatusBarMsg {
-	v.app.DirTree.Blur()
-	v.app.DirTree.BuildHeader(v.app.DirTree.Size.Width, true)
+func (vim *Vim) UnfocusAllColumns() StatusBarMsg {
+	vim.app.DirTree.Blur()
+	vim.app.DirTree.BuildHeader(vim.app.DirTree.Size.Width, true)
 
-	v.app.NotesList.Blur()
-	v.app.NotesList.BuildHeader(v.app.NotesList.Size.Width, true)
+	vim.app.NotesList.Blur()
+	vim.app.NotesList.BuildHeader(vim.app.NotesList.Size.Width, true)
 
-	v.app.Editor.Blur()
-	v.app.Editor.BuildHeader(v.app.Editor.Size.Width, true)
+	vim.app.Editor.Blur()
+	vim.app.Editor.BuildHeader(vim.app.Editor.Size.Width, true)
 
-	v.KeyMap.FetchKeyMap(true)
+	vim.KeyMap.FetchKeyMap(true)
 
-	v.app.StatusBar.Focused = false
+	vim.app.StatusBar.Focused = false
 
 	return StatusBarMsg{}
 }

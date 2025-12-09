@@ -13,13 +13,13 @@ type Vim struct {
 	app *application.App
 }
 
-func (v Vim) Mode() *mode.ModeInstance {
-	return v.app.Mode
+func (vim Vim) Mode() *mode.ModeInstance {
+	return vim.app.Mode
 }
 
 func New() *Vim { return &Vim{} }
 
-func (v *Vim) SetApp(app *application.App) {
-	v.app = app
-	v.KeyMap = nil
+func (vim *Vim) SetApp(app *application.App) {
+	vim.app = app
+	vim.KeyMap = nil
 }

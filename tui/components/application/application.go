@@ -71,7 +71,7 @@ func New(fc FocusController) *App {
 
 	state.Read()
 
-	a := App{
+	app := App{
 		Conf:         conf,
 		State:        state,
 		Mode:         &mode.ModeInstance{Current: mode.Normal},
@@ -85,16 +85,16 @@ func New(fc FocusController) *App {
 		focus:        fc,
 	}
 
-	a.StatusBar.State = state
+	app.StatusBar.State = state
 
 	conf.CleanMetaFile()
 
-	return &a
+	return &app
 }
 
 // restoreState restores the state of the TUI from the last session
-func (a *App) RestoreState() {
-	currComp, err := a.Conf.MetaValue("", config.CurrentComponent)
+func (app *App) RestoreState() {
+	currComp, err := app.Conf.MetaValue("", config.CurrentComponent)
 	colIndex := 1
 
 	if err == nil && currComp != "" {
@@ -103,70 +103,70 @@ func (a *App) RestoreState() {
 	}
 
 	// focus notes list if there's not open note in meta conf but
-	currentNote, err := a.Conf.MetaValue("", config.LastOpenNote)
+	currentNote, err := app.Conf.MetaValue("", config.LastOpenNote)
 	if err == nil && currentNote == "" {
 		colIndex = 2
 	}
 
-	a.focus.FocusColumn(colIndex)
+	app.focus.FocusColumn(colIndex)
 }
 
-func (a *App) componentsReady() bool {
-	return a.DirTree.IsReady && a.NotesList.IsReady && a.Editor.IsReady
+func (app *App) componentsReady() bool {
+	return app.DirTree.IsReady && app.NotesList.IsReady && app.Editor.IsReady
 }
 
 // updateComponents dispatches updates to the focused components
 // (directory tree, notes list, editor), updates the current editor mode
-func (a *App) UpdateComponents(msg tea.Msg) []tea.Cmd {
+func (app *App) UpdateComponents(msg tea.Msg) []tea.Cmd {
 	var cmds []tea.Cmd
 
-	a.DirTree.RefreshSize()
-	a.NotesList.RefreshSize()
-	a.BufferList.RefreshSize()
-	a.Editor.RefreshSize()
+	app.DirTree.RefreshSize()
+	app.NotesList.RefreshSize()
+	app.BufferList.RefreshSize()
+	app.Editor.RefreshSize()
 
-	if a.componentsReady() && !a.Editor.LastOpenNoteLoaded {
-		a.Editor.OpenLastNotes()
-		a.Editor.LastOpenNoteLoaded = true
+	if app.componentsReady() && !app.Editor.LastOpenNoteLoaded {
+		app.Editor.OpenLastNotes()
+		app.Editor.LastOpenNoteLoaded = true
 
 		cmds = append(cmds, shared.SendRefreshUiMsg())
 	}
 
 	// focus notes list if not buffer is open
-	if a.Editor.IsReady && len(*a.Editor.Buffers) == 0 {
+	if app.Editor.IsReady && len(*app.Editor.Buffers) == 0 {
 		//a.focusColumn(2)
 	}
 
-	if a.DirTree.Focused() {
-		a.DirTree.Mode = a.Mode.Current
-		_, cmd := a.DirTree.Update(msg)
+	if app.DirTree.Focused() {
+		app.DirTree.Mode = app.Mode.Current
+		_, cmd := app.DirTree.Update(msg)
 		cmds = append(cmds, cmd)
 	}
 
-	if a.NotesList.Focused() {
-		a.NotesList.Mode = a.Mode.Current
-		_, cmd := a.NotesList.Update(msg)
+	if app.NotesList.Focused() {
+		app.NotesList.Mode = app.Mode.Current
+		_, cmd := app.NotesList.Update(msg)
 		cmds = append(cmds, cmd)
 	}
 
-	if a.Editor.Focused() || a.BufferList.Focused() {
-		_, cmd := a.Editor.Update(msg)
+	if app.Editor.Focused() || app.BufferList.Focused() {
+		_, cmd := app.Editor.Update(msg)
 		cmds = append(cmds, cmd)
 
 		// sync modes
-		editorMode := a.Editor.Mode.Current
-		a.Mode.Current = editorMode
+		editorMode := app.Editor.Mode.Current
+		app.Mode.Current = editorMode
 
 		// ensure we canceled the search and removed all match
 		// highlights
-		if len(a.Editor.Textarea.Search.Matches) == 0 &&
-			a.Mode.Current != mode.SearchPrompt {
+		if len(app.Editor.Textarea.Search.Matches) == 0 &&
+			app.Mode.Current != mode.SearchPrompt {
 
-			a.Editor.CancelSearch()
+			app.Editor.CancelSearch()
 		}
 
 		// Hire cursor in when search prompt is active
-		a.Editor.Textarea.VirtualCursor = (a.Mode.Current != mode.SearchPrompt)
+		app.Editor.Textarea.VirtualCursor = (app.Mode.Current != mode.SearchPrompt)
 
 		// This is probably a dirty workaround - since key events are
 		// being executed before the editor receives updates, insert
@@ -175,41 +175,41 @@ func (a *App) UpdateComponents(msg tea.Msg) []tea.Cmd {
 		// So we set this flag AFTER the editor update method so that
 		// insert mode is activated but doesn't immediately receive any
 		// input
-		a.Editor.CanInsert = false
+		app.Editor.CanInsert = false
 		if editorMode == mode.Insert || editorMode == mode.Replace {
-			a.Editor.CanInsert = true
+			app.Editor.CanInsert = true
 		}
 	}
 
 	switch msg := msg.(type) {
 	case editor.RefreshBufferMsg:
-		a.Editor.Update(msg)
+		app.Editor.Update(msg)
 
 	case editor.SwitchBufferMsg:
-		a.KeyInput.FetchKeyMap(true)
-		a.BufferList.SelectedIndex = 0
+		app.KeyInput.FetchKeyMap(true)
+		app.BufferList.SelectedIndex = 0
 		// send the switch request to the editor
-		a.Editor.Update(msg)
+		app.Editor.Update(msg)
 
 		if msg.FocusEditor {
-			a.focus.FocusColumn(3)
+			app.focus.FocusColumn(3)
 		}
 	}
 
 	// let the buffer list know if anything changes
-	if a.BufferList.NeedsUpdate() {
-		cmds = append(cmds, editor.SendBuffersChangedMsg(a.Editor.Buffers))
+	if app.BufferList.NeedsUpdate() {
+		cmds = append(cmds, editor.SendBuffersChangedMsg(app.Editor.Buffers))
 	}
 
-	if _, cmd := a.BufferList.Update(msg); cmd != nil {
+	if _, cmd := app.BufferList.Update(msg); cmd != nil {
 		cmds = append(cmds, cmd)
 	}
 
 	// collect dirty buffers
-	a.NotesList.DirtyBuffers = a.Editor.DirtyBuffers()
+	app.NotesList.DirtyBuffers = app.Editor.DirtyBuffers()
 
-	if a.StatusBar.Mode != mode.Search {
-		a.StatusBar.Mode = a.Mode.Current
+	if app.StatusBar.Mode != mode.Search {
+		app.StatusBar.Mode = app.Mode.Current
 	}
 
 	return cmds

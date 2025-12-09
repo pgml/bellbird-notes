@@ -29,8 +29,8 @@ type Directory struct {
 }
 
 // Name returns the name of the directory
-func (d Directory) Name() string {
-	return d.name
+func (dir Directory) Name() string {
+	return dir.name
 }
 
 // List returns a list of Directory objects in the given directory path.

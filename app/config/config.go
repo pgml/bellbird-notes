@@ -88,8 +88,8 @@ var options = map[Option]string{
 }
 
 // String returns the string representation of an Option
-func (o Option) String() string {
-	return options[o]
+func (opt Option) String() string {
+	return options[opt]
 }
 
 // Value represents an entry in the metadata file
@@ -133,7 +133,7 @@ type Config struct {
 	nerdFonts *bool
 }
 
-func (c *Config) File() string { return c.filePath }
+func (conf *Config) File() string { return conf.filePath }
 
 // New loads or create a config file with default settings
 func New() *Config {
@@ -208,14 +208,14 @@ func (c *Config) Reload() {
 }
 
 // Value retrieves the value of a configuration option in a given section.
-func (c *Config) Value(section Section, option Option) (Value, error) {
-	if sect := c.userFile.Section(section.String()); sect != nil {
+func (conf *Config) Value(section Section, option Option) (Value, error) {
+	if sect := conf.userFile.Section(section.String()); sect != nil {
 		if opt := sect.Key(option.String()); opt.String() != "" {
 			return Value{opt.String()}, nil
 		}
 	}
 
-	sect := c.file.Section(section.String())
+	sect := conf.file.Section(section.String())
 
 	if sect == nil {
 		return Value{}, fmt.Errorf("No section: %s", section.String())
@@ -233,18 +233,18 @@ func (c *Config) Value(section Section, option Option) (Value, error) {
 }
 
 // MetaValue retrieves a metadata value by a section and option.
-func (c *Config) MetaValue(section string, option Option) (string, error) {
-	if c.file == nil {
+func (conf *Config) MetaValue(section string, option Option) (string, error) {
+	if conf.file == nil {
 		return "", errors.New("could not find config file")
 	}
 
-	sect := c.file.Section(section)
+	sect := conf.file.Section(section)
 
 	if sect == nil {
 		return "", fmt.Errorf("could not find config section: %s", section)
 	}
 
-	opt := c.file.Section(section).Key(option.String())
+	opt := conf.file.Section(section).Key(option.String())
 
 	if opt == nil {
 		return "", fmt.Errorf(
@@ -254,24 +254,24 @@ func (c *Config) MetaValue(section string, option Option) (string, error) {
 		)
 	}
 
-	return c.metaFile.Section(section).Key(option.String()).String(), nil
+	return conf.metaFile.Section(section).Key(option.String()).String(), nil
 }
 
 // SetValue sets a configuration option value in the specified section
 // and saves the config file immediately
-func (c *Config) SetValue(section Section, option Option, value string) {
-	c.userFile.
+func (conf *Config) SetValue(section Section, option Option, value string) {
+	conf.userFile.
 		Section(section.String()).
 		Key(option.String()).
 		SetValue(value)
 
-	c.userFile.SaveTo(c.filePath)
+	conf.userFile.SaveTo(conf.filePath)
 }
 
 // SetMetaValue sets a metadata option value and schedules
 // saving changes with debounce
-func (c *Config) SetMetaValue(path string, option Option, value string) {
-	sect := c.metaFile.Section(path)
+func (conf *Config) SetMetaValue(path string, option Option, value string) {
+	sect := conf.metaFile.Section(path)
 	opt := sect.Key(option.String())
 
 	if opt.Value() == value {
@@ -280,22 +280,22 @@ func (c *Config) SetMetaValue(path string, option Option, value string) {
 
 	opt.SetValue(value)
 
-	c.debounceFlush()
+	conf.debounceFlush()
 }
 
 // RenameMetaSection renames a section in the metadata file.
-func (c *Config) RenameMetaSection(oldName string, newName string) error {
-	if c.metaFile == nil {
+func (conf *Config) RenameMetaSection(oldName string, newName string) error {
+	if conf.metaFile == nil {
 		return errors.New("could not find config file")
 	}
 
-	oldSection, err := c.metaFile.GetSection(oldName)
+	oldSection, err := conf.metaFile.GetSection(oldName)
 
 	if err != nil {
 		return err
 	}
 
-	newSection, err := c.metaFile.NewSection(newName)
+	newSection, err := conf.metaFile.NewSection(newName)
 
 	if err != nil {
 		return err
@@ -305,8 +305,8 @@ func (c *Config) RenameMetaSection(oldName string, newName string) error {
 		newSection.Key(key.Name()).SetValue(key.Value())
 	}
 
-	c.metaFile.DeleteSection(oldName)
-	err = c.metaFile.SaveTo(c.metaFilePath)
+	conf.metaFile.DeleteSection(oldName)
+	err = conf.metaFile.SaveTo(conf.metaFilePath)
 
 	if err != nil {
 		return err
@@ -317,32 +317,32 @@ func (c *Config) RenameMetaSection(oldName string, newName string) error {
 
 // debounceFlush uses a timer and mutex to delay and
 // batch saving of metaFile changes
-func (c *Config) debounceFlush() {
-	c.flushMu.Lock()
-	defer c.flushMu.Unlock()
+func (conf *Config) debounceFlush() {
+	conf.flushMu.Lock()
+	defer conf.flushMu.Unlock()
 
 	// Cancel previous timer if it exists
-	if c.flushTimer != nil {
-		c.flushTimer.Stop()
+	if conf.flushTimer != nil {
+		conf.flushTimer.Stop()
 	}
 
 	// Set up a new delayed flush
-	c.flushTimer = time.AfterFunc(c.flushDelay, func() {
-		c.flushMu.Lock()
-		defer c.flushMu.Unlock()
-		c.metaFile.SaveTo(c.metaFilePath)
+	conf.flushTimer = time.AfterFunc(conf.flushDelay, func() {
+		conf.flushMu.Lock()
+		defer conf.flushMu.Unlock()
+		conf.metaFile.SaveTo(conf.metaFilePath)
 	})
 }
 
 // NerdFonts determines whether nerd fonts are enabled either
 // via the config file or the cli argument.
 // The cli argument always overrides value set in the config
-func (c *Config) NerdFonts() bool {
-	if c.nerdFonts != nil {
-		return *c.nerdFonts
+func (conf *Config) NerdFonts() bool {
+	if conf.nerdFonts != nil {
+		return *conf.nerdFonts
 	}
 
-	nf, err := c.Value(General, NerdFonts)
+	nf, err := conf.Value(General, NerdFonts)
 
 	// default is true
 	nerdFonts := true
@@ -357,15 +357,15 @@ func (c *Config) NerdFonts() bool {
 		nerdFonts = false
 	}
 
-	c.nerdFonts = &nerdFonts
+	conf.nerdFonts = &nerdFonts
 	return nerdFonts
 }
 
 // NotesDir returns a valid path to the directory of the notes
 // set in the configuration file.
 // If the path starts with a ~ it is replaced with the home directory.
-func (c *Config) NotesDir() (string, error) {
-	notesDir, err := c.Value(General, NotesDirectory)
+func (conf *Config) NotesDir() (string, error) {
+	notesDir, err := conf.Value(General, NotesDirectory)
 	if err != nil {
 		return "", err
 	}
@@ -381,13 +381,13 @@ func (c *Config) NotesDir() (string, error) {
 // MetaFile returns the path to the meta info file.
 // If the file does not exist it will be created.
 // If it's not in the notes directory it attempts to migrate it.
-func (c *Config) MetaFile() (string, error) {
+func (conf *Config) MetaFile() (string, error) {
 	filePath, err := app.ConfigFile(true)
 	if err != nil {
 		return "", nil
 	}
 
-	notesDir, err := c.NotesDir()
+	notesDir, err := conf.NotesDir()
 	if err != nil {
 		return "", err
 	}
@@ -396,7 +396,7 @@ func (c *Config) MetaFile() (string, error) {
 	newFilePath := filepath.Join(notesDir, metaFileName)
 
 	if _, err := os.Stat(filePath); err == nil {
-		if err := c.migrateMetaFile(filePath, newFilePath); err != nil {
+		if err := conf.migrateMetaFile(filePath, newFilePath); err != nil {
 			errMsg := "Error: Could not migrate meta infos file.\n"
 			errMsg += err.Error() + "\n\n"
 			errMsg += "Please delete one of the following files:\n"
@@ -422,9 +422,9 @@ func (c *Config) MetaFile() (string, error) {
 
 // CleanMetaFile attempts to remove orphaned sections from the meta files.
 // E.g. notes that were deleted
-func (c *Config) CleanMetaFile() {
+func (conf *Config) CleanMetaFile() {
 	go func() {
-		for _, section := range c.metaFile.Sections() {
+		for _, section := range conf.metaFile.Sections() {
 			// Skip general, non-note or non-directory related info
 			if section.Name() == ini.DefaultSection {
 				continue
@@ -434,7 +434,7 @@ func (c *Config) CleanMetaFile() {
 				// fake index set to 0 to avoid AllowNonUniqueSections option
 				// since the note was deleted we're sure that this sections
 				// isn't needed anymore
-				err := c.metaFile.DeleteSectionWithIndex(section.Name(), 0)
+				err := conf.metaFile.DeleteSectionWithIndex(section.Name(), 0)
 
 				if err != nil {
 					debug.LogDebug(err)
@@ -443,14 +443,14 @@ func (c *Config) CleanMetaFile() {
 		}
 
 		// write out changes
-		c.metaFile.SaveTo(c.metaFilePath)
+		conf.metaFile.SaveTo(conf.metaFilePath)
 	}()
 }
 
 // migrateMetaFile attempts to move the meta info file from the
 // config dir to the the notes directory path set in the config file.
 // If no path is set nothing happens.
-func (c *Config) migrateMetaFile(oldFile string, newFile string) error {
+func (conf *Config) migrateMetaFile(oldFile string, newFile string) error {
 	if _, err := os.Stat(oldFile); err != nil {
 		return fmt.Errorf("%s - %s", err, oldFile)
 	}

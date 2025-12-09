@@ -16,44 +16,44 @@ type SearchConfirmedMsg struct {
 
 type SearchCancelMsg struct{}
 
-func (e *Editor) handleSearchMode(msg tea.KeyMsg) tea.Cmd {
+func (editor *Editor) handleSearchMode(msg tea.KeyMsg) tea.Cmd {
 	var cmd tea.Cmd
 
 	switch msg.String() {
 	case "esc":
-		e.EnterNormalMode(true)
-		e.Textarea.ResetMultiSelection()
+		editor.EnterNormalMode(true)
+		editor.Textarea.ResetMultiSelection()
 
-		cmd = e.SendCancelMsg()
+		cmd = editor.SendCancelMsg()
 
 	case "backspace":
-		if e.Textarea.Search.Query == "" {
-			e.CancelSearch()
-			e.EnterNormalMode(false)
-			cmd = e.SendCancelMsg()
+		if editor.Textarea.Search.Query == "" {
+			editor.CancelSearch()
+			editor.EnterNormalMode(false)
+			cmd = editor.SendCancelMsg()
 		}
 
 	case "enter":
-		cmd = e.SendSearchConfirmedMsg(false)
+		cmd = editor.SendSearchConfirmedMsg(false)
 	}
 
 	return cmd
 }
 
-func (e *Editor) CancelSearch() {
-	e.Textarea.ResetMultiSelection()
+func (editor *Editor) CancelSearch() {
+	editor.Textarea.ResetMultiSelection()
 }
 
-func (e *Editor) SendSearchConfirmedMsg(resetPrompt bool) tea.Cmd {
+func (editor *Editor) SendSearchConfirmedMsg(resetPrompt bool) tea.Cmd {
 	return func() tea.Msg {
 		return SearchConfirmedMsg{
-			Search:      e.Textarea.Search.Query,
+			Search:      editor.Textarea.Search.Query,
 			ResetPrompt: resetPrompt,
 		}
 	}
 }
 
-func (e *Editor) SendCancelMsg() tea.Cmd {
+func (editor *Editor) SendCancelMsg() tea.Cmd {
 	return func() tea.Msg {
 		return SearchCancelMsg{}
 	}

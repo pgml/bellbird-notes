@@ -32,31 +32,31 @@ type NoteItem struct {
 }
 
 // String is string representation of a Note
-func (n NoteItem) String() string {
-	baseStyle := n.Styles.Base
-	iconStyle := n.Styles.Icon
-	name := utils.TruncateText(n.Name(), 24)
+func (item NoteItem) String() string {
+	baseStyle := item.Styles.Base
+	iconStyle := item.Styles.Icon
+	name := utils.TruncateText(item.Name(), 24)
 
-	if n.IsSelected {
-		baseStyle = n.Styles.Selected
-		iconStyle = n.Styles.IconSelected
+	if item.IsSelected {
+		baseStyle = item.Styles.Selected
+		iconStyle = item.Styles.IconSelected
 	}
 
 	var icon strings.Builder
 	icon.WriteByte(' ')
 
-	if n.IsDirty {
+	if item.IsDirty {
 		iconStyle = iconStyle.Foreground(theme.ColourDirty)
-		icon.WriteString(theme.Icon(theme.IconDot, n.NerdFonts))
-	} else if n.IsCut() {
+		icon.WriteString(theme.Icon(theme.IconDot, item.NerdFonts))
+	} else if item.IsCut() {
 		baseStyle = baseStyle.Foreground(theme.ColourBorder)
 		iconStyle = iconStyle.Foreground(theme.ColourBorder)
-		icon.WriteString(theme.Icon(theme.IconNote, n.NerdFonts))
-	} else if n.IsPinned {
-		icon.WriteString(theme.Icon(theme.IconPin, n.NerdFonts))
+		icon.WriteString(theme.Icon(theme.IconNote, item.NerdFonts))
+	} else if item.IsPinned {
+		icon.WriteString(theme.Icon(theme.IconPin, item.NerdFonts))
 		iconStyle = iconStyle.Foreground(theme.ColourBorderFocused)
 	} else {
-		icon.WriteString(theme.Icon(theme.IconNote, n.NerdFonts))
+		icon.WriteString(theme.Icon(theme.IconNote, item.NerdFonts))
 	}
 
 	return iconStyle.Render(icon.String()) + baseStyle.Render(name)
@@ -80,59 +80,59 @@ type NotesList struct {
 
 // Init initialises the Model on program load.
 // It partly implements the tea.Model interface.
-func (l *NotesList) Init() tea.Cmd {
+func (list *NotesList) Init() tea.Cmd {
 	return nil
 }
 
-func (l *NotesList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (list *NotesList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		// focus the input field when renaming a list item
-		if l.EditIndex != nil && !l.InputModel.Focused() {
-			l.InputModel.Focus()
-			return l, nil
+		if list.EditIndex != nil && !list.InputModel.Focused() {
+			list.InputModel.Focus()
+			return list, nil
 		}
 
-		if l.InputModel.Focused() {
-			l.InputModel.Focus()
-			l.InputModel, cmd = l.InputModel.Update(msg)
-			return l, cmd
+		if list.InputModel.Focused() {
+			list.InputModel.Focus()
+			list.InputModel, cmd = list.InputModel.Update(msg)
+			return list, cmd
 		}
 
 	case tea.WindowSizeMsg:
-		l.Size.Width = msg.Width
-		l.Size.Height = msg.Height
+		list.Size.Width = msg.Width
+		list.Size.Height = msg.Height
 
-		if !l.IsReady {
-			l.Viewport = viewport.New()
-			l.Viewport.SetContent(l.viewportContent())
-			l.Viewport.KeyMap = viewport.KeyMap{}
-			l.LastVisibleLine = l.Viewport.VisibleLineCount() - shared.ReservedLines
-			l.IsReady = true
+		if !list.IsReady {
+			list.Viewport = viewport.New()
+			list.Viewport.SetContent(list.viewportContent())
+			list.Viewport.KeyMap = viewport.KeyMap{}
+			list.LastVisibleLine = list.Viewport.VisibleLineCount() - shared.ReservedLines
+			list.IsReady = true
 		} else {
-			l.Viewport.SetWidth(l.Size.Width)
-			l.Viewport.SetHeight(l.Size.Height)
+			list.Viewport.SetWidth(list.Size.Width)
+			list.Viewport.SetHeight(list.Size.Height)
 		}
 	}
 
 	// Handle keyboard and mouse events in the viewport
-	l.Viewport, cmd = l.Viewport.Update(msg)
-	return l, cmd
+	list.Viewport, cmd = list.Viewport.Update(msg)
+	return list, cmd
 }
 
-func (l *NotesList) RefreshSize() {
-	vp := l.Viewport
-	if vp.Width() != l.Size.Width && vp.Height() != l.Size.Height {
-		l.Viewport.SetWidth(l.Size.Width)
-		l.Viewport.SetHeight(l.Size.Height)
+func (list *NotesList) RefreshSize() {
+	vp := list.Viewport
+	if vp.Width() != list.Size.Width && vp.Height() != list.Size.Height {
+		list.Viewport.SetWidth(list.Size.Width)
+		list.Viewport.SetHeight(list.Size.Height)
 	}
 }
 
-func (l *NotesList) View() tea.View {
+func (list *NotesList) View() tea.View {
 	var view tea.View
-	view.SetContent(l.Content())
+	view.SetContent(list.Content())
 	return view
 }
 
@@ -167,40 +167,40 @@ func New(title string, conf *config.Config) *NotesList {
 	return notesList
 }
 
-func (l *NotesList) Content() string {
-	if !l.IsReady {
+func (list *NotesList) Content() string {
+	if !list.IsReady {
 		return "\n  Initializing..."
 	}
 
-	if !l.Visible() {
+	if !list.Visible() {
 		return ""
 	}
 
-	l.Viewport.SetContent(l.viewportContent())
-	l.UpdateViewportInfo()
+	list.Viewport.SetContent(list.viewportContent())
+	list.UpdateViewportInfo()
 
-	l.Viewport.Style = l.Theme().BaseColumnLayout(
-		l.Size,
-		l.Focused(),
+	list.Viewport.Style = list.Theme().BaseColumnLayout(
+		list.Size,
+		list.Focused(),
 	)
 
 	var view strings.Builder
-	view.WriteString(l.BuildHeader(l.Size.Width, false))
-	view.WriteString(l.Viewport.View())
+	view.WriteString(list.BuildHeader(list.Size.Width, false))
+	view.WriteString(list.Viewport.View())
 	return view.String()
 }
 
 // build prepares the notes list as a string
-func (l NotesList) viewportContent() string {
-	var list strings.Builder
+func (list NotesList) viewportContent() string {
+	var s strings.Builder
 
-	dirtyMap := make(map[string]struct{}, len(l.DirtyBuffers))
-	for _, buf := range l.DirtyBuffers {
+	dirtyMap := make(map[string]struct{}, len(list.DirtyBuffers))
+	for _, buf := range list.DirtyBuffers {
 		dirtyMap[buf.Path(false)] = struct{}{}
 	}
 
-	for i, note := range l.Items {
-		note.IsSelected = (l.SelectedIndex == i)
+	for i, note := range list.Items {
+		note.IsSelected = (list.SelectedIndex == i)
 		note.SetIndex(i)
 
 		_, isDirty := dirtyMap[note.Path()]
@@ -209,43 +209,43 @@ func (l NotesList) viewportContent() string {
 		if *app.Debug {
 			// prepend list item indices for debugging purposes
 			style := lipgloss.NewStyle().Foreground(lipgloss.Color("#999"))
-			list.WriteString(style.Render(fmt.Sprintf("%02d", note.Index())))
-			list.WriteString(" ")
+			s.WriteString(style.Render(fmt.Sprintf("%02d", note.Index())))
+			s.WriteString(" ")
 		}
 
-		if l.EditIndex != nil && i == *l.EditIndex {
+		if list.EditIndex != nil && i == *list.EditIndex {
 			// Show input field instead of text
-			list.WriteString(l.InputModel.View())
-			list.WriteByte('\n')
+			s.WriteString(list.InputModel.View())
+			s.WriteByte('\n')
 		} else {
-			list.WriteString(note.String())
-			list.WriteByte('\n')
+			s.WriteString(note.String())
+			s.WriteByte('\n')
 		}
 	}
 
-	return list.String()
+	return s.String()
 }
 
-func (l *NotesList) SetBuffers(b *editor.Buffers) {
-	l.Buffers = b
+func (list *NotesList) SetBuffers(b *editor.Buffers) {
+	list.Buffers = b
 }
 
 // Refresh updates the notes list
 //
 // If `resetIndex` is set to true, 'l.selectedIndex' will be set to 0
 // which representns the first note
-func (l *NotesList) Refresh(
+func (list *NotesList) Refresh(
 	resetSelectedIndex bool,
 	resetPinned bool,
 ) message.StatusBarMsg {
-	notesList, err := notes.List(l.CurrentPath)
+	notesList, err := notes.List(list.CurrentPath)
 
 	if resetSelectedIndex {
-		l.SelectedIndex = 0
+		list.SelectedIndex = 0
 	}
 
 	if resetPinned {
-		l.PinnedItems.IsLoaded = false
+		list.PinnedItems.IsLoaded = false
 	}
 
 	if err != nil {
@@ -255,25 +255,25 @@ func (l *NotesList) Refresh(
 		}
 	}
 
-	if cap(l.Items) >= len(notesList) {
-		l.Items = l.Items[:0]
+	if cap(list.Items) >= len(notesList) {
+		list.Items = list.Items[:0]
 	} else {
-		l.Items = make([]*NoteItem, 0, len(notesList))
+		list.Items = make([]*NoteItem, 0, len(notesList))
 	}
 
-	if !l.PinnedItems.IsLoaded {
+	if !list.PinnedItems.IsLoaded {
 		// reset pinned and refetch pinned notes when we entered a new directory
-		l.PinnedItems.Items = make([]*NoteItem, 0, len(notesList))
+		list.PinnedItems.Items = make([]*NoteItem, 0, len(notesList))
 		for _, note := range notesList {
 			if note.IsPinned {
-				item := l.createNoteItem(note, -1, true)
-				l.PinnedItems.Add(&item)
+				item := list.createNoteItem(note, -1, true)
+				list.PinnedItems.Add(&item)
 			}
 		}
 	}
 
-	pinnedMap := make(map[string]struct{}, len(l.PinnedItems.Items))
-	for _, n := range l.PinnedItems.Items {
+	pinnedMap := make(map[string]struct{}, len(list.PinnedItems.Items))
+	for _, n := range list.PinnedItems.Items {
 		pinnedMap[n.Path()] = struct{}{}
 	}
 
@@ -284,9 +284,9 @@ func (l *NotesList) Refresh(
 
 	for i, note := range notesList {
 		_, isPinned := pinnedMap[note.Path]
-		noteItem := l.createNoteItem(note, i, isPinned)
+		noteItem := list.createNoteItem(note, i, isPinned)
 
-		if buf, ok := l.YankedItemsContain(note.Path); ok {
+		if buf, ok := list.YankedItemsContain(note.Path); ok {
 			noteItem.SetIsCut(buf.IsCut())
 		}
 
@@ -297,24 +297,24 @@ func (l *NotesList) Refresh(
 		}
 	}
 
-	l.Items = append(pinnedItems, unpinnedItems...)
-	l.PinnedItems.IsLoaded = true
+	list.Items = append(pinnedItems, unpinnedItems...)
+	list.PinnedItems.IsLoaded = true
 
-	l.Length = len(l.Items)
-	l.LastIndex = 0
+	list.Length = len(list.Items)
+	list.LastIndex = 0
 
-	if l.Length > 0 {
-		l.LastIndex = l.Items[len(l.Items)-1].Index()
+	if list.Length > 0 {
+		list.LastIndex = list.Items[len(list.Items)-1].Index()
 	}
 
-	l.checkVisibility()
+	list.checkVisibility()
 
 	return message.StatusBarMsg{}
 }
 
 // createNoteItem creates a NoteItem from a note, applying styles and pinning logic.
 // If the note is pinned and not yet loaded, it is added to the pinned notes list.
-func (l *NotesList) createNoteItem(note notes.Note, index int, isPinned bool) NoteItem {
+func (list *NotesList) createNoteItem(note notes.Note, index int, isPinned bool) NoteItem {
 	style := shared.NotesListStyle()
 	iconWidth := style.IconWidth
 
@@ -323,7 +323,7 @@ func (l *NotesList) createNoteItem(note notes.Note, index int, isPinned bool) No
 	item.SetName(note.Name())
 	item.SetPath(note.Path)
 	item.Styles = style
-	item.NerdFonts = l.Conf.NerdFonts()
+	item.NerdFonts = list.Conf.NerdFonts()
 	item.IsPinned = isPinned
 
 	noteItem := NoteItem{Item: item}
@@ -338,39 +338,39 @@ func (l *NotesList) createNoteItem(note notes.Note, index int, isPinned bool) No
 //
 // This note is mainly used as a placeholder when creating a note
 // and is not actually written to the file system.
-func (l *NotesList) createVirtualNote() NoteItem {
+func (list *NotesList) createVirtualNote() NoteItem {
 	name := "New Note"
 
 	path := filepath.Join(
-		filepath.Dir(l.CurrentPath),
+		filepath.Dir(list.CurrentPath),
 		name,
 	)
 
 	item := notes.NewNote(path, false)
-	noteItem := l.createNoteItem(item, -1, false)
-	noteItem.SetIndex(len(l.Items))
+	noteItem := list.createNoteItem(item, -1, false)
+	noteItem.SetIndex(len(list.Items))
 
 	return noteItem
 }
 
 // getLastChild returns the last NoteItem in the current directory
-func (l NotesList) getLastChild() *NoteItem {
-	if len(l.Items) <= 0 {
+func (list NotesList) getLastChild() *NoteItem {
+	if len(list.Items) <= 0 {
 		return nil
 	}
-	return l.Items[len(l.Items)-1]
+	return list.Items[len(list.Items)-1]
 }
 
 // Inserts an item after `afterIndex`
 //
 // Note: this is only a virtual insertion into to the flat copy
 // l.items. To make it persistent write it to the file system
-func (l *NotesList) insertNoteAfter(afterIndex int, note NoteItem) {
-	for i, dir := range l.Items {
+func (list *NotesList) insertNoteAfter(afterIndex int, note NoteItem) {
+	for i, dir := range list.Items {
 		if dir.Index() == afterIndex {
-			l.Items = append(
-				l.Items[:i+1],
-				append([]*NoteItem{&note}, l.Items[i+1:]...)...,
+			list.Items = append(
+				list.Items[:i+1],
+				append([]*NoteItem{&note}, list.Items[i+1:]...)...,
 			)
 			break
 		}
@@ -378,47 +378,47 @@ func (l *NotesList) insertNoteAfter(afterIndex int, note NoteItem) {
 }
 
 // Create creates a note after the last child
-func (l *NotesList) Create(
+func (list *NotesList) Create(
 	mi *mode.ModeInstance,
 	statusBar *sb.StatusBar,
 ) message.StatusBarMsg {
 	statusMsg := message.StatusBarMsg{}
 
-	if l.Focused() {
+	if list.Focused() {
 		mi.Current = mode.Insert
 		statusBar.Focused = false
 
-		l.EditState = shared.EditStates.Create
-		vrtNote := l.createVirtualNote()
-		lastChild := l.getLastChild()
+		list.EditState = shared.EditStates.Create
+		vrtNote := list.createVirtualNote()
+		lastChild := list.getLastChild()
 
 		if lastChild == nil {
-			l.Items = append(l.Items, &vrtNote)
+			list.Items = append(list.Items, &vrtNote)
 		} else {
-			l.insertNoteAfter(lastChild.Index(), vrtNote)
-			l.SelectedIndex = lastChild.Index() + 1
+			list.insertNoteAfter(lastChild.Index(), vrtNote)
+			list.SelectedIndex = lastChild.Index() + 1
 		}
 
-		if l.EditIndex == nil {
-			index := l.SelectedIndex
-			l.EditIndex = &index
-			l.InputModel.SetValue(vrtNote.Name())
-			l.InputModel.CursorEnd()
+		if list.EditIndex == nil {
+			index := list.SelectedIndex
+			list.EditIndex = &index
+			list.InputModel.SetValue(vrtNote.Name())
+			list.InputModel.CursorEnd()
 		}
 	}
 
 	return statusMsg
 }
 
-func (l *NotesList) ConfirmRemove() message.StatusBarMsg {
-	selectedNote := *l.SelectedItem(nil)
+func (list *NotesList) ConfirmRemove() message.StatusBarMsg {
+	selectedNote := *list.SelectedItem(nil)
 	msgType := message.PromptError
 
 	rootDir, _ := app.NotesRootDir()
 	path := strings.TrimPrefix(selectedNote.Path(), rootDir+"/")
 	resultMsg := fmt.Sprintf(message.StatusBar.RemovePrompt, path)
 
-	l.EditState = shared.EditStates.Delete
+	list.EditState = shared.EditStates.Delete
 
 	return message.StatusBarMsg{
 		Content: resultMsg,
@@ -429,25 +429,25 @@ func (l *NotesList) ConfirmRemove() message.StatusBarMsg {
 }
 
 // Remove deletes the selected note from the file system
-func (l *NotesList) Remove() message.StatusBarMsg {
-	note := *l.SelectedItem(nil)
-	index := l.SelectedIndex
+func (list *NotesList) Remove() message.StatusBarMsg {
+	note := *list.SelectedItem(nil)
+	index := list.SelectedIndex
 	resultMsg := "213"
 	msgType := message.Success
 
 	if err := notes.Delete(note.Path()); err == nil {
-		l.Items = slices.Delete(l.Items, index, index+1)
+		list.Items = slices.Delete(list.Items, index, index+1)
 	} else {
 		msgType = message.Error
 		resultMsg = err.Error()
 	}
 
-	l.Refresh(false, false)
+	list.Refresh(false, false)
 
 	// if we deleted the last item in the list select the note
 	// that is the last after the deletion
-	if l.SelectedIndex >= len(l.Items) {
-		l.SelectedIndex = len(l.Items) - 1
+	if list.SelectedIndex >= len(list.Items) {
+		list.SelectedIndex = len(list.Items) - 1
 	}
 
 	return message.StatusBarMsg{
@@ -458,11 +458,11 @@ func (l *NotesList) Remove() message.StatusBarMsg {
 }
 
 // ConfirmAction confirms a user action
-func (l *NotesList) ConfirmAction() message.StatusBarMsg {
+func (list *NotesList) ConfirmAction() message.StatusBarMsg {
 	// if editingindex is set it most likely means that we are
 	// renaming or creating a directory
-	if l.EditIndex != nil {
-		selectedNote := l.SelectedItem(nil)
+	if list.EditIndex != nil {
+		selectedNote := list.SelectedItem(nil)
 		ext := notes.Ext
 
 		if selectedNote != nil {
@@ -470,11 +470,11 @@ func (l *NotesList) ConfirmAction() message.StatusBarMsg {
 		}
 
 		oldPath := ""
-		newPath := filepath.Join(l.CurrentPath, l.InputModel.Value()+ext)
+		newPath := filepath.Join(list.CurrentPath, list.InputModel.Value()+ext)
 		resultMsg := ""
 		var cmd tea.Cmd
 
-		switch l.EditState {
+		switch list.EditState {
 		case shared.EditStates.Rename:
 			oldPath = selectedNote.Path()
 
@@ -484,32 +484,32 @@ func (l *NotesList) ConfirmAction() message.StatusBarMsg {
 
 				if oldPath != newPath {
 					// update the meta file so we don't lose meta data
-					if err := l.Conf.RenameMetaSection(oldPath, newPath); err != nil {
+					if err := list.Conf.RenameMetaSection(oldPath, newPath); err != nil {
 						debug.LogErr(err)
 					}
 
 					// Update Buffers so that all other components know
 					// what's going on
-					if buf := l.Buffers.Find(oldPath); buf != nil {
+					if buf := list.Buffers.Find(oldPath); buf != nil {
 						buf.SetPath(newPath)
 						cmd = editor.SendRefreshBufferMsg(buf.Path(false))
 					}
 
-					l.Refresh(false, true)
+					list.Refresh(false, true)
 				}
 			}
 
 		case shared.EditStates.Create:
 			if note, err := notes.Create(newPath); err == nil {
-				l.Refresh(true, true)
+				list.Refresh(true, true)
 
-				if note, ok := l.ItemsContain(note.Path); ok {
-					l.SelectedIndex = note.Index()
+				if note, ok := list.ItemsContain(note.Path); ok {
+					list.SelectedIndex = note.Index()
 				} else {
 					debug.LogErr(ok)
 				}
 
-				autoOpenNewNote, _ := l.Conf.Value(
+				autoOpenNewNote, _ := list.Conf.Value(
 					config.General,
 					config.AutoOpenNewNote,
 				)
@@ -523,8 +523,8 @@ func (l *NotesList) ConfirmAction() message.StatusBarMsg {
 			}
 		}
 
-		l.CancelAction(func() {
-			l.Refresh(false, false)
+		list.CancelAction(func() {
+			list.Refresh(false, false)
 		})
 
 		return message.StatusBarMsg{
@@ -539,18 +539,18 @@ func (l *NotesList) ConfirmAction() message.StatusBarMsg {
 }
 
 // TogglePinned pins or unpins the current selection
-func (l *NotesList) TogglePinnedItems() message.StatusBarMsg {
-	note := l.SelectedItem(nil)
+func (list *NotesList) TogglePinnedItems() message.StatusBarMsg {
+	note := list.SelectedItem(nil)
 
-	l.TogglePinned(note)
-	l.Refresh(false, false)
+	list.TogglePinned(note)
+	list.Refresh(false, false)
 
 	// get the new index and select the newly pinned or unpinned note
 	// since the pinned notes are always at the top and the notes order
 	// is changed
-	for i, it := range l.Items {
+	for i, it := range list.Items {
 		if it.Path() == note.Path() {
-			l.SelectedIndex = i
+			list.SelectedIndex = i
 		}
 	}
 
@@ -559,35 +559,35 @@ func (l *NotesList) TogglePinnedItems() message.StatusBarMsg {
 
 // YankSelection clears the yankedItems list and adds the currently selected item
 // from the NotesList to it. This simulates copying an item for later pasting.
-func (l *NotesList) YankSelection(markCut bool) {
-	sel := l.SelectedItem(nil)
+func (list *NotesList) YankSelection(markCut bool) {
+	sel := list.SelectedItem(nil)
 	sel.SetIsCut(markCut)
 
-	l.YankedItems = []*NoteItem{}
-	l.YankedItems = append(l.YankedItems, sel)
+	list.YankedItems = []*NoteItem{}
+	list.YankedItems = append(list.YankedItems, sel)
 }
 
 // PasteSelection duplicates all yanked notes into the specified directory path.
 // It handles name conflicts by appending " Copy" to the note name until a unique
 // path is found. Returns an error if any note cannot be created.
-func (l *NotesList) PasteSelectedItems() message.StatusBarMsg {
+func (list *NotesList) PasteSelectedItems() message.StatusBarMsg {
 	statusMsg := message.StatusBarMsg{}
 
-	dirPath := l.CurrentPath
+	dirPath := list.CurrentPath
 
-	for _, note := range l.YankedItems {
-		l.PasteSelection(note, dirPath, func(newPath string) {
+	for _, note := range list.YankedItems {
+		list.PasteSelection(note, dirPath, func(newPath string) {
 			err := notes.Copy(note.Path(), newPath)
 
 			if err != nil {
 				debug.LogErr(err)
 			}
 
-			l.Refresh(true, true)
+			list.Refresh(true, true)
 
 			// select the currently pasted item
-			if note, ok := l.ItemsContain(newPath); ok {
-				l.SelectedIndex = note.Index()
+			if note, ok := list.ItemsContain(newPath); ok {
+				list.SelectedIndex = note.Index()
 			}
 
 			// Remove the original note if it's marked for moving (cut)
@@ -602,13 +602,13 @@ func (l *NotesList) PasteSelectedItems() message.StatusBarMsg {
 	return statusMsg
 }
 
-func (l *NotesList) Toggle() message.StatusBarMsg {
-	l.ToggleVisibility()
+func (list *NotesList) Toggle() message.StatusBarMsg {
+	list.ToggleVisibility()
 
-	l.Conf.SetValue(
+	list.Conf.SetValue(
 		config.Notes,
 		config.Visible,
-		strconv.FormatBool(l.Visible()),
+		strconv.FormatBool(list.Visible()),
 	)
 
 	return message.StatusBarMsg{
@@ -616,12 +616,12 @@ func (l *NotesList) Toggle() message.StatusBarMsg {
 	}
 }
 
-func (l *NotesList) checkVisibility() {
-	vis, err := l.Conf.Value(config.Notes, config.Visible)
+func (list *NotesList) checkVisibility() {
+	vis, err := list.Conf.Value(config.Notes, config.Visible)
 
 	if err != nil {
 		debug.LogErr(err)
 	}
 
-	l.SetVisibility(vis.GetBool())
+	list.SetVisibility(vis.GetBool())
 }

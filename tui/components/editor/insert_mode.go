@@ -7,9 +7,9 @@ import (
 	"github.com/charmbracelet/x/input"
 )
 
-func (e *Editor) handleInsertMode(msg tea.KeyMsg) tea.Cmd {
+func (editor *Editor) handleInsertMode(msg tea.KeyMsg) tea.Cmd {
 	if msg.String() == "esc" {
-		e.EnterNormalMode(true)
+		editor.EnterNormalMode(true)
 		return nil
 	}
 
@@ -17,7 +17,7 @@ func (e *Editor) handleInsertMode(msg tea.KeyMsg) tea.Cmd {
 
 	// only allow input when this flag is true.
 	// See tui.updateComponents() for further explanation
-	if e.CanInsert {
+	if editor.CanInsert {
 		if msg.Key().Code == 9 {
 			k := msg.Key()
 			// Just for now, will be setting when tab support is finished
@@ -33,7 +33,7 @@ func (e *Editor) handleInsertMode(msg tea.KeyMsg) tea.Cmd {
 				IsRepeat:    k.IsRepeat,
 			}
 		}
-		e.Textarea, cmd = e.Textarea.Update(msg)
+		editor.Textarea, cmd = editor.Textarea.Update(msg)
 	}
 
 	return cmd

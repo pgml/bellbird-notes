@@ -8,94 +8,94 @@ import (
 
 type Commands = statusbar.Commands
 
-func (v *Vim) CmdRegistry() Commands {
+func (vim *Vim) CmdRegistry() Commands {
 	return Commands{
-		message.CmdPrompt.Yes:       v.statusBarConfirm,
-		message.CmdPrompt.No:        v.statusBarCancel,
-		message.CmdPrompt.Quit:      v.shouldQuit,
-		message.CmdPrompt.WriteBuf:  v.writeBuffer,
-		message.CmdPrompt.WriteQuit: v.writeBufferAndQuit,
+		message.CmdPrompt.Yes:       vim.statusBarConfirm,
+		message.CmdPrompt.No:        vim.statusBarCancel,
+		message.CmdPrompt.Quit:      vim.shouldQuit,
+		message.CmdPrompt.WriteBuf:  vim.writeBuffer,
+		message.CmdPrompt.WriteQuit: vim.writeBufferAndQuit,
 
-		message.CmdPrompt.Set:       v.cmdSet,
-		message.CmdPrompt.Open:      v.cmdOpen,
-		message.CmdPrompt.Reload:    v.cmdReload,
-		message.CmdPrompt.CheckTime: v.cmdCheckTime,
+		message.CmdPrompt.Set:       vim.cmdSet,
+		message.CmdPrompt.Open:      vim.cmdOpen,
+		message.CmdPrompt.Reload:    vim.cmdReload,
+		message.CmdPrompt.CheckTime: vim.cmdCheckTime,
 
-		message.CmdPrompt.DeleteBufstring: v.deleteCurrentBuffer,
-		"%bd":                             v.deleteAllBuffers,
-		message.CmdPrompt.ListBufs:        v.listBuffers,
-		"buffers":                         v.listBuffers,
+		message.CmdPrompt.DeleteBufstring: vim.deleteCurrentBuffer,
+		"%bd":                             vim.deleteAllBuffers,
+		message.CmdPrompt.ListBufs:        vim.listBuffers,
+		"buffers":                         vim.listBuffers,
 
-		message.CmdPrompt.New: v.cmdNewScratchBuffer,
+		message.CmdPrompt.New: vim.cmdNewScratchBuffer,
 
 		"ToggleFolders": func(_ ...string) StatusBarMsg {
-			return v.app.DirTree.Toggle()
+			return vim.app.DirTree.Toggle()
 		},
 		"ToggleTreeIndentLines": func(_ ...string) StatusBarMsg {
-			return v.app.DirTree.ToggleIndentLines()
+			return vim.app.DirTree.ToggleIndentLines()
 		},
 		"ToggleNotes": func(_ ...string) StatusBarMsg {
-			return v.app.NotesList.Toggle()
+			return vim.app.NotesList.Toggle()
 		},
 	}
 }
 
-func (v *Vim) cmdSetRegistry() Commands {
+func (vim *Vim) cmdSetRegistry() Commands {
 	return Commands{
-		"number":   v.setNumber,
-		"nonumber": v.setNoNumber,
+		"number":   vim.setNumber,
+		"nonumber": vim.setNoNumber,
 	}
 }
 
-func (v *Vim) cmdOpenRegistry() Commands {
+func (vim *Vim) cmdOpenRegistry() Commands {
 	return Commands{
-		"config":        v.openConfig,
-		"keymap":        v.openKeyMap,
-		"defaultkeymap": v.openDefaultKeyMap,
+		"config":        vim.openConfig,
+		"keymap":        vim.openKeyMap,
+		"defaultkeymap": vim.openDefaultKeyMap,
 	}
 }
 
-func (v *Vim) cmdReloadRegistry() Commands {
+func (vim *Vim) cmdReloadRegistry() Commands {
 	return Commands{
-		"config": v.reloadConfig,
-		"keymap": v.reloadKeyMap,
+		"config": vim.reloadConfig,
+		"keymap": vim.reloadKeyMap,
 	}
 }
 
-func (v *Vim) cmdSet(args ...string) StatusBarMsg {
-	fns := v.cmdSetRegistry()
+func (vim *Vim) cmdSet(args ...string) StatusBarMsg {
+	fns := vim.cmdSetRegistry()
 	if fn, ok := fns[args[0]]; ok {
 		return fn()
 	}
 	return StatusBarMsg{}
 }
 
-func (v *Vim) cmdOpen(args ...string) StatusBarMsg {
-	fns := v.cmdOpenRegistry()
+func (vim *Vim) cmdOpen(args ...string) StatusBarMsg {
+	fns := vim.cmdOpenRegistry()
 	if fn, ok := fns[args[0]]; ok {
 		return fn()
 	}
 	return StatusBarMsg{}
 }
 
-func (v *Vim) cmdReload(args ...string) StatusBarMsg {
-	fns := v.cmdReloadRegistry()
+func (vim *Vim) cmdReload(args ...string) StatusBarMsg {
+	fns := vim.cmdReloadRegistry()
 	if fn, ok := fns[args[0]]; ok {
 		return fn()
 	}
 	return StatusBarMsg{}
 }
 
-func (v *Vim) cmdCheckTime(_ ...string) StatusBarMsg {
-	v.app.Editor.CheckTime()
+func (vim *Vim) cmdCheckTime(_ ...string) StatusBarMsg {
+	vim.app.Editor.CheckTime()
 	return StatusBarMsg{}
 }
 
-func (v *Vim) statusBarConfirm(_ ...string) StatusBarMsg {
+func (vim *Vim) statusBarConfirm(_ ...string) StatusBarMsg {
 	msg := StatusBarMsg{}
-	if f := v.focusedComponent(); f != nil {
-		if v.app.DirTree.EditState == shared.EditStates.Delete ||
-			v.app.NotesList.EditState == shared.EditStates.Delete {
+	if f := vim.focusedComponent(); f != nil {
+		if vim.app.DirTree.EditState == shared.EditStates.Delete ||
+			vim.app.NotesList.EditState == shared.EditStates.Delete {
 
 			msg = f.Remove()
 		}
@@ -103,9 +103,9 @@ func (v *Vim) statusBarConfirm(_ ...string) StatusBarMsg {
 	return msg
 }
 
-func (v *Vim) statusBarCancel(_ ...string) StatusBarMsg {
+func (vim *Vim) statusBarCancel(_ ...string) StatusBarMsg {
 	msg := StatusBarMsg{}
-	if f := v.focusedComponent(); f != nil {
+	if f := vim.focusedComponent(); f != nil {
 		msg = f.CancelAction(func() {
 			f.Refresh(false, false)
 		})
@@ -113,77 +113,77 @@ func (v *Vim) statusBarCancel(_ ...string) StatusBarMsg {
 	return msg
 }
 
-func (v *Vim) shouldQuit(_ ...string) StatusBarMsg {
-	v.app.ShouldQuit = true
+func (vim *Vim) shouldQuit(_ ...string) StatusBarMsg {
+	vim.app.ShouldQuit = true
 	return StatusBarMsg{}
 }
 
-func (v *Vim) writeBuffer(_ ...string) StatusBarMsg {
-	return v.app.Editor.SaveBuffer()
+func (vim *Vim) writeBuffer(_ ...string) StatusBarMsg {
+	return vim.app.Editor.SaveBuffer()
 }
 
-func (v *Vim) openConfig(_ ...string) StatusBarMsg {
-	return v.app.Editor.OpenConfig()
+func (vim *Vim) openConfig(_ ...string) StatusBarMsg {
+	return vim.app.Editor.OpenConfig()
 }
 
-func (v *Vim) openKeyMap(_ ...string) StatusBarMsg {
-	return v.app.Editor.OpenUserKeyMap()
+func (vim *Vim) openKeyMap(_ ...string) StatusBarMsg {
+	return vim.app.Editor.OpenUserKeyMap()
 }
 
-func (v *Vim) reloadConfig(_ ...string) StatusBarMsg {
+func (vim *Vim) reloadConfig(_ ...string) StatusBarMsg {
 	return StatusBarMsg{
 		Cmd: shared.SendRefreshUiMsg(),
 	}
 }
 
-func (v *Vim) reloadKeyMap(_ ...string) StatusBarMsg {
-	v.app.KeyInput.ReloadKeyMap()
+func (vim *Vim) reloadKeyMap(_ ...string) StatusBarMsg {
+	vim.app.KeyInput.ReloadKeyMap()
 	return StatusBarMsg{}
 }
 
-func (v *Vim) deleteCurrentBuffer(_ ...string) StatusBarMsg {
-	return v.app.Editor.DeleteCurrentBuffer()
+func (vim *Vim) deleteCurrentBuffer(_ ...string) StatusBarMsg {
+	return vim.app.Editor.DeleteCurrentBuffer()
 }
 
-func (v *Vim) deleteAllBuffers(_ ...string) StatusBarMsg {
-	return v.app.Editor.DeleteAllBuffers()
+func (vim *Vim) deleteAllBuffers(_ ...string) StatusBarMsg {
+	return vim.app.Editor.DeleteAllBuffers()
 }
 
-func (v *Vim) writeBufferAndQuit(_ ...string) StatusBarMsg {
-	v.app.Editor.SaveBuffer()
-	v.app.ShouldQuit = true
+func (vim *Vim) writeBufferAndQuit(_ ...string) StatusBarMsg {
+	vim.app.Editor.SaveBuffer()
+	vim.app.ShouldQuit = true
 	return StatusBarMsg{}
 }
 
-func (v *Vim) setNumber(_ ...string) StatusBarMsg {
-	v.app.Editor.SetNumbers()
+func (vim *Vim) setNumber(_ ...string) StatusBarMsg {
+	vim.app.Editor.SetNumbers()
 	return StatusBarMsg{}
 }
 
-func (v *Vim) setNoNumber(_ ...string) StatusBarMsg {
-	v.app.Editor.SetNoNumbers()
+func (vim *Vim) setNoNumber(_ ...string) StatusBarMsg {
+	vim.app.Editor.SetNoNumbers()
 	return StatusBarMsg{}
 }
 
-func (v *Vim) openDefaultKeyMap(_ ...string) StatusBarMsg {
-	statusMsg := v.app.Editor.NewScratchBuffer(
+func (vim *Vim) openDefaultKeyMap(_ ...string) StatusBarMsg {
+	statusMsg := vim.app.Editor.NewScratchBuffer(
 		"Default Keymap",
-		string(v.KeyMap.DefaultKeyMap),
+		string(vim.KeyMap.DefaultKeyMap),
 	)
-	v.app.Editor.CurrentBuffer.Writeable = false
-	v.app.Editor.Textarea.MoveCursor(0, 0, 0)
-	v.app.Editor.SetContent()
+	vim.app.Editor.CurrentBuffer.Writeable = false
+	vim.app.Editor.Textarea.MoveCursor(0, 0, 0)
+	vim.app.Editor.SetContent()
 
 	return statusMsg
 }
 
-func (v *Vim) listBuffers(_ ...string) StatusBarMsg {
-	v.app.BufferList.Show()
+func (vim *Vim) listBuffers(_ ...string) StatusBarMsg {
+	vim.app.BufferList.Show()
 	return StatusBarMsg{}
 }
 
-func (v *Vim) cmdNewScratchBuffer(_ ...string) StatusBarMsg {
-	statusMsg := v.app.Editor.NewScratchBuffer("Scratch", "")
-	v.app.Editor.Textarea.SetValue("")
+func (vim *Vim) cmdNewScratchBuffer(_ ...string) StatusBarMsg {
+	statusMsg := vim.app.Editor.NewScratchBuffer("Scratch", "")
+	vim.app.Editor.Textarea.SetValue("")
 	return statusMsg
 }
