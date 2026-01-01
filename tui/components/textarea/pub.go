@@ -35,9 +35,9 @@ func (c *CursorPos) String() string {
 }
 
 type Selection struct {
-	Cursor          cursor.Model
-	Start           CursorPos
-	CurretCursorPos CursorPos
+	Cursor           cursor.Model
+	Start            CursorPos
+	CurrentCursorPos CursorPos
 
 	// The row the selection has been started on
 	StartRow int
@@ -57,7 +57,7 @@ type Selection struct {
 }
 
 // SelectionRange determines the range of the active selection
-func (s *Selection) Range() (CursorPos, CursorPos) {
+func (s *Selection) Range(cursorPos CursorPos) (CursorPos, CursorPos) {
 	selectionStart := CursorPos{
 		s.StartRow,
 		s.StartRowOffset,
@@ -65,18 +65,18 @@ func (s *Selection) Range() (CursorPos, CursorPos) {
 	}
 
 	// current cursor position which usually indicates the end of the selection
-	cursor := CursorPos{
-		s.CurretCursorPos.Row,
-		s.CurretCursorPos.RowOffset,
-		s.CurretCursorPos.ColumnOffset,
-	}
+	s.CurrentCursorPos = cursorPos
 
 	// if it's a backward selection ensure the first CursorPos is always lower
-	if selectionStart.GreaterThan(cursor) {
-		return cursor, selectionStart
+	if selectionStart.GreaterThan(cursorPos) {
+		return cursorPos, selectionStart
 	}
 
-	return selectionStart, cursor
+	return selectionStart, cursorPos
+}
+
+func (s *Selection) UpdateCursorPos(cursorPos CursorPos) {
+	s.CurrentCursorPos = cursorPos
 }
 
 type SelectionMode int
@@ -729,7 +729,7 @@ func (m *Model) DeleteLines(l int, up bool) {
 }
 
 func (m *Model) DeleteSelectedLines() {
-	minRange, maxRange := m.Selection.Range()
+	minRange, maxRange := m.Selection.Range(m.CursorPos())
 	for i := minRange.Row; i <= maxRange.Row; i++ {
 		// If there's only one line left don't delete this line, instead
 		// we just empty it
@@ -825,7 +825,7 @@ func (p CursorPos) GreaterThan(other CursorPos) bool {
 }
 
 func (m *Model) SelectionStr() string {
-	minRange, maxRange := m.Selection.Range()
+	minRange, maxRange := m.Selection.Range(m.CursorPos())
 	minRow, maxRow := minRange.Row, maxRange.Row
 
 	if minRow < 0 {
@@ -1102,7 +1102,7 @@ func (m *Model) SelectionContent() SelectionContent {
 
 	colOffset = m.LineInfo().ColumnOffset
 	rowOffset := m.LineInfo().RowOffset
-	minRange, maxRange = m.Selection.Range()
+	minRange, maxRange = m.Selection.Range(m.CursorPos())
 	cursor = CursorPos{m.row, rowOffset, colOffset}
 
 	isInRange := cursor.InRange(minRange, maxRange)
@@ -1225,7 +1225,7 @@ func (m *Model) CursorBeforeSelection() string {
 	wrappedLine := m.Selection.wrappedLline
 	lineIndex := m.Selection.lineIndex
 	cursorOffset := m.LineInfo().ColumnOffset
-	minRange, maxRange := m.Selection.Range()
+	minRange, maxRange := m.Selection.Range(m.CursorPos())
 
 	if lineIndex == minRange.Row &&
 		maxRange.Row <= m.Selection.StartRow &&
@@ -1250,7 +1250,7 @@ func (m *Model) CursorAfterSelection() string {
 	wrappedLine := m.Selection.wrappedLline
 	cursorOffset := m.LineInfo().ColumnOffset
 
-	minRange, maxRange := m.Selection.Range()
+	minRange, maxRange := m.Selection.Range(m.CursorPos())
 
 	if m.Selection.lineIndex == maxRange.Row &&
 		minRange.Row >= m.Selection.StartRow &&

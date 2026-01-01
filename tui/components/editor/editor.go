@@ -1389,7 +1389,10 @@ func (editor *Editor) DeleteRune(
 	c := editor.CurrentBuffer.CursorPos
 	char := ""
 
-	if minRange, maxRange := editor.Textarea.Selection.Range(); minRange.Row > -1 {
+	cursorPos := editor.Textarea.CursorPos()
+	minRange, maxRange := editor.Textarea.Selection.Range(cursorPos)
+
+	if minRange.Row > -1 {
 		char = editor.Textarea.SelectionStr()
 		if editor.Textarea.Selection.Mode == textarea.SelectVisualLine {
 			editor.Textarea.DeleteSelectedLines()
@@ -1506,10 +1509,7 @@ func (editor *Editor) Yank(str string) message.StatusBarMsg {
 // otherwise the cursor is moved to the beginning of the selection
 func (editor *Editor) YankSelection(keepCursor bool) message.StatusBarMsg {
 	sel := editor.Textarea.SelectionStr()
-
-	if err := clipboard.Write(sel); err != nil {
-		debug.LogDebug(err)
-	}
+	editor.Yank(sel)
 
 	var cursorDeferredCmd tea.Cmd
 
@@ -1647,8 +1647,9 @@ func (editor *Editor) Paste() message.StatusBarMsg {
 func (editor *Editor) ChangeCaseOfSelection(toUpper bool) message.StatusBarMsg {
 	editor.newHistoryEntry()
 
+	cursorPos := editor.Textarea.CursorPos()
 	selection := editor.Textarea.SelectionStr()
-	start, end := editor.Textarea.Selection.Range()
+	start, end := editor.Textarea.Selection.Range(cursorPos)
 
 	// If we're in visual line mode set the start column to the first
 	// of the first line and the end column to the last column of the
