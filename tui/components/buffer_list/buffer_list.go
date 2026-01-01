@@ -74,8 +74,14 @@ func (item BufferListItem) String() string {
 	}
 	iconRender := item.render(icon, false, item.buffer.Dirty, 3, 0, 0)
 
-	pathWidth := item.Width() - lipgloss.Width(index) - lipgloss.Width(iconRender) - lipgloss.Width(name)
-	ellipsisWidth := 4
+	var (
+		ellipsisWidth = 4
+		iconWidth     = lipgloss.Width(iconRender)
+		indexColWidth = lipgloss.Width(index)
+		nameColWidth  = lipgloss.Width(name)
+		pathWidth     = item.Width() - indexColWidth - iconWidth - nameColWidth
+	)
+
 	path := utils.TruncateText(
 		utils.RelativePath(item.PathOnly(), true),
 		pathWidth-ellipsisWidth,
@@ -183,6 +189,13 @@ func (list *BufferList) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds = append(cmds, cmd)
 	}
 
+	if list.NeedsUpdate() {
+		list.buildItems()
+		if list.SelectedIndex > list.Length-1 {
+			list.SelectedIndex = 0
+		}
+	}
+
 	return list, tea.Batch(cmds...)
 }
 
@@ -241,26 +254,25 @@ func (list *BufferList) RefreshSize() {
 	}
 }
 
-func (bl *BufferList) render() string {
-	var list strings.Builder
+func (list *BufferList) render() string {
+	var s strings.Builder
 
-	if bl.Items == nil {
-		bl.SelectedIndex = 0
+	if list.Items == nil {
+		list.SelectedIndex = 0
 	}
 
-	for i, item := range bl.Items {
-		item.IsSelected = bl.SelectedIndex == i
+	for i, item := range list.Items {
+		item.IsSelected = list.SelectedIndex == i
 		item.SetIndex(i)
 
-		list.WriteString(item.String())
-		list.WriteByte('\n')
+		s.WriteString(item.String())
+		s.WriteByte('\n')
 	}
 
-	bl.Length = len(bl.Items)
-
-	return list.String()
+	return s.String()
 }
 
+// createListItem creates a buffer list item with the given buffer.
 func (list *BufferList) createListItem(buf *editor.Buffer, index int) BufferListItem {
 	var item shared.Item
 	item.SetIndex(index)
@@ -305,24 +317,26 @@ func (list *BufferList) CancelAction(cb func()) message.StatusBarMsg {
 	return message.StatusBarMsg{}
 }
 
+// NeedsUpdate returns whether the buffer list needs an update
 func (list *BufferList) NeedsUpdate() bool {
+	// if the buffer list item amount does not match the amount of open
+	// editor buffers, we update
 	if len(list.Items) != len(*list.Buffers) {
-		list.buildItems()
 		return true
 	}
 
+	// if the buffer list item amount is equal to the open editor Buffers
+	// we check if the items in the buffer list are the ones the are
+	// actually open in the editor...
 	found := 0
-
-	for _, buf := range *list.Buffers {
-		for _, item := range list.Items {
-			if buf.Path(false) == item.Path() {
-				found++
-			}
+	for _, item := range list.Items {
+		if list.Buffers.Contain(item.Path()) {
+			found += 1
 		}
 	}
 
+	// if not then an update is needed
 	if found != len(list.Items) {
-		list.buildItems()
 		return true
 	}
 
