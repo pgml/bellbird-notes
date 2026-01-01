@@ -194,6 +194,9 @@ func (list *BufferList) buildItems() {
 		item := list.createListItem(&buffers[i], i)
 		list.Items = append(list.Items, &item)
 	}
+
+	list.Length = len(list.Items)
+	list.LastVisibleLine = list.Length
 }
 
 func (list *BufferList) View() tea.View {
