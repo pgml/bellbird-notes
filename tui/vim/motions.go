@@ -53,16 +53,17 @@ func (vim *Vim) FnRegistry() ki.MotionRegistry {
 		"CreateNote": vim.createNote,
 
 		// General
-		"EnterCommand":      vim.enterCmdMode,
-		"ShowBufferList":    vim.showBufferList,
-		"CloseBufferList":   vim.closeBufferList,
-		"ConfirmAction":     vim.confirmAction,
-		"CancelAction":      vim.cancelAction,
-		"CloseNote":         bind(vim.app.Editor.DeleteCurrentBuffer),
-		"CloseSelectedNote": vim.deleteSelectedBuffer,
-		"NewScratch":        vim.newScratchBuffer,
-		"ToggleFolders":     bind(vim.app.DirTree.Toggle),
-		"ToggleNotes":       bind(vim.app.NotesList.Toggle),
+		"EnterCommand":         vim.enterCmdMode,
+		"ShowBufferList":       vim.showBufferList,
+		"CloseBufferList":      vim.closeBufferList,
+		"ConfirmAction":        vim.confirmAction,
+		"CancelAction":         vim.cancelAction,
+		"CloseNote":            bind(vim.app.Editor.CloseCurrentBuffer),
+		"ReopenLastClosedNote": bind(vim.app.Editor.ReopenLastClosedBuffer),
+		"CloseSelectedNote":    vim.deleteSelectedBuffer,
+		"NewScratch":           vim.newScratchBuffer,
+		"ToggleFolders":        bind(vim.app.DirTree.Toggle),
+		"ToggleNotes":          bind(vim.app.NotesList.Toggle),
 
 		// Text editing
 		"SaveCurrentBuffer": bind(vim.app.Editor.SaveBuffer),

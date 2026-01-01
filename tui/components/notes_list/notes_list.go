@@ -72,7 +72,7 @@ type NotesList struct {
 	CurrentPath string
 
 	// Contains dirty buffers of the current notes list
-	DirtyBuffers []editor.Buffer
+	DirtyBuffers editor.Buffers
 
 	// Buffers holds all the open buffers
 	Buffers *editor.Buffers

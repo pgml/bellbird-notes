@@ -8,6 +8,7 @@
 | `/`                   | Search in current note      |                    |
 | `space e`             | Show open notes             | `:b`, `:buffers`   |
 | `space q`             | Close currently open note   | `:bd`              |
+| `space u`             | Reopen last closed note     |                    |
 | `space n`             | Create a new scratch buffer | `:new`             |
 
 ## Folders
