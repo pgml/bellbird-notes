@@ -352,13 +352,7 @@ func (editor *Editor) NewScratchBuffer(
 // OpenBuffer attempts to open the buffer with the given path.
 // If no buffer is found a new buffer is created
 func (editor *Editor) OpenBuffer(path string) message.StatusBarMsg {
-	relPath := utils.RelativePath(path, true)
-	icon := theme.Icon(theme.IconNote, editor.conf.NerdFonts())
-
-	statusMsg := message.StatusBarMsg{
-		Content: icon + " " + relPath,
-		Column:  sbc.FileInfo,
-	}
+	statusMsg := editor.StatusBarFileInfo(path)
 
 	buf := editor.Buffers.Find(path)
 
@@ -405,11 +399,17 @@ func (editor *Editor) ReopenLastClosedBuffer() message.StatusBarMsg {
 		return message.StatusBarMsg{}
 	}
 
-	lastIndex := len(editor.ClosedBuffers) - 1
-	latestBufPath := editor.ClosedBuffers[lastIndex]
+	var (
+		lastIndex     = len(editor.ClosedBuffers) - 1
+		latestBufPath = editor.ClosedBuffers[lastIndex]
+		statusMsg     = editor.OpenBuffer(latestBufPath)
+	)
 
-	statusMsg := editor.OpenBuffer(latestBufPath)
-	editor.ClosedBuffers = slices.Delete(editor.ClosedBuffers, lastIndex, lastIndex+1)
+	editor.ClosedBuffers = slices.Delete(
+		editor.ClosedBuffers,
+		lastIndex,
+		lastIndex+1,
+	)
 
 	return statusMsg
 }
@@ -441,13 +441,15 @@ func (editor *Editor) SaveBuffer() message.StatusBarMsg {
 		Column: sbc.General,
 	}
 
-	buf := editor.CurrentBuffer
 	rootDir, _ := app.NotesRootDir()
 
-	path := buf.path
-	relativePath := strings.ReplaceAll(path, rootDir+"/", "")
-	bufContent := editor.Textarea.Value()
-	forceCreate := buf.IsScratch
+	var (
+		buf          = editor.CurrentBuffer
+		path         = buf.path
+		relativePath = strings.ReplaceAll(path, rootDir+"/", "")
+		bufContent   = editor.Textarea.Value()
+		forceCreate  = buf.IsScratch
+	)
 
 	bytes, err := notes.Write(path, bufContent, forceCreate)
 
@@ -825,7 +827,9 @@ func (editor *Editor) UpdateStatusBarInfo() {
 	editor.StatusBarMsg = editor.StatusBarInfo()
 }
 
-func (editor *Editor) StatusBarInfo() message.StatusBarMsg {
+// StatusBarInfo returns a `StatusBarMsg` containing cursor position and
+// scrolling progression
+func (editor Editor) StatusBarInfo() message.StatusBarMsg {
 	var info strings.Builder
 	info.WriteString(editor.cursorInfo())
 	info.WriteRune('\t')
@@ -834,6 +838,17 @@ func (editor *Editor) StatusBarInfo() message.StatusBarMsg {
 	return message.StatusBarMsg{
 		Content: info.String(),
 		Column:  sbc.Progress,
+	}
+}
+
+// StatusBarFileInfo returns the relative file path as a `StatusBarMsg`
+func (editor Editor) StatusBarFileInfo(path string) message.StatusBarMsg {
+	relPath := utils.RelativePath(path, true)
+	icon := theme.Icon(theme.IconNote, editor.conf.NerdFonts())
+
+	return message.StatusBarMsg{
+		Content: icon + " " + relPath,
+		Column:  sbc.FileInfo,
 	}
 }
 

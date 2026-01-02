@@ -465,10 +465,10 @@ func (vim *Vim) confirmAction(opts ki.Options) func() StatusBarMsg {
 				items := vim.app.BufferList.Items
 				sel := items[vim.app.BufferList.SelectedIndex]
 
-				statusMsg.Cmd = editor.SendSwitchBufferMsg(
-					sel.Path(),
-					true,
-				)
+				statusMsg = vim.app.Editor.StatusBarFileInfo(sel.Path())
+				// set the tea.Cmd manually - the switch buffer msg tells
+				// the app to focus the editor. It's the only way to do this atm
+				statusMsg.Cmd = editor.SendSwitchBufferMsg(sel.Path(), true)
 
 				vim.app.BufferList.Blur()
 				vim.app.CurrentOverlay = nil
