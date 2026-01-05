@@ -791,10 +791,10 @@ func (m *Model) DownHalfPage() {
 		m.CursorDown()
 	}
 
-	min := m.viewport.YOffset
-	max := min + m.viewport.Height() - 1
+	minY := m.viewport.YOffset
+	maxY := minY + m.viewport.Height() - 1
 
-	if row := m.cursorLineNumber(); row > max {
+	if row := m.cursorLineNumber(); row > maxY {
 		m.viewport.LineDown(m.viewport.Height() / 2)
 	}
 }
@@ -1033,7 +1033,7 @@ func (m *Model) SelectInnerWord() string {
 	m.Selection.Mode = SelectVisual
 
 	var word strings.Builder
-	// move right until we find a space and break
+	// move right until we find a non-letter and break
 	for {
 		word.WriteRune(m.value[m.row][m.col])
 		m.characterRight()

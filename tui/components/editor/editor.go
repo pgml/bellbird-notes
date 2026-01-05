@@ -252,7 +252,9 @@ func (editor *Editor) SetContent() {
 // RefreshSize update the textarea height and width to match
 // the height and width of the editor
 func (editor *Editor) RefreshSize() {
-	if editor.Textarea.Width() != editor.Size.Width && editor.Textarea.Height() != editor.Size.Height {
+	if editor.Textarea.Width() != editor.Size.Width &&
+		editor.Textarea.Height() != editor.Size.Height {
+
 		const reserverdLines = 1
 		editor.Textarea.SetWidth(editor.Size.Width)
 		editor.Textarea.SetHeight(editor.Size.Height - reserverdLines)
@@ -1142,7 +1144,7 @@ func (editor *Editor) UpHalfPage() message.StatusBarMsg {
 	return editor.UpdateSelectedRowsCount()
 }
 
-// SelectWord selects the  word the cursor is currently on.
+// SelectWord selects the word the cursor is currently on.
 // If outer is true it includes the whitespace after.
 // Only effective if we're in visual mode
 func (editor *Editor) SelectWord(outer bool) message.StatusBarMsg {
