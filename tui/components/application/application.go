@@ -173,8 +173,7 @@ func (app *App) UpdateComponents(msg tea.Msg) []tea.Cmd {
 		// mode is already active which means we already start typing
 		// with the initial key that is only supposed to go into insert mode.
 		// So we set this flag AFTER the editor update method so that
-		// insert mode is activated but doesn't immediately receive any
-		// input
+		// insert mode is activated but doesn't immediately receive any input
 		app.Editor.CanInsert = false
 		if editorMode == mode.Insert || editorMode == mode.Replace {
 			app.Editor.CanInsert = true

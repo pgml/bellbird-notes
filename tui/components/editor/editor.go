@@ -31,6 +31,9 @@ import (
 const (
 	charLimit = 0
 	maxHeight = 0
+	// in ms - delay for going from visual mode to normal mode after
+	// yanking stuff
+	deferedDelay = 150
 )
 
 var (
@@ -670,10 +673,11 @@ func (editor *Editor) EnterNormalMode(withHistory bool) message.StatusBarMsg {
 }
 
 // SendEnterNormalModeDeferredMsg returns a bubbletea command that enters
-// normal mode after a 150ms delay
-func (editor *Editor) SendEnterNormalModeDeferredMsg() tea.Cmd {
+// normal mode after a delay
+func (editor *Editor) SendEnterNormalModeDeferredMsg(delay int) tea.Cmd {
 	return func() tea.Msg {
-		time.Sleep(150 * time.Millisecond)
+		duration := time.Duration(delay * int(time.Millisecond))
+		time.Sleep(duration)
 		editor.EnterNormalMode(true)
 		return shared.DeferredActionMsg{}
 	}
@@ -1237,9 +1241,36 @@ func (editor *Editor) MergeLineBelow() message.StatusBarMsg {
 	}
 
 	editor.newHistoryEntry()
-	editor.Textarea.VimMergeLineBelow(editor.CurrentBuffer.CursorPos.Row)
+
+	var (
+		selection = editor.Textarea.Selection
+		cursorPos = editor.CurrentBuffer.CursorPos
+		startRow  = selection.StartRow
+		endRow    int
+	)
+
+	// no selection - everything should be the current row
+	if startRow == -1 {
+		startRow = cursorPos.Row
+		endRow = cursorPos.Row
+	} else {
+		row := startRow
+		// get start and end row no matter the selection direction
+		startRow = min(cursorPos.Row, row)
+		endRow = max(row, cursorPos.Row) - 1
+	}
+
+	for i := startRow; i <= endRow; i += 1 {
+		editor.Textarea.VimMergeLineBelow(startRow)
+	}
+
 	editor.updateBufferContent(true)
-	return message.StatusBarMsg{}
+	editor.Textarea.ResetSelection()
+	editor.Textarea.MoveCursor(startRow, 0, cursorPos.ColumnOffset)
+
+	return message.StatusBarMsg{
+		Cmd: editor.SendEnterNormalModeDeferredMsg(50),
+	}
 }
 
 // DeleteRune the rune that the cursor is currently on.
@@ -1419,7 +1450,7 @@ func (editor *Editor) YankSelection(keepCursor bool) message.StatusBarMsg {
 	return message.StatusBarMsg{
 		Cmd: tea.Batch(
 			cursorDeferredCmd,
-			editor.SendEnterNormalModeDeferredMsg(),
+			editor.SendEnterNormalModeDeferredMsg(deferedDelay),
 		),
 	}
 }

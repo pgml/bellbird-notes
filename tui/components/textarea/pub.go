@@ -776,6 +776,9 @@ func (m *Model) DeleteWordRight() {
 }
 
 func (m *Model) VimMergeLineBelow(row int) {
+	// Ensure that we always insert a space at the given row.
+	// Important when multiple rows are selected.
+	m.row = row
 	m.CursorLineEnd()
 	m.InsertRune(' ')
 	m.SetCursorColumn(m.LineInfo().ColumnOffset - 1)
