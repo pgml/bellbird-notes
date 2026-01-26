@@ -1,0 +1,33 @@
+.{
+    .name = .bbnotes,
+    .version = "0.0.0",
+    .fingerprint = 0x3407d7277967490, // Changing this has security and trust implications.
+    .minimum_zig_version = "0.15.2",
+    .dependencies = .{
+        .vaxis = .{
+            .url = "git+https://github.com/rockorager/libvaxis.git#75035b169e91a51c233f3742161f8eb8eafca659",
+            .hash = "vaxis-0.5.1-BWNV_IE-CQBYmSf_boEKUyv6den0Gmj5LksxvdCx2pBL",
+        },
+        .@"zig-time" = .{
+            .url = "git+https://github.com/deatil/zig-time?ref=main#5c62c666350da909019f91f682471e14ba6fbc3f",
+            .hash = "zig_time-1.2.0-FD_-ClelAQB4hP6Tf3zIp3csi91UlUuO55dak6gbaXh8",
+        },
+        .diffmatchpatch = .{
+            .url = "git+https://github.com/zivoy/dmp-zig#37aa714c00ac6a60338c0f0ce6a7cf6739cf60f6",
+            .hash = "diffmatchpatch-1.2.1-bVT7VwsdBAAtXwmiDe1iE_0Fz05KQA2Qr5ArJze9Zo2e",
+        },
+        .@"known-folders" = .{
+            .url = "git+https://github.com/ziglibs/known-folders#83d39161eac2ed6f37ad3cb4d9dd518696ce90bb",
+            .hash = "known_folders-0.0.0-Fy-PJv3LAAABBRVoZWVrKZdyLoUfl5VRY5fqRRRdnF5L",
+        },
+        .microwave = .{
+            .url = "git+https://github.com/edqx/microwave#f3061b21829e7cd3569d8fc0a61414d171998e4f",
+            .hash = "microwave-1.0.0-e4c5GW-sAQDIR9S8IIGWfHveEI70SC_MbqyKnFhNQiFb",
+        },
+    },
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+    },
+}

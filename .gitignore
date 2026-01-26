@@ -1,2 +1,2 @@
-app.log
-debug.log
+.zig-cache
+zig-out
