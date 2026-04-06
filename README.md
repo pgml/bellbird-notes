@@ -1,3 +1,7 @@
+> [!NOTE]
+> ### This project is currently being rewritten in Zig. (https://codeberg.org/pgml/bellbird-notes)
+> ### Aside from the advantages that the new TUI library ([libvaxis](https://github.com/rockorager/libvaxis)) brings, I think Zig is just more appropriate for this kind of project.
+> 
 
 # Bellbird Notes
 
